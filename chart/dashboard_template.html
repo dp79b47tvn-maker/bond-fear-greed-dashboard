@@ -1,0 +1,1067 @@
+<meta charset="utf-8">
+<title>債券市場恐懼貪婪儀表板</title>
+<style>
+  /*
+    ===== COLOR LOGIC NOTE =====
+    Taiwan market convention: RED = Greed (risk-on), GREEN = Fear (risk-off).
+    Colors are named by MEANING (--tier-extreme-fear ... --tier-extreme-greed),
+    never by hue, so the mapping from score to color can never drift out of sync
+    with the palette again. Auxiliary reference lines that are NOT the score
+    itself (e.g. 10Y yield overlay, 52-week high/low reference lines, moving
+    averages) intentionally use --series-1..4 (brand/treasury/structural tones),
+    NOT the tier colors, since they don't carry a Fear/Greed meaning on their own.
+  */
+  .viz-root {
+    --page:               #f4f5f7;
+    --surface-1:          #ffffff;
+    --surface-2:          #f8f9fb;
+    --text-primary:       #161a23;
+    --text-secondary:     #4a5568;
+    --text-muted:         #667085;
+    --grid:               #e5e7eb;
+    --axis:               #a7adb9;
+    --series-1:           #1e3a5f;
+    --series-2:           #a6742a;
+    --series-3:           #5b4f8a;
+    --series-4:           #1f7a7a;
+    --tier-extreme-fear:  #2f6b4f;
+    --tier-fear:          #5c8a6e;
+    --tier-neutral:       #6b7280;
+    --tier-greed:         #b1592f;
+    --tier-extreme-greed: #a6362f;
+    --border:             #dfe2e8;
+    --shadow:             0 8px 24px rgba(22,26,35,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+      --grid: #262b36; --axis: #4a5164;
+      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+      --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
+      --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
+      --border: #2c313d; --shadow: 0 8px 24px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+    --grid: #262b36; --axis: #4a5164;
+    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+    --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
+    --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
+    --border: #2c313d; --shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  :root[data-theme="light"] .viz-root {
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --tier-extreme-fear: #2f6b4f; --tier-fear: #5c8a6e; --tier-neutral: #6b7280;
+    --tier-greed: #b1592f; --tier-extreme-greed: #a6362f;
+    --border: #dfe2e8; --shadow: 0 8px 24px rgba(22,26,35,0.07);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .viz-root { max-width: 1180px; margin: 0 auto; padding: 32px 24px 56px; color: var(--text-primary); }
+  h1 { font-size: 30px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 15px; color: var(--text-secondary); margin: 0 0 6px; font-weight: 500; }
+  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 24px; line-height: 1.6; max-width: 860px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+
+  /* ---- gauge ---- */
+  .gauge-card { padding: 34px 28px 28px; margin-bottom: 18px; text-align: center; }
+  .gauge-wrap { max-width: 440px; margin: 0 auto; position: relative; }
+  .gauge-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .gauge-svg { width: 100%; height: auto; display: block; }
+  .gauge-score { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; margin-top: -16px; }
+  .gauge-tag { display: inline-flex; align-items: center; padding: 5px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; margin-top: 8px; }
+  .gauge-date { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .compare-row { display: flex; justify-content: center; gap: 30px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .compare-item { text-align: center; min-width: 78px; }
+  .compare-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+  .compare-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .compare-tag { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+  /* ---- main composite chart ---- */
+  .chart-card { padding: 20px 20px 12px; margin-bottom: 16px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 14px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .swatch-line { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .main-chart-svg, .comp-svg, .raw-chart-svg { cursor: crosshair; }
+  .axis-label { font-size: 11px; fill: var(--text-muted); }
+  .axis-title { font-size: 11px; fill: var(--text-muted); font-weight: 600; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .series-line { fill: none; stroke: var(--series-1); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+  .ust-line { fill: none; stroke: var(--series-2); stroke-width: 1.6; stroke-linejoin: round; stroke-dasharray: none; }
+  .selected-line { stroke: var(--text-primary); stroke-width: 1.4; }
+  .chart-wrap { position: relative; }
+  .selected-readout { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 6px 4px 2px; font-size: 13px; color: var(--text-secondary); }
+  .selected-readout b { font-size: 17px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  .controls { display: flex; align-items: center; gap: 14px; padding: 8px 4px 0; flex-wrap: wrap; }
+  .controls label { font-size: 12px; color: var(--text-secondary); }
+  .timeline { flex: 1; min-width: 220px; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--grid); outline: none; }
+  .timeline::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--series-1); cursor: pointer; border: 2px solid var(--surface-1); box-shadow: var(--shadow); }
+  .timeline::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--series-1); cursor: pointer; border: 2px solid var(--surface-1); }
+  .date-input { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-primary); font-family: inherit; }
+  .jump-today { font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-family: inherit; }
+  .jump-today:hover { background: var(--grid); }
+  .foot-note { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.6; }
+
+  /* ---- zoom controls (shared across all charts) ---- */
+  .chart-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .zoom-reset-btn { font-size: 11px; padding: 4px 10px; }
+  .zoom-reset-btn.active { border-color: var(--series-1); color: var(--series-1); font-weight: 600; }
+  .zoom-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* ---- component cards ---- */
+  .comp-card { padding: 24px 26px 20px; margin-bottom: 18px; }
+  .comp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .comp-title-block { flex: 1; min-width: 220px; }
+  .comp-kicker { font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .comp-score-block { text-align: right; }
+  .comp-score-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .comp-score-tag { font-size: 12px; font-weight: 600; margin-top: 3px; }
+  .comp-raw { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .comp-body { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: stretch; }
+  @media (max-width: 640px) { .comp-body { grid-template-columns: 1fr; } .comp-vdist { display:none; } }
+  .comp-vdist { position: relative; }
+  .comp-vdist svg { height: 100%; }
+  .comp-svg-wrap { position: relative; }
+  .comp-tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+    font-size: 11px; color: var(--text-primary); box-shadow: var(--shadow);
+    white-space: nowrap; opacity: 0; transition: opacity 0.08s; z-index: 5;
+  }
+  .overlay-toggle { font-size: 12px; color: var(--text-secondary); display: inline-flex; gap: 6px; align-items: center; margin-top: 6px; cursor: pointer; user-select: none; }
+  .overlay-toggle input { accent-color: var(--series-2); cursor: pointer; }
+
+  .logic-btn {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+    margin-top: 6px; font-family: inherit;
+  }
+  .logic-btn:hover { background: var(--grid); color: var(--text-primary); }
+  .logic-btn .i-dot { width: 15px; height: 15px; border-radius: 50%; background: var(--series-1); color: #fff; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
+  .logic-btn.open { background: var(--grid); color: var(--text-primary); }
+  .logic-panel { display: none; font-size: 12.5px; color: var(--text-secondary); line-height: 1.75; margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); text-align: left; }
+  .logic-panel.open { display: block; }
+  .logic-panel b { color: var(--text-primary); }
+  .method-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 8px 0; }
+  .method-table th, .method-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+  .method-table th { color: var(--text-muted); font-weight: 600; }
+  .method-table td.mt-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+  .comp-explain { font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border); }
+  .comp-explain b { color: var(--text-primary); }
+  .comp-supplementary { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .logic-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .logic-btn-row .logic-btn { margin-top: 0; }
+  .raw-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 10px; }
+  .raw-chart-legend .legend-item { display: flex; align-items: center; gap: 6px; }
+  .raw-chart-wrap { position: relative; }
+  .placeholder-box {
+    border: 1.5px dashed var(--axis); border-radius: 10px; padding: 26px 20px;
+    text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.8;
+    background: var(--surface-2);
+  }
+  .section-heading { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin: 26px 0 10px; display: flex; align-items: center; gap: 10px; }
+  .section-heading::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+</style>
+
+<div class="viz-root">
+  <h1>債券市場恐懼貪婪儀表板</h1>
+  <p class="subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
+  <p class="caption">動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
+
+  <!-- ===== 1. 總體指數：儀表 ===== -->
+  <div class="card gauge-card">
+    <p class="gauge-label">最新收盤日綜合分數</p>
+    <div class="gauge-wrap">
+      <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="gauge-score" id="gaugeScore"></div>
+      <div class="gauge-tag" id="gaugeTag"></div>
+      <div class="gauge-date" id="gaugeDate"></div>
+    </div>
+    <div class="compare-row" id="compareRow"></div>
+    <button class="logic-btn" type="button"><span class="i-dot">i</span>綜合分數的計算邏輯與可信度</button>
+    <div class="logic-panel">
+      <b>怎麼算：</b>綜合分數 = 七個分項（動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外）各自0–100分的<b>等權重算術平均</b>；
+      某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。<br>
+      <b>各分項為何是0–100：</b>除「強度」本身就是區間位置比例外，其餘分項都是把當天原始數值放進<b>過去5年的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
+      百分位法的好處是不受單位與量級影響，任何指標都能公平地放在同一把尺上平均。<br>
+      <b>資料來源與更新：</b>Yahoo Finance（ZN=F、NQ=F、TLT、SHY、^MOVE 每日收盤價）、Treasury.gov（每日殖利率曲線官方數據）、FRED聖路易斯聯邦準備銀行（CPI、10年期損益兩平通膨率）、使用者Excel輸入（put/call等自備數據，來源可自行驗證）。
+      每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
+      <b>禁止引用未來資料：</b>所有滾動計算（125日均線、252日高低、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
+      每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
+      <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。<br>
+      <b>實驗性功能：</b>下方「綜合指數歷史時間軸」可以額外打開一條「情境加權分數」虛線——不是取代這裡的等權重分數，是用來觀察「依Fed利率循環動態調整因子權重」這個實驗性做法，跟現行做法差多少。詳情見該圖表下方的說明按鈕。
+    </div>
+  </div>
+
+  <!-- ===== 2. 總體指數時間軸（疊10年期殖利率） ===== -->
+  <div class="card chart-card">
+    <h2>綜合指數歷史時間軸</h2>
+    <button class="logic-btn" type="button"><span class="i-dot">i</span>這張圖怎麼讀</button>
+    <div class="logic-panel">
+      <b>藍線</b>是綜合恐懼貪婪分數（左軸0–100），背景五色橫帶對應五個分級區間，線落在哪個顏色就是哪個情緒等級。
+      <b>橘線</b>是美國10年期公債殖利率（右軸，%），資料來自Treasury.gov官方每日殖利率曲線——它<b>只是參考疊圖，不參與分數計算</b>，
+      放在一起是為了讓你對照情緒指標與利率水準的走勢關係（例如2022年殖利率急升期間，分數長期處於恐懼區）。<br>
+      <b>互動：</b>直接在圖上按住拖曳、拖下方滑桿、或用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
+      <b>縮放（跟拖曳選日期是兩件事）：</b>滑鼠滾輪可縮放，或按住 Shift 拖曳框選一段範圍放大；按「回到全部時間範圍」或雙擊圖表可重置。
+    </div>
+    <div id="regimeScoreExplainWrap" style="display:none">
+      <button class="logic-btn" type="button" data-target="logic-regime-explain"><span class="i-dot">i</span>紫色虛線是什麼（實驗性）</button>
+      <div class="logic-panel" id="logic-regime-explain"></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch-line" style="background:var(--series-1)"></span>綜合恐懼貪婪分數（左軸）</div>
+      <div class="legend-item"><span class="swatch-line" style="background:var(--series-2)"></span>美國10年期公債殖利率（右軸，%）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-fear); opacity:0.55"></span>極度恐懼 0–24</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-fear); opacity:0.45"></span>恐懼 25–44</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-neutral)"></span>中性 45–55</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-greed); opacity:0.55"></span>貪婪 56–75</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-greed); opacity:0.55"></span>極度貪婪 76–100</div>
+    </div>
+    <label class="overlay-toggle" id="regimeToggleWrap" style="display:none">
+      <input type="checkbox" id="regimeToggle">
+      <span class="swatch-line" style="background:var(--series-3)"></span>顯示情境加權分數（實驗性，虛線）
+    </label>
+    <div class="chart-wrap">
+      <svg id="mainChart" class="main-chart-svg" viewBox="0 0 1140 440" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="chart-toolbar">
+      <button class="jump-today zoom-reset-btn" id="mainZoomReset" type="button">回到全部時間範圍</button>
+      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+    </div>
+    <div class="selected-readout" id="mainReadout"></div>
+    <div class="controls">
+      <label>拖曳時間軸選日期</label>
+      <input type="range" class="timeline" id="timelineSlider" min="0" max="1" value="1" step="1">
+      <label>跳至日期</label>
+      <input type="date" class="date-input" id="dateJump">
+      <button class="jump-today" id="jumpToday">回到最新</button>
+    </div>
+    <p class="foot-note">
+      分數為每日收盤資料計算，非盤中即時。拖曳上方任何圖表（含下方各分項小圖）都會連動整頁的選定日期；
+      縮放是每張圖各自獨立的檢視範圍，跟「選定日期」是兩件不同的事。殖利率線只是價格參考疊圖，不參與分數計算。
+    </p>
+  </div>
+
+  <!-- ===== 3. 各分項拆解 ===== -->
+  <div class="section-heading">分項拆解 — 每項各自的計算方式與歷史時間軸</div>
+  <div id="componentCards"></div>
+
+  <p class="foot-note">
+    資料來源：Yahoo Finance（ZN=F、NQ=F、TLT、SHY、^MOVE 每日收盤）、Treasury.gov（10年期、2年期殖利率）、FRED聖路易斯聯邦準備銀行（CPI、10年期損益兩平通膨率）。缺值以前一交易日／前一公布值補齊；
+    百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年（或滿252/125/90/40交易日）窗口，且所有計算僅使用當天以前的歷史資料，不引用未來資料。
+    Excel 資料輸入：把任何項目的歷史數據填入 <b>data_input.xlsx</b>（DataInput 分頁，欄位：Date、ZN_futures、NQ_futures、TLT、SHY、MOVE_index、UST_10Yr、UST_2Yr、put_call_ratio，
+    填哪欄導入哪欄，你填的值優先於自動抓取），執行 <b>python3 update_dashboard.py</b> 即自動重算並更新本頁。
+  </p>
+</div>
+
+<script>
+const DATA = __DATA_JSON__;
+const REGIME_META = __REGIME_META_JSON__;
+const n = DATA.length;
+const latestIdx = n - 1;
+const dateAt = i => DATA[i].date;
+
+function zoneColor(score) {
+  if (score == null) return "var(--text-muted)";
+  if (score < 25) return "var(--tier-extreme-fear)";
+  if (score < 45) return "var(--tier-fear)";
+  if (score < 56) return "var(--tier-neutral)";
+  if (score < 76) return "var(--tier-greed)";
+  return "var(--tier-extreme-greed)";
+}
+function zoneLabel(score) {
+  if (score == null) return "—";
+  if (score < 25) return "極度恐懼";
+  if (score < 45) return "恐懼";
+  if (score < 56) return "中性";
+  if (score < 76) return "貪婪";
+  return "極度貪婪";
+}
+
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+const ZONES = [
+  { lo: 0, hi: 25, color: "var(--tier-extreme-fear)", opacity: 0.13 },
+  { lo: 25, hi: 45, color: "var(--tier-fear)", opacity: 0.11 },
+  { lo: 45, hi: 56, color: "var(--tier-neutral)", opacity: 0.35 },
+  { lo: 56, hi: 76, color: "var(--tier-greed)", opacity: 0.13 },
+  { lo: 76, hi: 100, color: "var(--tier-extreme-greed)", opacity: 0.13 },
+];
+
+// ================================================================
+// 通用可縮放折線圖工廠：主圖、各分項分數圖、各分項原始走勢圖都共用這一份邏輯。
+// 縮放（滾輪／Shift拖曳框選／重置按鈕）跟「拖曳選日期」是分開的兩套互動：
+// 一般拖曳＝scrub（呼叫 onScrub 更新全頁選定日期），按住 Shift 拖曳＝框選放大。
+// ================================================================
+function buildChart(cfg) {
+  const {
+    svgEl, W, H, M, dateAt,
+    yMode,                 // "fixed100" | "auto"
+    zones,                 // optional zone bands (fixed100 only)
+    series,                 // [{ get(i), color, width }]
+    secondary,               // optional { get(i), color, min, max, format }
+    tooltipEl, tooltipRender, // optional hover tooltip
+    onScrub,                 // (idx) => {}
+    resetBtnEl,               // optional <button>
+    minSpan = 15,
+    markerDot = true,
+  } = cfg;
+
+  const plotW = W - M.left - M.right;
+  const plotH = H - M.top - M.bottom;
+
+  let viewLo = 0, viewHi = n - 1;
+  let secondaryVisible = true;
+  const seriesVisible = series.map(s => s.visible !== false);
+  let yMin = 0, yMax = 100;
+  let secMin = secondary ? secondary.min : 0, secMax = secondary ? secondary.max : 1;
+
+  function xScale(i) { return M.left + ((i - viewLo) / (viewHi - viewLo)) * plotW; }
+  function yScale(v) { return M.top + (1 - (v - yMin) / (yMax - yMin)) * plotH; }
+  function ySecScale(v) { return M.top + (1 - (v - secMin) / (secMax - secMin)) * plotH; }
+
+  function computeAutoYDomain() {
+    let lo = Infinity, hi = -Infinity;
+    const iStart = Math.max(0, Math.floor(viewLo));
+    const iEnd = Math.min(n - 1, Math.ceil(viewHi));
+    for (let i = iStart; i <= iEnd; i++) {
+      series.forEach(s => {
+        const v = s.get(i);
+        if (v != null) { if (v < lo) lo = v; if (v > hi) hi = v; }
+      });
+    }
+    if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+    const pad = (hi - lo) * 0.08 || 1;
+    return { min: lo - pad, max: hi + pad };
+  }
+
+  function formatNum(v) {
+    if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString();
+    return Number.isInteger(v) ? String(v) : v.toFixed(v < 10 ? 2 : 1);
+  }
+
+  function computeXTicks() {
+    const spanDays = viewHi - viewLo;
+    const iStart = Math.max(0, Math.ceil(viewLo));
+    const iEnd = Math.min(n - 1, Math.floor(viewHi));
+    let ticks = [];
+    if (spanDays > 500) {
+      for (let i = iStart; i <= iEnd; i++) {
+        if (dateAt(i).slice(5, 10) === "01-01" || i === iStart) ticks.push({ i, label: dateAt(i).slice(0, 4) });
+      }
+    } else if (spanDays > 55) {
+      let lastYm = null;
+      for (let i = iStart; i <= iEnd; i++) {
+        const ym = dateAt(i).slice(0, 7);
+        if (ym !== lastYm) { ticks.push({ i, label: ym }); lastYm = ym; }
+      }
+    } else {
+      const step = Math.max(1, Math.round(spanDays / 6) || 1);
+      for (let i = iStart; i <= iEnd; i += step) ticks.push({ i, label: dateAt(i).slice(5, 10) });
+    }
+    if (ticks.length > 10) {
+      const stride = Math.ceil(ticks.length / 8);
+      ticks = ticks.filter((_, k) => k % stride === 0);
+    }
+    return ticks;
+  }
+
+  // ---- persistent layer groups ----
+  const staticGroup = el("g", {});
+  const axisGroup = el("g", {});
+  const secondaryGroup = el("g", {});
+  const seriesGroup = el("g", {});
+  const selGroup = el("g", {});
+  const selectRectGroup = el("g", {});
+  [staticGroup, axisGroup, secondaryGroup, seriesGroup, selGroup].forEach(g => svgEl.appendChild(g));
+
+  if (yMode === "fixed100" && zones) {
+    zones.forEach(z => {
+      staticGroup.appendChild(el("rect", { x: M.left, y: yScale(z.hi), width: plotW, height: yScale(z.lo) - yScale(z.hi), fill: z.color, opacity: z.opacity }));
+    });
+  }
+
+  const selLine = el("line", { class: "selected-line", y1: M.top, y2: H - M.bottom, x1: 0, x2: 0 });
+  selGroup.appendChild(selLine);
+  let selDot = null;
+  if (markerDot) {
+    selDot = el("circle", { r: 4, fill: "var(--surface-1)", stroke: "var(--text-primary)", "stroke-width": 2 });
+    selGroup.appendChild(selDot);
+  }
+  let markerIdx = latestIdx;
+
+  function updateMarkerPosition() {
+    const inView = markerIdx >= viewLo && markerIdx <= viewHi;
+    selGroup.style.display = inView ? "" : "none";
+    if (!inView) return;
+    const x = xScale(markerIdx);
+    selLine.setAttribute("x1", x); selLine.setAttribute("x2", x);
+    if (selDot) {
+      const v = series[0] ? series[0].get(markerIdx) : null;
+      if (v == null) { selDot.style.opacity = 0; }
+      else { selDot.style.opacity = 1; selDot.setAttribute("cx", x); selDot.setAttribute("cy", yScale(v)); }
+    }
+  }
+  function setMarker(idx) { markerIdx = idx; updateMarkerPosition(); }
+
+  function redraw() {
+    if (yMode === "auto") {
+      const d = computeAutoYDomain();
+      yMin = d.min; yMax = d.max;
+    }
+    axisGroup.innerHTML = "";
+    seriesGroup.innerHTML = "";
+    secondaryGroup.innerHTML = "";
+
+    const yTickVals = yMode === "fixed100" ? [0, 25, 45, 56, 76, 100] : (() => {
+      const arr = []; for (let k = 0; k <= 5; k++) arr.push(yMin + ((yMax - yMin) * k) / 5); return arr;
+    })();
+    yTickVals.forEach(v => {
+      const y = yScale(v);
+      axisGroup.appendChild(el("line", { x1: M.left, x2: W - M.right, y1: y, y2: y, class: "grid-line" }));
+      const t = el("text", { x: M.left - 6, y: y + 3, class: "axis-label", "text-anchor": "end" });
+      t.textContent = formatNum(v);
+      axisGroup.appendChild(t);
+    });
+    if (secondary) {
+      const step = (secMax - secMin) / 4;
+      for (let k = 0; k <= 4; k++) {
+        const v = secMin + step * k;
+        const t = el("text", { x: W - M.right + 8, y: ySecScale(v) + 3, class: "axis-label", "text-anchor": "start", fill: secondary.color });
+        t.textContent = secondary.format ? secondary.format(v) : v.toFixed(1);
+        axisGroup.appendChild(t);
+      }
+    }
+    computeXTicks().forEach(({ i, label }) => {
+      const x = xScale(i);
+      axisGroup.appendChild(el("line", { x1: x, x2: x, y1: M.top, y2: H - M.bottom, class: "grid-line" }));
+      const t = el("text", { x, y: H - M.bottom + 15, class: "axis-label", "text-anchor": "middle" });
+      t.textContent = label;
+      axisGroup.appendChild(t);
+    });
+    axisGroup.appendChild(el("line", { x1: M.left, x2: W - M.right, y1: H - M.bottom, y2: H - M.bottom, stroke: "var(--axis)", "stroke-width": 1 }));
+
+    const iStart = Math.max(0, Math.floor(viewLo));
+    const iEnd = Math.min(n - 1, Math.ceil(viewHi));
+    series.forEach((s, si) => {
+      if (!seriesVisible[si]) return;
+      let d = "", started = false;
+      for (let i = iStart; i <= iEnd; i++) {
+        const v = s.get(i);
+        if (v == null) { started = false; continue; }
+        const x = xScale(i), y = yScale(v);
+        d += (started ? "L" : "M") + x.toFixed(2) + "," + y.toFixed(2) + " ";
+        started = true;
+      }
+      const attrs = { d, fill: "none", stroke: s.color, "stroke-width": s.width || 1.4, "stroke-linejoin": "round", "stroke-linecap": "round" };
+      if (s.dash) attrs["stroke-dasharray"] = s.dash;
+      seriesGroup.appendChild(el("path", attrs));
+    });
+    if (secondary) {
+      let d = "", started = false;
+      for (let i = iStart; i <= iEnd; i++) {
+        const v = secondary.get(i);
+        if (v == null) { started = false; continue; }
+        const x = xScale(i), y = ySecScale(v);
+        d += (started ? "L" : "M") + x.toFixed(2) + "," + y.toFixed(2) + " ";
+        started = true;
+      }
+      secondaryGroup.appendChild(el("path", { d, fill: "none", stroke: secondary.color, "stroke-width": 1.6, "stroke-linejoin": "round", opacity: 0.85 }));
+      secondaryGroup.style.display = secondaryVisible ? "" : "none";
+    }
+    updateMarkerPosition();
+  }
+
+  const overlay = el("rect", { x: M.left, y: M.top, width: plotW, height: plotH, fill: "transparent" });
+  svgEl.appendChild(overlay);
+  const selectRect = el("rect", { fill: "var(--series-1)", opacity: 0.12, y: M.top, height: plotH });
+  selectRect.style.display = "none";
+  selectRectGroup.appendChild(selectRect);
+  svgEl.appendChild(selectRectGroup);
+
+  function idxFromClientX(clientX) {
+    const rect = svgEl.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const mx = (clientX - rect.left) * scaleX;
+    const frac = (mx - M.left) / plotW;
+    return viewLo + frac * (viewHi - viewLo);
+  }
+
+  function setView(newLo, newHi) {
+    newLo = Math.max(0, newLo);
+    newHi = Math.min(n - 1, newHi);
+    if (newHi - newLo < minSpan) {
+      const mid = (newLo + newHi) / 2;
+      newLo = Math.max(0, mid - minSpan / 2);
+      newHi = Math.min(n - 1, newLo + minSpan);
+      newLo = newHi - minSpan;
+    }
+    viewLo = newLo; viewHi = newHi;
+    redraw();
+    if (resetBtnEl) resetBtnEl.classList.toggle("active", !(viewLo <= 0.001 && viewHi >= n - 1 - 0.001));
+  }
+  function resetView() { setView(0, n - 1); }
+  if (resetBtnEl) resetBtnEl.addEventListener("click", resetView);
+
+  overlay.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const idxAtCursor = idxFromClientX(e.clientX);
+    const factor = e.deltaY > 0 ? 1.2 : 1 / 1.2;
+    const span = viewHi - viewLo;
+    const newSpan = Math.max(minSpan, Math.min(n - 1, span * factor));
+    const newLo = idxAtCursor - (idxAtCursor - viewLo) * (newSpan / span);
+    setView(newLo, newLo + newSpan);
+  }, { passive: false });
+
+  let dragMode = null;
+  let dragStartClientX = null;
+
+  overlay.addEventListener("mousedown", (e) => {
+    if (e.shiftKey) {
+      dragMode = "zoom";
+      dragStartClientX = e.clientX;
+      selectRect.style.display = "";
+      const x0 = xScale(idxFromClientX(e.clientX));
+      selectRect.setAttribute("x", x0);
+      selectRect.setAttribute("width", 0);
+    } else {
+      dragMode = "scrub";
+      if (onScrub) onScrub(Math.round(idxFromClientX(e.clientX)));
+    }
+  });
+  overlay.addEventListener("mousemove", (e) => {
+    const idx = idxFromClientX(e.clientX);
+    if (dragMode === "scrub") {
+      if (onScrub) onScrub(Math.round(idx));
+    } else if (dragMode === "zoom") {
+      const startIdx = idxFromClientX(dragStartClientX);
+      const x1 = xScale(Math.max(viewLo, Math.min(startIdx, idx)));
+      const x2 = xScale(Math.min(viewHi, Math.max(startIdx, idx)));
+      selectRect.setAttribute("x", Math.min(x1, x2));
+      selectRect.setAttribute("width", Math.max(0, Math.abs(x2 - x1)));
+    }
+    if (tooltipEl && tooltipRender && dragMode == null) {
+      const rect = svgEl.getBoundingClientRect();
+      const ci = Math.round(idx);
+      const px = (xScale(ci) / W) * rect.width;
+      tooltipEl.style.left = (px + 10) + "px";
+      tooltipEl.style.top = "8px";
+      tooltipEl.innerHTML = tooltipRender(ci);
+      tooltipEl.style.opacity = 1;
+    }
+  });
+  overlay.addEventListener("mouseleave", () => { if (tooltipEl) tooltipEl.style.opacity = 0; });
+  window.addEventListener("mouseup", (e) => {
+    if (dragMode === "zoom") {
+      const startIdx = idxFromClientX(dragStartClientX);
+      const curIdx = idxFromClientX(e.clientX);
+      selectRect.style.display = "none";
+      if (Math.abs(curIdx - startIdx) > 3) setView(Math.min(startIdx, curIdx), Math.max(startIdx, curIdx));
+    }
+    dragMode = null;
+  });
+  overlay.addEventListener("dblclick", () => resetView());
+  overlay.addEventListener("touchstart", (e) => {
+    dragMode = "scrub";
+    if (onScrub) onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
+  }, { passive: true });
+  overlay.addEventListener("touchmove", (e) => {
+    if (dragMode === "scrub" && onScrub) onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
+  }, { passive: true });
+  overlay.addEventListener("touchend", () => { dragMode = null; });
+
+  function setSecondaryVisible(v) { secondaryVisible = v; secondaryGroup.style.display = v ? "" : "none"; }
+  function setSeriesVisible(idx, v) { seriesVisible[idx] = v; redraw(); }
+
+  redraw();
+  return { setMarker, setSecondaryVisible, setSeriesVisible, resetView };
+}
+
+// ============ 1. Gauge ============
+const gaugeSvg = document.getElementById("gaugeSvg");
+const GCX = 160, GCY = 165, GR = 128, GSTROKE = 26;
+function gAngle(s) { return Math.PI - (Math.PI * s) / 100; }
+function gPoint(score, r) {
+  const a = gAngle(score);
+  return { x: GCX + r * Math.cos(a), y: GCY - r * Math.sin(a) };
+}
+function gArc(lo, hi, r) {
+  const p1 = gPoint(lo, r), p2 = gPoint(hi, r);
+  return `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A ${r},${r} 0 0,1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+}
+gaugeSvg.appendChild(el("path", { d: gArc(0, 100, GR), fill: "none", stroke: "var(--grid)", "stroke-width": GSTROKE }));
+[
+  { lo: 0, hi: 25, color: "var(--tier-extreme-fear)" },
+  { lo: 25, hi: 45, color: "var(--tier-fear)" },
+  { lo: 45, hi: 56, color: "var(--tier-neutral)" },
+  { lo: 56, hi: 76, color: "var(--tier-greed)" },
+  { lo: 76, hi: 100, color: "var(--tier-extreme-greed)" },
+].forEach(z => {
+  const lo = z.lo === 0 ? z.lo : z.lo + 0.8;
+  const hi = z.hi === 100 ? z.hi : z.hi - 0.8;
+  gaugeSvg.appendChild(el("path", { d: gArc(lo, hi, GR), fill: "none", stroke: z.color, "stroke-width": GSTROKE }));
+});
+[0, 25, 45, 56, 76, 100].forEach(v => {
+  const p = gPoint(v, GR + 20);
+  const t = el("text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "axis-label" });
+  t.textContent = v;
+  gaugeSvg.appendChild(t);
+});
+const needleGroup = el("g", {});
+needleGroup.appendChild(el("line", { x1: GCX, y1: GCY, x2: GCX, y2: GCY - (GR - GSTROKE / 2 - 6), stroke: "var(--text-primary)", "stroke-width": 3, "stroke-linecap": "round" }));
+needleGroup.appendChild(el("circle", { cx: GCX, cy: GCY, r: 7, fill: "var(--text-primary)" }));
+gaugeSvg.appendChild(needleGroup);
+
+function renderGauge(pt) {
+  const s = pt.score == null ? 50 : pt.score;
+  const deg = 90 - (gAngle(s) * 180) / Math.PI;
+  needleGroup.setAttribute("transform", `rotate(${deg} ${GCX} ${GCY})`);
+  document.getElementById("gaugeScore").textContent = pt.score == null ? "—" : pt.score.toFixed(1);
+  document.getElementById("gaugeScore").style.color = zoneColor(pt.score);
+  const tag = document.getElementById("gaugeTag");
+  tag.textContent = pt.label || zoneLabel(pt.score);
+  tag.style.background = `color-mix(in srgb, ${zoneColor(pt.score)} 16%, transparent)`;
+  tag.style.color = zoneColor(pt.score);
+  document.getElementById("gaugeDate").textContent = pt.date;
+}
+renderGauge(DATA[latestIdx]);
+
+const compareRow = document.getElementById("compareRow");
+[
+  { label: "前一交易日", days: 1 },
+  { label: "一週前", days: 7 },
+  { label: "一個月前", days: 30 },
+  { label: "一年前", days: 365 },
+].forEach(({ label, days }) => {
+  const idx = latestIdx - days;
+  if (idx < 0) return;
+  const pt = DATA[idx];
+  const div = document.createElement("div");
+  div.className = "compare-item";
+  div.innerHTML = `
+    <div class="compare-label">${label}</div>
+    <div class="compare-value" style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(1)}</div>
+    <div class="compare-tag" style="color:${zoneColor(pt.score)}">${pt.label || "—"}</div>
+  `;
+  compareRow.appendChild(div);
+});
+
+// ============ 2. Main composite chart with UST10Y overlay ============
+const MW = 1140, MH = 440;
+const MM = { left: 46, right: 52, top: 14, bottom: 34 };
+
+const ustVals = DATA.map(d => d.ust10yr).filter(v => v != null);
+const ustMin = Math.floor(Math.min(...ustVals) * 2) / 2;
+const ustMax = Math.ceil(Math.max(...ustVals) * 2) / 2;
+
+const mainChart = document.getElementById("mainChart");
+const mainReadout = document.getElementById("mainReadout");
+function renderMainReadout(pt) {
+  mainReadout.innerHTML = `
+    <span>選定日期 <b>${pt.date}</b></span>
+    <span>綜合分數 <b style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(1)}</b> ${pt.label || ""}</span>
+    <span>10年期殖利率 <b style="color:var(--series-2)">${pt.ust10yr == null ? "—" : pt.ust10yr.toFixed(2) + "%"}</b></span>
+  `;
+}
+
+const hasRegimeScore = DATA.some(d => d.regimeScore != null);
+
+const mainChartHandle = buildChart({
+  svgEl: mainChart, W: MW, H: MH, M: MM, dateAt,
+  yMode: "fixed100",
+  zones: ZONES,
+  series: hasRegimeScore ? [
+    { get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 },
+    { get: i => DATA[i].regimeScore, color: "var(--series-3)", width: 1.4, dash: "5 4", visible: false },
+  ] : [{ get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 }],
+  secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
+  resetBtnEl: document.getElementById("mainZoomReset"),
+  onScrub: (idx) => setSelectedIndex(idx),
+});
+
+// ---- 情境加權分數（實驗性）toggle + 說明 ----
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+if (hasRegimeScore && REGIME_META) {
+  document.getElementById("regimeToggleWrap").style.display = "";
+  document.getElementById("regimeScoreExplainWrap").style.display = "";
+  const regimeToggle = document.getElementById("regimeToggle");
+  regimeToggle.addEventListener("change", () => mainChartHandle.setSeriesVisible(1, regimeToggle.checked));
+
+  const oosCount = DATA.filter(d => d.date > REGIME_META.freeze_date).length;
+  const factorCount = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).length;
+  const factorNames = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).join("、");
+  const weightRows = Object.entries(REGIME_META.weight_by_regime).map(([regime, w]) =>
+    `<tr><td class="mt-name">${escapeHtml(regime)}</td>` + Object.entries(w).map(([k, v]) => `<td>${escapeHtml(k)} ${(v * 100).toFixed(0)}%</td>`).join("") + `</tr>`
+  ).join("");
+  document.getElementById("logic-regime-explain").innerHTML = `
+    <b>這是什麼：</b>紫色虛線是「情境加權分數」——不是用固定的等權重平均，而是依照目前所處的Fed利率循環階段（升息／暫停／降息），動態調整${escapeHtml(factorNames)}等${factorCount}項因子各自的權重（Put/Call因無歷史資料，暫不納入）。方向邏輯：不同市場情境下，各因子對未來報酬的實際相關性不一樣，讓權重跟著情境調整，理論上應該比固定等權重更準。<br>
+    <b>權重是怎麼決定的：</b>${escapeHtml(REGIME_META.method_description)}<br>
+    <b>權重表（依Fed循環階段）：</b>
+    <table class="method-table"><tr><th>階段</th><th colspan="${factorCount}">各因子權重</th></tr>${weightRows}</table>
+    <b>權重快照凍結日期：</b>${REGIME_META.freeze_date}（用${REGIME_META.derived_from_data_range[0]} ~ ${REGIME_META.derived_from_data_range[1]}的資料推導出來，凍結後不會每天重新校準）。<br>
+    <b>目前樣本外驗證天數：</b>${oosCount}天（凍結日期之後累積的、還沒被權重看過的新資料）。這個天數必須累積到至少幾十天以上，才有一點點參考價值；現在如果天數還很少，代表這條線的可信度還在累積中，<b>請不要單獨依賴這條線做決策</b>，目前正式的判斷依據仍然是等權重的藍線。<br>
+    <b>回測相關性偏高的原因（請務必留意）：</b>回測顯示這條線跟未來報酬的相關性比等權重版本更高，但這主要是因為權重本身就是用「哪個因子在哪個階段跟未來報酬最相關」這件事反推出來的——用同一份資料去測驗證它，本來就會比較好看，這不是獨立驗證的證據。真正有意義的檢驗，要看上面的樣本外天數累積後、<code>validate_regime_weights.py</code> 的結果。<br>
+    <b>為什麼是虛線、預設關閉：</b>這是實驗性功能，用來讓你觀察兩種算法在同一段時間的分歧，不是取代現有指標。之後可以執行 <code>validate_regime_weights.py</code> 檢查樣本外表現。
+  `;
+}
+
+// ============ 3. Component cards ============
+const COMPONENTS = [
+  {
+    key: "momentum",
+    kicker: "MOMENTUM",
+    name: "動能 — ZN期貨 125日均線乖離率",
+    rawText: r => r && r.bias != null ? `乖離率 ${r.bias >= 0 ? "+" : ""}${r.bias.toFixed(2)}%（ZN ${r.zn?.toFixed(2) ?? "—"} vs 125日均線 ${r.sma125?.toFixed(2) ?? "—"}）` : "",
+    explain: `<b>怎麼算：</b>取ZN期貨（10年期美債期貨）收盤價對其125日移動平均線的乖離率（(價格−均線)/均線），再把當天乖離率放進過去5年分佈裡取百分位（0–100）。
+      <b>為什麼：</b>價格持續站在半年均線之上代表債市漲勢有慣性（資金湧入、偏貪婪）；深度跌破均線代表拋售動能強（偏恐懼）。對應CNN原版的「Market Momentum（S&P500 vs 125日均線）」，改成債券版。<br>
+      <b>資料來源與可信度：</b>ZN=F每日收盤價來自Yahoo Finance（CME原始行情），可與CME官網收盤價逐日核對；乖離率轉成5年百分位後不受價格單位影響，卡片上同時顯示當日原始乖離率供人工驗算。`,
+    rawChart: {
+      series: [
+        { key: "zn", label: "ZN期貨收盤價", color: "var(--series-1)" },
+        { key: "sma125", label: "125日移動平均線", color: "var(--series-2)" },
+      ],
+    },
+  },
+  {
+    key: "strength",
+    kicker: "STRENGTH",
+    name: "強度 — NQ期貨52週高低區間位置",
+    rawText: r => r && r.nq != null && r.hi252 != null ? `NQ期貨 ${r.nq.toFixed(2)}，52週區間 ${r.lo252?.toFixed(2) ?? "—"} ~ ${r.hi252.toFixed(2)}` : "",
+    explain: `<b>怎麼算：</b>NQ期貨（那斯達克100期貨）現值在過去252個交易日（約52週）最高點與最低點之間的位置：(現值−52週低點)/(52週高點−52週低點)×100。0分＝正好在52週最低點，100分＝52週最高點。
+      <b>為什麼：</b>對應CNN原版的「Stock Price Strength」，用科技股權重最高的那斯達克100期貨（而非債市本身）距離52週高低點的位置，衡量市場風險偏好，是CNN原始定義「創52週新高／新低」精神最直接的類比。愈接近一年高點愈貪婪，愈接近一年低點愈恐懼。此分項反映的是「股市（科技股）情緒」，跟其餘幾項（動能、存續期間避險、Put/Call、波動度）的「債市情緒」角度不同，放在一起可以看出股債情緒是否背離。<br>
+      <b>資料來源與可信度：</b>NQ期貨收盤價來自Yahoo Finance（NQ=F，CME原始行情，可與CME官網逐日核對）；卡片上直接顯示現值與52週高低點三個數字，套公式即可自行驗算分數，無任何黑箱參數。<br>
+      <b>回測發現：</b>此因子多數時間落在貪婪區間（過去6年約65%的交易日分數落在極度貪婪這一桶），因為那斯達克100長期處於上升趨勢，五級分類對這個因子的鑑別力偏弱，恐懼/中性區間樣本數偏少，解讀時請留意。`,
+    rawChart: {
+      series: [
+        { key: "nq", label: "NQ期貨收盤價", color: "var(--series-1)" },
+        { key: "hi252", label: "252日（52週）滾動高點", color: "var(--series-2)" },
+        { key: "lo252", label: "252日（52週）滾動低點", color: "var(--series-4)" },
+      ],
+    },
+  },
+  {
+    key: "duration",
+    kicker: "DURATION HEDGE",
+    name: "存續期間避險 — 長短天期公債報酬差",
+    rawText: r => r && r.spread != null ? `40日利差 ${r.spread >= 0 ? "+" : ""}${r.spread.toFixed(2)}%（TLT ${r.tlt_ret40 >= 0 ? "+" : ""}${r.tlt_ret40?.toFixed(2) ?? "—"}% vs SHY ${r.shy_ret40 >= 0 ? "+" : ""}${r.shy_ret40?.toFixed(2) ?? "—"}%）` : "",
+    explain: `<b>怎麼算：</b>分別計算TLT（20年期以上美債ETF）與SHY（1-3年期美債ETF）過去40個交易日的累積報酬率，用TLT的40日報酬減去SHY的40日報酬得到利差，再把利差放進過去5年的分佈裡取百分位（0–100，不需反轉——利差越高分數越高）。
+      <b>為什麼：</b>整個指數觀察的是債券市場本身，不能再用CNN原版「股票vs債券」的避險需求衡量方式，所以改成看債券市場「內部」的風險偏好：長天期公債（存續期間長、價格波動大，類似風險性資產）跟短天期公債／現金替代品（存續期間短、幾乎不太波動，最接近安全資產）誰的報酬比較好。長天期跑贏，代表資金願意冒存續期間風險追價（貪婪）；短天期跑贏，代表資金只想躲在最安全的地方（恐懼）。<br>
+      <b>為什麼用40日而不是20日：</b>原本用20個交易日窗口時，分數容易因為單一天報酬值被移出窗口而出現跟市場實際變化不成比例的跳動（機械性雜訊）；拉長到40個交易日可以降低這種效應，讓讀數更能反映真實的市場狀態變化，代價是對短期急遽變化的反應會變慢。<br>
+      <b>限制（請一併考量）：</b>這項指標沒辦法完全分辨「整條殖利率曲線平行移動」跟「曲線形狀本身改變（陡峭化/平坦化）」這兩種不同的成因——因為TLT對利率變動的敏感度（存續期間）遠高於SHY，就算殖利率曲線形狀完全沒變、只是整體利率水準往下移動，TLT報酬也會系統性地大於SHY。解讀分數時要留意這是「長短天期報酬差」而非純粹的「曲線形狀」訊號。<br>
+      <b>資料來源與可信度：</b>TLT、SHY每日收盤價來自Yahoo Finance，可與其他公開報價來源互相核對；卡片上同時顯示40日利差與兩檔ETF各自的40日報酬率，套公式即可自行驗算分數。`,
+    rawChart: {
+      series: [
+        { key: "tlt_idx", label: "TLT（指數化，起點=100）", color: "var(--series-1)" },
+        { key: "shy_idx", label: "SHY（指數化，起點=100）", color: "var(--series-2)" },
+      ],
+    },
+  },
+  {
+    key: "putcall",
+    kicker: "PUT / CALL OPTIONS",
+    name: "Put/Call 選擇權比率 — 5日平均",
+    rawText: r => r && r.pc5d != null ? `5日平均 P/C ${r.pc5d.toFixed(2)}` : "",
+    explain: `<b>怎麼算：</b>Put成交量除以Call成交量的5日移動平均，取滾動5年百分位後反轉（100−百分位）。P/C比率愈高＝買進看跌保護的人愈多＝愈恐懼，所以反轉後分數愈低。
+      <b>為什麼：</b>與CNN原版「Put and Call Options（5-day average put/call ratio）」相同的邏輯。選擇權市場是交易員實際下注的地方，put需求暴增通常比價格更早反映避險情緒。<br>
+      <b>資料來源與可信度：</b>由使用者自備歷史數據（data_input.xlsx 導入），來源與品質由提供者把關；因自備資料通常不滿5年，此分項的百分位窗口放寬為「累積滿1年起算」，之後隨資料累積自動擴展成完整5年窗口——早期分數的統計基礎較薄，解讀時請留意。
+      <b>目前狀態：</b>等待歷史資料輸入（CBOE免費公開資料只到2019年10月）。`,
+    placeholder: true,
+    rawChart: {
+      series: [
+        { key: "pc_raw", label: "Put/Call 比率（原始值）", color: "var(--series-1)" },
+      ],
+    },
+  },
+  {
+    key: "move",
+    kicker: "VOLATILITY",
+    name: "波動度 — MOVE指數90日偏態係數",
+    rawText: r => r && r.move_skew90 != null ? `90日偏態係數 ${r.move_skew90 >= 0 ? "+" : ""}${r.move_skew90.toFixed(2)}（MOVE ${r.move?.toFixed(1) ?? "—"}）` : "",
+    supplementary: r => r && r.move_dev_pct != null ? `50日中位數乖離率：${r.move_dev_pct >= 0 ? "+" : ""}${r.move_dev_pct.toFixed(1)}%（輔助參考，不計入分數）` : "50日中位數乖離率：— （輔助參考，不計入分數）",
+    explain: `<b>怎麼算：</b>用 pandas 的 rolling skew 算MOVE指數過去90個交易日的<b>滾動偏態係數</b>（衡量近期波動分佈的形狀：正偏態代表右尾拉長、常出現急速飆高的離群值；負偏態相反）。
+      把每天的偏態係數放進過去5年的分佈裡取百分位，再用 100−百分位 反轉：偏態係數越高（正偏態，MOVE常急速飆高、尾部風險升溫）分數越低、越恐懼；偏態係數越低或負值（波動比較對稱平穩）分數越高、越貪婪。<br>
+      <b>為什麼：</b>對應CNN原版的「Market Volatility（VIX）」，但用偏態係數而非絕對水位或簡單乖離率，能捕捉「波動分佈形狀」的轉變——即使MOVE絕對水準還不算太高，只要開始出現不對稱的急速飆升尾部，偏態係數就會提前反映，比單看均值/中位數更早抓到風險升溫的訊號。<br>
+      <b>為什麼用90日而不是60日：</b>偏態係數是三階統計量，樣本數不足時估計本身就會不穩定，60天窗口下光是抽樣誤差就可能造成明顯的日間跳動；拉長到90個交易日可以讓估計更穩定，代價同樣是對短期變化的反應變慢。<br>
+      <b>輔助欄位（不計入分數）：</b>另外保留「MOVE對50日滾動中位數的乖離率」＝(今日MOVE−50日中位數)/50日中位數×100%，標示在圖表旁供參考——乖離率是簡單的「相對近期水準高低」，可以跟偏態係數互相對照：乖離率高但偏態係數低，代表MOVE雖然偏高但變化平穩；兩者同時偏高則代表波動急升且伴隨尾部風險。這個欄位純粹是補充資訊，不影響任何分數。<br>
+      <b>資料來源與可信度：</b>^MOVE（ICE BofA MOVE Index）每日收盤值來自Yahoo Finance，可與ICE官網或財經媒體公布值核對；卡片上同時顯示當日MOVE原始值與90日偏態係數，套公式即可自行驗算分數。`,
+    rawChart: {
+      series: [
+        { key: "move", label: "MOVE指數", color: "var(--series-1)" },
+        { key: "move_median50", label: "50日滾動中位數", color: "var(--series-2)" },
+      ],
+    },
+  },
+  {
+    key: "curve",
+    kicker: "YIELD CURVE",
+    name: "殖利率曲線形狀 — 10年期減2年期利差",
+    rawText: r => r && r.curve_spread != null ? `2s10s利差 ${r.curve_spread >= 0 ? "+" : ""}${r.curve_spread.toFixed(2)}%（10年 ${r.ust10?.toFixed(2) ?? "—"}% vs 2年 ${r.ust2?.toFixed(2) ?? "—"}%）` : "",
+    explain: `<b>怎麼算：</b>10年期公債殖利率減2年期公債殖利率（2s10s利差），把利差放進過去5年的分佈裡取百分位（0–100，不需反轉——利差越高分數越高）。
+      <b>為什麼：</b>殖利率曲線形狀是判斷景氣循環階段最經典的訊號之一。利差為正且偏陡峭，通常代表經濟成長預期正常、市場對長期風險要求較高的補償（偏貪婪）；利差轉負（倒掛），歷史上是最常被引用的衰退警訊，代表市場預期短期利率終將被迫下降（偏恐懼）。<br>
+      <b>限制（請一併考量）：</b>2s10s只是眾多曲線利差中的一種（也有3m10y等其他版本），倒掛出現到衰退實際發生之間，過去歷史上的領先時間長短不一（從幾個月到兩年多都有），不是精準的時間表；曲線形狀也會受Fed資產負債表操作、避險需求等非景氣循環因素干擾，不是純粹的經濟預期訊號。<br>
+      <b>資料來源與可信度：</b>10年期與2年期殖利率都來自Treasury.gov官方每日殖利率曲線，可直接與官網公布值逐日核對；卡片上同時顯示兩個天期的殖利率原始值與利差，套公式即可自行驗算分數。<br>
+      <b>回測發現：</b>此因子跟未來ZN期貨報酬的相關方向在不同時間窗口不一致（短窗口偏正、長窗口接近零或轉負），可靠度是7個因子中較低的一個，建議當成總體經濟脈絡參考，不要單獨當成預測訊號。`,
+    rawChart: {
+      series: [
+        { key: "ust10", label: "10年期殖利率 (%)", color: "var(--series-1)" },
+        { key: "ust2", label: "2年期殖利率 (%)", color: "var(--series-2)" },
+      ],
+    },
+  },
+  {
+    key: "inflation",
+    kicker: "INFLATION SURPRISE",
+    name: "通膨意外 — CPI年增率減市場隱含通膨預期",
+    rawText: r => r && r.inflation_surprise != null ? `通膨意外 ${r.inflation_surprise >= 0 ? "+" : ""}${r.inflation_surprise.toFixed(2)}%（CPI年增率 ${r.cpi_yoy?.toFixed(2) ?? "—"}% vs 市場隱含通膨預期 ${r.breakeven?.toFixed(2) ?? "—"}%）` : "",
+    explain: `<b>怎麼算：</b>CPI（消費者物價指數）年增率，減去10年期損益兩平通膨率（Breakeven Inflation Rate，債券市場自己對未來10年平均通膨的定價），把這個「意外」數字放進過去5年的分佈裡取百分位，再用 100−百分位 反轉：意外程度越高（實際通膨遠高於市場定價）分數越低、越恐懼；意外程度越低甚至為負（實際通膨低於市場定價）分數越高、越貪婪。<br>
+      <b>為什麼：</b>通膨意外走高，代表Fed可能被迫比市場原本預期的更鷹派、殖利率有進一步上升壓力，是債券市場的恐慌訊號；通膨意外收斂或轉負，代表通膨壓力比市場擔心的更溫和，債券市場可以更放心。<br>
+      <b>【資料限制，請務必留意】：</b>原始構想是「CPI實際公布值 vs 經濟學家共識預期值」（每次公布當下的驚喜/失望程度），但這種「共識預期」的歷史資料沒有免費、有歷史深度的來源可用（試過的免費API只有即時snapshot，沒有回溯到2020年的歷史）。這裡改用「CPI年增率 vs 債券市場自己的長期通膨定價（10年期損益兩平通膨率）」當替代方案——概念上比較接近「實際通膨是否偏離市場長期定價」，時間尺度也不完全一樣（單月公布驚喜 vs 對比10年期長期定價），解讀時請留意這個差異，不要直接當成「每次CPI公布的驚喜程度」。<br>
+      <b>資料來源與可信度：</b>CPI（CPIAUCSL）與10年期損益兩平通膨率（T10YIE）都來自FRED（聖路易斯聯邦準備銀行，美國官方總經資料庫），CSV直接下載、免費、不需要API金鑰，可與FRED官網圖表逐日核對。CPI為月頻資料、其餘天數沿用當月數值。<br>
+      <b>回測發現：</b>此因子跟未來ZN期貨報酬的相關性在60日窗口轉為負值（短中窗口為正），長期可靠度較低，解讀時請一併考量。`,
+    rawChart: {
+      series: [
+        { key: "cpi_yoy", label: "CPI年增率 (%)", color: "var(--series-1)" },
+        { key: "breakeven", label: "10年期損益兩平通膨率 (%)", color: "var(--series-2)" },
+      ],
+    },
+  },
+];
+
+const CW = 1040, CH = 190;
+const CM = { left: 40, right: 52, top: 8, bottom: 26 };
+const cY_score = v => CM.top + (1 - v / 100) * (CH - CM.top - CM.bottom); // used only by vdist strip
+
+const componentCardsEl = document.getElementById("componentCards");
+const compUpdaters = [];
+
+function hasAnyData(key) { return DATA.some(d => d[key] != null); }
+
+COMPONENTS.forEach(comp => {
+  const card = document.createElement("div");
+  card.className = "card comp-card";
+
+  const dataAvailable = hasAnyData(comp.key);
+
+  card.innerHTML = `
+    <div class="comp-head">
+      <div class="comp-title-block">
+        <div class="comp-kicker">${comp.kicker}</div>
+        <h2>${comp.name}</h2>
+        ${dataAvailable ? `<label class="overlay-toggle"><input type="checkbox" class="ust-toggle" checked>疊加美國10年期公債殖利率（右軸，%）</label>` : ""}
+      </div>
+      <div class="comp-score-block">
+        <div class="comp-score-value"></div>
+        <div class="comp-score-tag"></div>
+        <div class="comp-raw"></div>
+      </div>
+    </div>
+    ${dataAvailable ? `
+    <div class="comp-body">
+      <div class="comp-vdist"><svg viewBox="0 0 56 ${CH}" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="comp-svg-wrap">
+        <svg class="comp-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="comp-tooltip"></div>
+      </div>
+    </div>
+    <div class="chart-toolbar">
+      <button class="jump-today zoom-reset-btn score-zoom-reset" type="button">回到全部時間範圍</button>
+      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+    </div>` : `
+    <div class="placeholder-box">
+      尚無歷史資料 — 等待 Put/Call 數據輸入<br>
+      打開 <b>data_input.xlsx</b>（DataInput 分頁），把歷史資料填入 Date 和 put_call_ratio 兩欄，<br>
+      存檔後執行 <b>python3 update_dashboard.py</b>，此分項會自動納入綜合分數。
+    </div>`}
+    ${dataAvailable && comp.supplementary ? `<div class="comp-supplementary"></div>` : ""}
+    <div class="logic-btn-row">
+      <button class="logic-btn" type="button" data-target="logic-explain-${comp.key}"><span class="i-dot">i</span>計算邏輯與資料來源</button>
+      ${dataAvailable && comp.rawChart ? `<button class="logic-btn" type="button" data-target="logic-rawchart-${comp.key}"><span class="i-dot">i</span>查看原始走勢圖</button>` : ""}
+    </div>
+    <div class="logic-panel" id="logic-explain-${comp.key}">${comp.explain}</div>
+    ${dataAvailable && comp.rawChart ? `
+    <div class="logic-panel" id="logic-rawchart-${comp.key}">
+      <div class="raw-chart-legend"></div>
+      <div class="raw-chart-wrap">
+        <svg class="raw-chart-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="comp-tooltip"></div>
+      </div>
+      <div class="chart-toolbar">
+        <button class="jump-today zoom-reset-btn raw-zoom-reset" type="button">回到全部時間範圍</button>
+        <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+      </div>
+    </div>` : ""}
+  `;
+  componentCardsEl.appendChild(card);
+
+  const scoreEl = card.querySelector(".comp-score-value");
+  const tagEl = card.querySelector(".comp-score-tag");
+  const rawEl = card.querySelector(".comp-raw");
+  const supplementaryEl = card.querySelector(".comp-supplementary");
+
+  if (!dataAvailable) {
+    scoreEl.textContent = "—";
+    scoreEl.style.color = "var(--text-muted)";
+    tagEl.textContent = "等待資料輸入";
+    tagEl.style.color = "var(--text-muted)";
+    compUpdaters.push(() => {});
+    return;
+  }
+
+  const svgEl = card.querySelector(".comp-svg");
+  const tooltipEl = card.querySelector(".comp-svg-wrap .comp-tooltip");
+  const vdistSvg = card.querySelector(".comp-vdist svg");
+
+  // --- vertical distribution strip (0-100 with zone colors + current marker; NOT affected by zoom) ---
+  const VD_X = 22, VD_W = 14;
+  ZONES.forEach(z => {
+    vdistSvg.appendChild(el("rect", { x: VD_X, y: cY_score(z.hi), width: VD_W, height: cY_score(z.lo) - cY_score(z.hi), fill: z.color, opacity: 0.5, rx: 2 }));
+  });
+  [0, 50, 100].forEach(v => {
+    const t = el("text", { x: VD_X - 4, y: cY_score(v) + 3, class: "axis-label", "text-anchor": "end" });
+    t.textContent = v;
+    vdistSvg.appendChild(t);
+  });
+  const vdistMarker = el("path", { fill: "var(--text-primary)" });
+  vdistSvg.appendChild(vdistMarker);
+
+  const scoreChart = buildChart({
+    svgEl, W: CW, H: CH, M: CM, dateAt,
+    yMode: "fixed100",
+    zones: ZONES,
+    series: [{ get: i => DATA[i][comp.key], color: "var(--series-1)", width: 1.4 }],
+    secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
+    resetBtnEl: card.querySelector(".score-zoom-reset"),
+    onScrub: (idx) => setSelectedIndex(idx),
+  });
+
+  const ustToggle = card.querySelector(".ust-toggle");
+  ustToggle.addEventListener("change", () => scoreChart.setSecondaryVisible(ustToggle.checked));
+
+  function update(idx) {
+    const pt = DATA[idx];
+    const v = pt[comp.key];
+    scoreChart.setMarker(idx);
+    if (v == null) {
+      scoreEl.textContent = "—";
+      scoreEl.style.color = "var(--text-muted)";
+      tagEl.textContent = "此日無資料";
+      tagEl.style.color = "var(--text-muted)";
+      rawEl.textContent = "";
+      if (supplementaryEl) supplementaryEl.textContent = comp.supplementary ? comp.supplementary(pt.raw) : "";
+      vdistMarker.setAttribute("d", "");
+      return;
+    }
+    scoreEl.textContent = v.toFixed(1);
+    scoreEl.style.color = zoneColor(v);
+    tagEl.textContent = zoneLabel(v);
+    tagEl.style.color = zoneColor(v);
+    rawEl.textContent = comp.rawText(pt.raw);
+    if (supplementaryEl) supplementaryEl.textContent = comp.supplementary ? comp.supplementary(pt.raw) : "";
+    const my = cY_score(v);
+    vdistMarker.setAttribute("d", `M ${VD_X + VD_W + 3},${my} l 8,-5 l 0,10 z`);
+  }
+  update(latestIdx);
+  compUpdaters.push(update);
+
+  // ---- optional「查看原始走勢圖」：畫原始數值（非0-100分數），Y軸自動依可視範圍縮放 ----
+  if (comp.rawChart) {
+    const rc = comp.rawChart;
+    const rawPanel = card.querySelector(`#logic-rawchart-${comp.key}`);
+    const rawSvg = rawPanel.querySelector(".raw-chart-svg");
+    const rawTooltip = rawPanel.querySelector(".comp-tooltip");
+    const legendEl = rawPanel.querySelector(".raw-chart-legend");
+
+    legendEl.innerHTML = rc.series.map(s =>
+      `<div class="legend-item"><span class="swatch-line" style="background:${s.color}"></span>${s.label}</div>`
+    ).join("");
+
+    const rawChart = buildChart({
+      svgEl: rawSvg, W: CW, H: CH, M: CM, dateAt,
+      yMode: "auto",
+      series: rc.series.map(s => ({ get: i => (DATA[i].raw ? DATA[i].raw[s.key] : null), color: s.color, width: 1.4 })),
+      tooltipEl: rawTooltip,
+      tooltipRender: (idx) => {
+        const pt = DATA[idx];
+        const lines = rc.series.map(s => {
+          const v = pt.raw ? pt.raw[s.key] : null;
+          return `${s.label}: ${v == null ? "—" : (Math.abs(v) >= 1000 ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v.toFixed(2))}`;
+        }).join("<br>");
+        return `<b>${pt.date}</b><br>${lines}`;
+      },
+      resetBtnEl: rawPanel.querySelector(".raw-zoom-reset"),
+      onScrub: (idx) => setSelectedIndex(idx),
+    });
+    compUpdaters.push((idx) => rawChart.setMarker(idx));
+  }
+});
+
+// ============ global selection wiring ============
+const timelineSlider = document.getElementById("timelineSlider");
+const dateJump = document.getElementById("dateJump");
+timelineSlider.max = n - 1;
+timelineSlider.value = latestIdx;
+dateJump.min = DATA[0].date;
+dateJump.max = DATA[latestIdx].date;
+dateJump.value = DATA[latestIdx].date;
+
+function setSelectedIndex(idx) {
+  idx = Math.max(0, Math.min(n - 1, idx));
+  const pt = DATA[idx];
+  mainChartHandle.setMarker(idx);
+  renderMainReadout(pt);
+  timelineSlider.value = idx;
+  dateJump.value = pt.date;
+  compUpdaters.forEach(u => u(idx));
+}
+setSelectedIndex(latestIdx);
+
+timelineSlider.addEventListener("input", () => setSelectedIndex(parseInt(timelineSlider.value, 10)));
+dateJump.addEventListener("change", () => {
+  let idx = DATA.findIndex(p => p.date >= dateJump.value);
+  if (idx === -1) idx = latestIdx;
+  setSelectedIndex(idx);
+});
+document.getElementById("jumpToday").addEventListener("click", () => setSelectedIndex(latestIdx));
+
+// ============ logic-panel toggles（每張卡片可能有多顆按鈕：計算邏輯、原始走勢圖…各自展開對應面板） ============
+document.querySelectorAll(".logic-btn").forEach(btn => {
+  let panel;
+  if (btn.dataset.target) {
+    panel = document.getElementById(btn.dataset.target);
+  } else {
+    panel = btn.nextElementSibling && btn.nextElementSibling.classList.contains("logic-panel")
+      ? btn.nextElementSibling
+      : btn.closest(".card").querySelector(".logic-panel");
+  }
+  if (!panel) return;
+  btn.addEventListener("click", () => {
+    const open = panel.classList.toggle("open");
+    btn.classList.toggle("open", open);
+  });
+});
+</script>

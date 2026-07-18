@@ -1,0 +1,62 @@
+{
+  "version": "v1",
+  "freeze_date": "2026-07-17",
+  "derived_from_data_range": [
+    "2020-01-01",
+    "2026-07-17"
+  ],
+  "method": {
+    "target": "ZN_futures forward return",
+    "horizon_trading_days": 40,
+    "direction_threshold": 0.05,
+    "description": "每個Fed循環階段下，取綜合分數(composite_score)對未來40日ZN期貨報酬的Spearman rho；rho<-0.05判定為「均值回歸」（恐懼買/貪婪賣，CNN原版邏輯成立）；rho>+0.05判定為「動能延續」（高分反而傾向續漲，訊號方向與CNN原版相反）；|rho|<=0.05判定為「無明顯方向」（此階段分數不建議當獨立訊號）。45-55中性帶不受方向判定影響，任何情境下都視為無方向性。"
+  },
+  "fed_cycle_boundaries": [
+    {
+      "start": "2020-01-01",
+      "end": "2022-03-16",
+      "label": "暫停(零利率)"
+    },
+    {
+      "start": "2022-03-17",
+      "end": "2023-07-26",
+      "label": "升息循環"
+    },
+    {
+      "start": "2023-07-27",
+      "end": "2024-09-17",
+      "label": "暫停(高原期)"
+    },
+    {
+      "start": "2024-09-18",
+      "end": null,
+      "label": "降息循環"
+    }
+  ],
+  "direction_by_regime": {
+    "暫停(零利率)": {
+      "rho": 0.202,
+      "direction": "動能延續",
+      "n": 806,
+      "indep_n": 20
+    },
+    "升息循環": {
+      "rho": -0.165,
+      "direction": "均值回歸",
+      "n": 497,
+      "indep_n": 12
+    },
+    "暫停(高原期)": {
+      "rho": 0.163,
+      "direction": "動能延續",
+      "n": 419,
+      "indep_n": 10
+    },
+    "降息循環": {
+      "rho": 0.099,
+      "direction": "動能延續",
+      "n": 628,
+      "indep_n": 15
+    }
+  }
+}

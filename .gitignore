@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+
+# regenerable data pulls (re-fetched from Yahoo/Treasury/FRED each run, not "versions" worth tracking)
+bond_fear_greed_v2.csv
+bond_fear_greed_index.csv
+bond_regime_tagged.csv
+bond_yield_percentile_scores.csv
+bond_yield_data.csv
+bond_dashboard_data_input.xlsx
