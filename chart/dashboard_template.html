@@ -11,7 +11,7 @@
     averages) intentionally use --series-1..4 (brand/treasury/structural tones),
     NOT the tier colors, since they don't carry a Fear/Greed meaning on their own.
   */
-  .viz-root {
+  :root {
     --page:               #f4f5f7;
     --surface-1:          #ffffff;
     --surface-2:          #f8f9fb;
@@ -30,36 +30,40 @@
     --tier-greed:         #b1592f;
     --tier-extreme-greed: #a6362f;
     --border:             #dfe2e8;
-    --shadow:             0 8px 24px rgba(22,26,35,0.07);
+    --shadow:             0 1px 2px rgba(22,26,35,0.04);
+    --gauge-inactive:     #e3e6e2;
   }
   @media (prefers-color-scheme: dark) {
-    .viz-root {
+    :root {
       --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
       --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
       --grid: #262b36; --axis: #4a5164;
       --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
       --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
       --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-      --border: #2c313d; --shadow: 0 8px 24px rgba(0,0,0,0.45);
+      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+      --gauge-inactive: #262c29;
     }
   }
-  :root[data-theme="dark"] .viz-root {
+  :root[data-theme="dark"] {
     --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
     --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
     --grid: #262b36; --axis: #4a5164;
     --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
     --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
     --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-    --border: #2c313d; --shadow: 0 8px 24px rgba(0,0,0,0.45);
+    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+    --gauge-inactive: #262c29;
   }
-  :root[data-theme="light"] .viz-root {
+  :root[data-theme="light"] {
     --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
     --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
     --grid: #e5e7eb; --axis: #a7adb9;
     --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
     --tier-extreme-fear: #2f6b4f; --tier-fear: #5c8a6e; --tier-neutral: #6b7280;
     --tier-greed: #b1592f; --tier-extreme-greed: #a6362f;
-    --border: #dfe2e8; --shadow: 0 8px 24px rgba(22,26,35,0.07);
+    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+    --gauge-inactive: #e3e6e2;
   }
 
   * { box-sizing: border-box; }
@@ -67,26 +71,31 @@
     margin: 0; background: var(--page);
     font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  .viz-root { max-width: 1180px; margin: 0 auto; padding: 32px 24px 56px; color: var(--text-primary); }
-  h1 { font-size: 30px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
-  h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
-  .subtitle { font-size: 15px; color: var(--text-secondary); margin: 0 0 6px; font-weight: 500; }
-  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 24px; line-height: 1.6; max-width: 860px; }
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
+  .viz-root { max-width: 1180px; margin: 0 auto; padding: 40px 24px 56px; color: var(--text-primary); }
+  h1 { font-size: 34px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.02em; line-height: 1.15; }
+  h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
+  .subtitle { font-size: 16px; color: var(--text-secondary); margin: 0 0 8px; font-weight: 500; }
+  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 30px; line-height: 1.6; max-width: 860px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
 
   /* ---- gauge ---- */
-  .gauge-card { padding: 34px 28px 28px; margin-bottom: 18px; text-align: center; }
-  .gauge-wrap { max-width: 440px; margin: 0 auto; position: relative; }
-  .gauge-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+  .gauge-card { padding: 8px 28px 30px; margin-bottom: 20px; text-align: center; border: none; box-shadow: none; background: transparent; }
+  .gauge-wrap { max-width: 460px; margin: 0 auto; position: relative; }
+  .gauge-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
   .gauge-svg { width: 100%; height: auto; display: block; }
-  .gauge-score { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; margin-top: -16px; }
-  .gauge-tag { display: inline-flex; align-items: center; padding: 5px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; margin-top: 8px; }
+  .gauge-score { font-size: 60px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; margin-top: -20px; letter-spacing: -0.02em; }
+  .gauge-tag { display: inline-flex; align-items: center; padding: 5px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; margin-top: 10px; }
   .gauge-date { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-  .compare-row { display: flex; justify-content: center; gap: 30px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-  .compare-item { text-align: center; min-width: 78px; }
-  .compare-label { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
-  .compare-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .compare-tag { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .compare-row { display: flex; justify-content: center; gap: 34px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .compare-item { text-align: center; min-width: 78px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .compare-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .compare-badge {
+    width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+    border: 1.5px solid currentColor; background: color-mix(in srgb, currentColor 13%, transparent);
+  }
+  .compare-tag { font-size: 11px; font-weight: 600; }
 
   /* ---- main composite chart ---- */
   .chart-card { padding: 20px 20px 12px; margin-bottom: 16px; }
@@ -97,6 +106,7 @@
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   .main-chart-svg, .comp-svg, .raw-chart-svg { cursor: crosshair; }
   .axis-label { font-size: 11px; fill: var(--text-muted); }
+  .gauge-cat-label { font-size: 13px; font-weight: 700; fill: var(--text-muted); letter-spacing: 0.03em; }
   .axis-title { font-size: 11px; fill: var(--text-muted); font-weight: 600; }
   .grid-line { stroke: var(--grid); stroke-width: 1; }
   .series-line { fill: none; stroke: var(--series-1); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
@@ -123,14 +133,19 @@
   .zoom-hint { font-size: 11px; color: var(--text-muted); }
 
   /* ---- component cards ---- */
-  .comp-card { padding: 24px 26px 20px; margin-bottom: 18px; }
+  .comp-card { padding: 26px 28px 22px; margin-bottom: 16px; border: none; border-top: 1px solid var(--border); border-radius: 0; box-shadow: none; background: transparent; }
+  .comp-card:first-child { border-top: none; }
   .comp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
   .comp-title-block { flex: 1; min-width: 220px; }
-  .comp-kicker { font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .comp-kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--accent, var(--series-1)); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
   .comp-score-block { text-align: right; }
   .comp-score-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
-  .comp-score-tag { font-size: 12px; font-weight: 600; margin-top: 3px; }
-  .comp-raw { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .comp-score-tag {
+    font-size: 11.5px; font-weight: 800; margin-top: 6px; letter-spacing: 0.02em;
+    display: inline-flex; padding: 3px 11px; border-radius: 999px;
+    background: color-mix(in srgb, currentColor 15%, transparent);
+  }
+  .comp-raw { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
   .comp-body { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: stretch; }
   @media (max-width: 640px) { .comp-body { grid-template-columns: 1fr; } .comp-vdist { display:none; } }
   .comp-vdist { position: relative; }
@@ -146,14 +161,14 @@
   .overlay-toggle input { accent-color: var(--series-2); cursor: pointer; }
 
   .logic-btn {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
-    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border);
-    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; white-space: nowrap;
-    margin-top: 6px; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
+    padding: 2px 0; border: none; border-bottom: 1px solid transparent;
+    background: transparent; color: var(--series-1); cursor: pointer; white-space: nowrap;
+    margin-top: 8px; font-family: inherit;
   }
-  .logic-btn:hover { background: var(--grid); color: var(--text-primary); }
-  .logic-btn .i-dot { width: 15px; height: 15px; border-radius: 50%; background: var(--series-1); color: #fff; font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
-  .logic-btn.open { background: var(--grid); color: var(--text-primary); }
+  .logic-btn:hover { border-bottom-color: currentColor; }
+  .logic-btn .i-dot { width: 13px; height: 13px; border-radius: 50%; border: 1.3px solid currentColor; color: var(--series-1); font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
+  .logic-btn.open { border-bottom-color: currentColor; }
   .logic-panel { display: none; font-size: 12.5px; color: var(--text-secondary); line-height: 1.75; margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); text-align: left; }
   .logic-panel.open { display: block; }
   .logic-panel b { color: var(--text-primary); }
@@ -174,8 +189,12 @@
     text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.8;
     background: var(--surface-2);
   }
-  .section-heading { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin: 26px 0 10px; display: flex; align-items: center; gap: 10px; }
-  .section-heading::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .section-heading {
+    font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 40px 0 16px;
+    display: flex; align-items: center; gap: 11px; letter-spacing: 0.01em;
+  }
+  .section-heading .bar { width: 5px; height: 20px; background: var(--series-1); border-radius: 2px; flex-shrink: 0; }
+  .section-heading .count { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
 </style>
 
 <div class="viz-root">
@@ -184,7 +203,7 @@
   <p class="caption">動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
-  <div class="card gauge-card">
+  <div class="gauge-card">
     <p class="gauge-label">最新收盤日綜合分數</p>
     <div class="gauge-wrap">
       <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -258,8 +277,8 @@
   </div>
 
   <!-- ===== 3. 各分項拆解 ===== -->
-  <div class="section-heading">分項拆解 — 每項各自的計算方式與歷史時間軸</div>
-  <div id="componentCards"></div>
+  <div class="section-heading"><span class="bar"></span>分項拆解<span class="count">· 每項各自的計算方式與歷史時間軸</span></div>
+  <div class="card" id="componentCards"></div>
 
   <p class="foot-note">
     資料來源：Yahoo Finance（ZN=F、NQ=F、TLT、SHY、^MOVE 每日收盤）、Treasury.gov（10年期、2年期殖利率）、FRED聖路易斯聯邦準備銀行（CPI、10年期損益兩平通膨率）。缺值以前一交易日／前一公布值補齊；
@@ -609,22 +628,44 @@ function gArc(lo, hi, r) {
   const p1 = gPoint(lo, r), p2 = gPoint(hi, r);
   return `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} A ${r},${r} 0 0,1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
 }
-gaugeSvg.appendChild(el("path", { d: gArc(0, 100, GR), fill: "none", stroke: "var(--grid)", "stroke-width": GSTROKE }));
-[
+function zoneIndex(score) {
+  if (score == null) return 2;
+  if (score < 25) return 0;
+  if (score < 45) return 1;
+  if (score < 56) return 2;
+  if (score < 76) return 3;
+  return 4;
+}
+const GAUGE_ZONES = [
   { lo: 0, hi: 25, color: "var(--tier-extreme-fear)" },
   { lo: 25, hi: 45, color: "var(--tier-fear)" },
   { lo: 45, hi: 56, color: "var(--tier-neutral)" },
   { lo: 56, hi: 76, color: "var(--tier-greed)" },
   { lo: 76, hi: 100, color: "var(--tier-extreme-greed)" },
-].forEach(z => {
+];
+// CNN-style gauge: only the zone the score currently sits in gets colored in;
+// the other four stay a neutral gray track, redrawn per-render in renderGauge().
+const gaugeZonePaths = GAUGE_ZONES.map(z => {
   const lo = z.lo === 0 ? z.lo : z.lo + 0.8;
   const hi = z.hi === 100 ? z.hi : z.hi - 0.8;
-  gaugeSvg.appendChild(el("path", { d: gArc(lo, hi, GR), fill: "none", stroke: z.color, "stroke-width": GSTROKE }));
+  const path = el("path", { d: gArc(lo, hi, GR), fill: "none", stroke: "var(--gauge-inactive)", "stroke-width": GSTROKE, "stroke-linecap": "round" });
+  gaugeSvg.appendChild(path);
+  return path;
 });
 [0, 25, 45, 56, 76, 100].forEach(v => {
   const p = gPoint(v, GR + 20);
   const t = el("text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "axis-label" });
   t.textContent = v;
+  gaugeSvg.appendChild(t);
+});
+[
+  { lo: 0, hi: 45, text: "恐懼" },
+  { lo: 45, hi: 56, text: "中性" },
+  { lo: 56, hi: 100, text: "貪婪" },
+].forEach(g => {
+  const p = gPoint((g.lo + g.hi) / 2, 100);
+  const t = el("text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "gauge-cat-label" });
+  t.textContent = g.text;
   gaugeSvg.appendChild(t);
 });
 const needleGroup = el("g", {});
@@ -636,6 +677,10 @@ function renderGauge(pt) {
   const s = pt.score == null ? 50 : pt.score;
   const deg = 90 - (gAngle(s) * 180) / Math.PI;
   needleGroup.setAttribute("transform", `rotate(${deg} ${GCX} ${GCY})`);
+  const activeIdx = zoneIndex(pt.score);
+  gaugeZonePaths.forEach((path, i) => {
+    path.setAttribute("stroke", i === activeIdx ? GAUGE_ZONES[i].color : "var(--gauge-inactive)");
+  });
   document.getElementById("gaugeScore").textContent = pt.score == null ? "—" : pt.score.toFixed(1);
   document.getElementById("gaugeScore").style.color = zoneColor(pt.score);
   const tag = document.getElementById("gaugeTag");
@@ -660,7 +705,7 @@ const compareRow = document.getElementById("compareRow");
   div.className = "compare-item";
   div.innerHTML = `
     <div class="compare-label">${label}</div>
-    <div class="compare-value" style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(1)}</div>
+    <div class="compare-badge" style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(0)}</div>
     <div class="compare-tag" style="color:${zoneColor(pt.score)}">${pt.label || "—"}</div>
   `;
   compareRow.appendChild(div);
@@ -863,7 +908,7 @@ function hasAnyData(key) { return DATA.some(d => d[key] != null); }
 
 COMPONENTS.forEach(comp => {
   const card = document.createElement("div");
-  card.className = "card comp-card";
+  card.className = "comp-card";
 
   const dataAvailable = hasAnyData(comp.key);
 
