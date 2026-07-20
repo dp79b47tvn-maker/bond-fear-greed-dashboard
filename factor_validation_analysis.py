@@ -46,6 +46,8 @@ warnings.filterwarnings("ignore")
 
 import quantstats as qs
 
+import update_dashboard as ud
+
 # ---------------------------------------------------------------- 設定
 TARGET = "ZN_futures"
 HORIZONS = [5, 10, 20, 60]
@@ -53,6 +55,14 @@ LOO_HORIZON = 20
 BUCKET_HORIZON = 20
 N_BUCKETS = 5
 DEAD_ZONE = (48, 52)
+
+# ---- 10年期／10分組分位數分桶分析（附加模組，不取代上面5組版本） ----
+DECILE_YEARS = 10
+DECILE_N_BUCKETS = 10
+DECILE_HORIZON = 20
+DECILE_MIN_N_WARN = 10
+# 5年滾動百分位需要暖身期，往前多抓5年+margin原始資料，才能讓分數本身有滿10年可用
+PERCENTILE_LOOKBACK_DAYS = 5 * 365 + 30
 
 FACTOR_COLS = {
     "momentum_score": "動能",
@@ -162,6 +172,171 @@ def fig_to_base64(fig):
     fig.savefig(buf, format="png", bbox_inches="tight")
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+# ================================================================ 附加：10年期／10分組分位數分桶分析
+def fetch_extended_history():
+    """為了讓10分組分桶分析能涵蓋足足10年的『有效分數』，往前多抓5年當作5年滾動
+    百分位的暖身資料——這跟 update_dashboard.py 對 FETCH_START_DATE 的處理邏輯一致
+    （它自己是往前抓到2014-06給5年百分位暖身，這裡同樣的道理，只是抓更早）。
+
+    直接重用 update_dashboard.py 既有的抓取／計分函式（fetch_yahoo_close /
+    fetch_treasury_yield_curve / fetch_fred_series / compute_scores），暫時覆寫它的
+    FETCH_START_DATE / END_DATE 這兩個模組全域變數——不會影響正式儀表板，那是
+    另一個獨立執行的程序（python3 update_dashboard.py），彼此不共用執行狀態。
+
+    這裡刻意不快取成CSV：抓取只需要約10-20秒，直接每次重跑都拿最新資料，
+    跟專案「資料更新後可重複執行」的原則一致，不會有快取跟正式資料兜不起來的風險。
+    """
+    target_start = pd.Timestamp(date.today()) - pd.Timedelta(days=DECILE_YEARS * 365 + PERCENTILE_LOOKBACK_DAYS)
+    start_str = target_start.strftime("%Y-%m-01")
+    print(f"\n[10年分桶分析] 抓取延伸歷史資料（10年分析期間 + 5年百分位暖身期），"
+          f"起始日設為 {start_str} ...")
+
+    ud.FETCH_START_DATE = start_str
+    ud.END_DATE = date.today().isoformat()
+
+    raw_ranges = {}
+
+    def _fetch_yahoo(ticker, name):
+        s = ud.fetch_yahoo_close(ticker, name)
+        raw_ranges[name] = (s.index.min(), s.index.max(), len(s))
+        return s
+
+    zn = _fetch_yahoo("ZN=F", "ZN_futures")
+    nq = _fetch_yahoo("NQ=F", "NQ_futures")
+    tlt = _fetch_yahoo("TLT", "TLT")
+    shy = _fetch_yahoo("SHY", "SHY")
+    move = _fetch_yahoo("^MOVE", "MOVE_index")
+    ust10, ust2 = ud.fetch_treasury_yield_curve()
+    raw_ranges["UST_10Yr"] = (ust10.index.min(), ust10.index.max(), len(ust10))
+    cpi = ud.fetch_fred_series("CPIAUCSL", "CPI_index")
+    breakeven = ud.fetch_fred_series("T10YIE", "Breakeven_10Y")
+    raw_ranges["Breakeven_10Y"] = (breakeven.index.min(), breakeven.index.max(), len(breakeven))
+
+    print("[10年分桶分析] 各原始資料來源實際可回溯範圍：")
+    for name, (lo, hi, n) in raw_ranges.items():
+        print(f"    {name}: {lo.date()} ~ {hi.date()}（{n}筆），"
+              f"{'足夠支撐10年分析' if lo <= target_start + pd.Timedelta(days=31) else '⚠️ 不足10年+暖身期，將如實反映在分數的實際起始日'}")
+
+    full_index = pd.date_range(ud.FETCH_START_DATE, ud.END_DATE, freq="D")
+    df = pd.concat([zn, nq, tlt, shy, move, ust10, ust2, cpi, breakeven], axis=1, sort=True).reindex(full_index)
+    df.index.name = "Date"
+    df["put_call_ratio"] = pd.NA
+    df = df.sort_index().ffill().dropna(how="all")
+    df = ud.compute_scores(df)
+    return df, raw_ranges
+
+
+def score_actual_range(df, col):
+    """回傳這個分數欄位『實際』(而非假設) 有值的第一天／最後一天／筆數。"""
+    valid = df[col].dropna()
+    if len(valid) == 0:
+        return None
+    return {"start": valid.index.min(), "end": valid.index.max(), "n": len(valid)}
+
+
+def decile_bucket_analysis(df, score_col, horizon=DECILE_HORIZON, buckets=DECILE_N_BUCKETS, target=TARGET):
+    """跟 bucket_analysis() 邏輯相同（qcut等分＋看未來N日平均報酬），但兩個關鍵差異：
+    (1) 分10組不是5組；(2) 用非重疊取樣（每隔horizon筆才取一次樣本），不是每天滾動——
+    避免相鄰樣本點因報酬窗口重疊而互相高度相關，讓10組情況下樣本本來就少的分組平均值
+    更容易失真的問題不要雪上加霜。
+    """
+    sub = df[[score_col]].copy()
+    sub["fwd"] = forward_return(df[target], horizon)
+    sub = sub.dropna()
+    if len(sub) < buckets * 3:
+        return None
+    actual_start, actual_end = sub.index.min(), sub.index.max()
+    sampled = sub.iloc[::horizon].copy()
+    if len(sampled) < buckets:
+        return None
+    try:
+        sampled["bucket"] = pd.qcut(sampled[score_col], buckets, labels=False, duplicates="drop")
+    except ValueError:
+        return None
+    grp = sampled.groupby("bucket").agg(
+        mean_score=(score_col, "mean"), mean_fwd_ret=("fwd", "mean"),
+        median_fwd_ret=("fwd", "median"), n=("fwd", "count"),
+    ).reset_index()
+    grp["label"] = [f"D{i+1}" for i in range(len(grp))]
+    return {
+        "table": grp, "date_range": (actual_start, actual_end),
+        "n_sampled_total": len(sampled), "n_daily_total": len(sub),
+    }
+
+
+def decile_chart_base64(result, title, warn_n=DECILE_MIN_N_WARN):
+    if result is None:
+        return None
+    grp = result["table"]
+    n_bars = len(grp)
+    cmap = plt.get_cmap("RdYlGn_r")  # D1(恐懼)偏綠、D10(貪婪)偏紅，跟儀表板色彩語意一致的方向
+    colors = [cmap(i / max(1, n_bars - 1)) for i in range(n_bars)]
+    fig, ax = plt.subplots(figsize=(7.6, 3.7), dpi=140)
+    bars = ax.bar(grp["label"], grp["mean_fwd_ret"], color=colors, width=0.7)
+    ax.axhline(0, color="#888", linewidth=0.8)
+    for bar, row in zip(bars, grp.itertuples()):
+        low_n = row.n < warn_n
+        if low_n:
+            bar.set_hatch("///")
+            bar.set_edgecolor("#a6362f")
+            bar.set_linewidth(1.2)
+        v = row.mean_fwd_ret
+        label = f"n={row.n}" + ("*" if low_n else "")
+        ax.annotate(label, (bar.get_x() + bar.get_width() / 2, v),
+                    textcoords="offset points", xytext=(0, 4 if v >= 0 else -13), ha="center",
+                    fontsize=7, color="#a6362f" if low_n else "#444", fontweight=("bold" if low_n else "normal"))
+    ax.set_ylabel(f"Mean fwd {DECILE_HORIZON}-day return (%)", fontsize=9)
+    ax.set_xlabel("D1 (Most Fear)  →  D10 (Most Greed)", fontsize=8.5, color="#667085")
+    ax.set_title(title, fontsize=10)
+    ax.tick_params(labelsize=8)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    return fig_to_base64(fig)
+
+
+def render_decile_section(ext_df, all_labels_map):
+    """為綜合分數＋七項因子各自產生一個10年期/10分組的區塊：實際使用區間、圖表、
+    每組樣本數（不足門檻的用星號＋斜線網底標示），全部組成一段HTML。
+    """
+    blocks = []
+    for col, label in all_labels_map.items():
+        if col not in ext_df.columns:
+            continue
+        rng = score_actual_range(ext_df, col)
+        if rng is None:
+            blocks.append(f"""
+        <div class="decile-block">
+          <h3>{label}</h3>
+          <p class="na">此因子目前沒有歷史資料（Put/Call尚待使用者提供put_call_ratio），無法產生10分組分析。</p>
+        </div>""")
+            continue
+        years_covered = (rng["end"] - rng["start"]).days / 365.25
+        result = decile_bucket_analysis(ext_df, col)
+        chart_b64 = decile_chart_base64(result, f"{label}：未來{DECILE_HORIZON}日平均報酬（10分組，非重疊取樣）")
+        low_n_rows = result["table"][result["table"]["n"] < DECILE_MIN_N_WARN] if result else None
+        table_rows = ""
+        if result:
+            table_rows = "".join(
+                f"<tr class=\"{'low-n' if row.n < DECILE_MIN_N_WARN else ''}\">"
+                f"<td>{row.label}</td><td>{fmt_num(row.mean_score,1)}</td>"
+                f"<td>{fmt_num(row.mean_fwd_ret,2)}%</td><td>{fmt_num(row.median_fwd_ret,2)}%</td>"
+                f"<td>{int(row.n)}{' ⚠️' if row.n < DECILE_MIN_N_WARN else ''}</td></tr>"
+                for row in result["table"].itertuples()
+            )
+        blocks.append(f"""
+        <div class="decile-block">
+          <h3>{label}</h3>
+          <p class="hint">實際使用區間：<b>{rng['start'].date()} ~ {rng['end'].date()}</b>
+            （約{years_covered:.1f}年，{'已達成10年目標' if years_covered >= 9.9 else f'未達10年目標，實際只有{years_covered:.1f}年可用'}）　·
+            分數本身有效樣本共{rng['n']}天　·　非重疊取樣後共{result['n_sampled_total'] if result else 0}組樣本點</p>
+          {"<img class='chart' src='data:image/png;base64," + chart_b64 + "'/>" if chart_b64 else "<p class='na'>樣本不足，無法切成10組</p>"}
+          {"<table class='data-table'><tr><th>分組</th><th>平均分數</th><th>平均未來報酬</th><th>中位數未來報酬</th><th>樣本數n</th></tr>" + table_rows + "</table>" if result else ""}
+          {"<p class='hint warn-hint'>⚠️ 標記為低樣本數（n&lt;" + str(DECILE_MIN_N_WARN) + "）的分組，平均值波動性高，估計不穩定，解讀時不宜跟樣本充足的分組一視同仁。</p>" if low_n_rows is not None and len(low_n_rows) > 0 else ""}
+        </div>""")
+    return "".join(blocks)
 
 
 # ================================================================ 4. Leave-one-out
@@ -371,16 +546,20 @@ def main():
     comp_strat, comp_bench = build_strategy_returns(df, COMPOSITE_COL)
     tearsheet_html = full_tearsheet_html(comp_strat, comp_bench, "綜合分數策略 vs 買進持有ZN") if comp_strat is not None else "<p>資料不足</p>"
 
+    ext_df, raw_ranges = fetch_extended_history()
+    all_labels_map = dict(FACTOR_COLS); all_labels_map[COMPOSITE_COL] = COMPOSITE_LABEL
+    decile_html = render_decile_section(ext_df, all_labels_map)
+
     print("產生因子相關係數熱力圖 ...")
     print("組裝HTML報告 ...")
-    html = render_report(df, full, half1, half2, tearsheet_html, split_date)
+    html = render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html)
     with open("factor_validation_report.html", "w", encoding="utf-8") as f:
         f.write(html)
     print(f"完成！已輸出 factor_validation_report.html（{len(html)/1024:.0f} KB）")
 
 
 # ---------------------------------------------------------------- HTML 模板
-def render_report(df, full, half1, half2, tearsheet_html, split_date):
+def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html):
     all_labels = dict(FACTOR_COLS); all_labels[COMPOSITE_COL] = COMPOSITE_LABEL
 
     # ---- 摘要頁 ----
@@ -523,6 +702,20 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date):
   <h2 class="section-heading"><span class="bar"></span>各因子詳細分析（全樣本）</h2>
   {"".join(factor_sections)}
 
+  <!-- ===== 2b. 10年期／10分組分位數分桶分析（附加，不取代上面5組版本） ===== -->
+  <h2 class="section-heading"><span class="bar"></span>分位數分桶分析：10分組版本（目標10年期，非重疊取樣）</h2>
+  <section class="card">
+    <p class="hint">
+      跟上面各因子頁裡的5組版本是兩份獨立分析，互相對照用，不是取代關係。差異：(1) 切10組不是5組，
+      粒度更細；(2) 時間範圍拉到10年（會多抓5年原始資料當5年滾動百分位的暖身期，暖身期本身不計入10年分析範圍）；
+      (3) 一律用非重疊取樣（每隔{DECILE_HORIZON}個交易日才取一次樣本），避免相鄰樣本因報酬窗口重疊而灌水。
+      每個因子實際能取得的資料長度不一定完全相同，下面每個區塊都明確列出「實際使用區間」，不會假裝全部都湊滿10年。
+      每組樣本數只有10幾筆是預期中的結果（10年÷20個交易日一組≈120多個樣本點，再切10組），標記⚠️/星號的分組代表
+      樣本數低於{DECILE_MIN_N_WARN}筆，估計出來的平均值不穩定，不宜跟樣本充足的分組一視同仁地解讀。
+    </p>
+    {decile_html}
+  </section>
+
   <!-- ===== 3. 因子相關係數熱力圖 ===== -->
   <section class="card">
     <h2><span class="bar"></span>因子相關係數矩陣</h2>
@@ -622,6 +815,11 @@ REPORT_CSS = """
   .rec-item li { margin-bottom:3px; }
   .tearsheet-wrap { margin-top:14px; border:1px solid #dfe2e8; border-radius:10px; overflow:hidden; }
   iframe.tearsheet { width:100%; height:2600px; border:none; display:block; }
+  .decile-block { margin-bottom:32px; padding-bottom:26px; border-bottom:1px solid #e5e7eb; }
+  .decile-block:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:#2d3440; }
+  .data-table tr.low-n td { color:#a6362f; }
+  .warn-hint { color:#a6362f; }
 """
 
 
