@@ -225,17 +225,23 @@ def qs_metrics_row(strat, bench, label):
     if strat is None or len(strat) < 60:
         return {"label": label, "ok": False}
     try:
-        m = qs.reports.metrics(strat, benchmark=bench, mode="basic", display=False)
+        m = qs.reports.metrics(strat, benchmark=bench, mode="full", display=False)
+        # quantstats returns a DataFrame with columns ['Benchmark', 'Strategy'] (string-formatted
+        # values, not floats) — must select the 'Strategy' column by NAME, not positionally
+        # (.iloc[0] silently grabs the benchmark column, which was a real bug caught here).
+        strategy_col = m["Strategy"] if "Strategy" in m.columns else m.iloc[:, -1]
         def get(name):
-            if name not in m.index:
+            if name not in strategy_col.index:
                 return None
-            v = m.loc[name].iloc[0] if hasattr(m.loc[name], "iloc") else m.loc[name]
-            return v
+            try:
+                return float(strategy_col.loc[name])
+            except (TypeError, ValueError):
+                return None
         return {
             "label": label, "ok": True,
             "sharpe": get("Sharpe"), "sortino": get("Sortino"),
             "max_dd": get("Max Drawdown"), "cagr": get("CAGR﹪") or get("CAGR"),
-            "win_rate": get("Win Rate"), "vol": get("Volatility (ann.)"),
+            "win_rate": get("Win Days"), "vol": get("Volatility (ann.)"),
             "n": len(strat),
         }
     except Exception as e:
