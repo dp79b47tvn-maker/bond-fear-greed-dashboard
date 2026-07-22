@@ -34,11 +34,12 @@ import json
 import warnings
 from datetime import date
 
+import glob as _glob
+
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.font_manager as _fm
 import matplotlib.pyplot as plt
-matplotlib.rcParams["font.sans-serif"] = ["PingFang TC", "Heiti TC", "Arial Unicode MS", "Noto Sans CJK TC", "Noto Sans CJK JP", "WenQuanYi Zen Hei", "DejaVu Sans"]
-matplotlib.rcParams["axes.unicode_minus"] = False
 import pandas as pd
 import seaborn as sns
 from scipy import stats
@@ -48,6 +49,28 @@ warnings.filterwarnings("ignore")
 import quantstats as qs
 
 import update_dashboard as ud
+
+# 中文字型設定必須放在所有import之後才會生效:seaborn/quantstats的import過程
+# 會各自套用自己的預設樣式,連帶把font.sans-serif重設回matplotlib預設值
+# (實測過,import quantstats會把上面設的字型整個蓋掉)。
+# Linux CI runner裝的是fonts-noto-cjk這種.ttc合集檔,matplotlib自動掃描常常抓不到
+# 裡面的個別語系名稱(例如"Noto Sans CJK TC"),所以直接找檔案路徑手動註冊、
+# 用註冊後回傳的實際名稱,而不是猜測字型名稱字串。Mac本機沒有這些路徑,
+# glob抓不到東西,就照舊退回PingFang TC,行為不變。
+_cjk_font_names = []
+for _p in (_glob.glob("/usr/share/fonts/**/*CJK*", recursive=True)
+           + _glob.glob("/usr/share/fonts/**/*NotoSansCJK*", recursive=True)):
+    try:
+        _fm.fontManager.addfont(_p)
+        _cjk_font_names.append(_fm.FontProperties(fname=_p).get_name())
+    except Exception:
+        pass
+matplotlib.rcParams["font.sans-serif"] = (
+    ["PingFang TC", "Heiti TC", "Arial Unicode MS"]
+    + list(dict.fromkeys(_cjk_font_names))
+    + ["Noto Sans CJK TC", "Noto Sans CJK JP", "WenQuanYi Zen Hei", "DejaVu Sans"]
+)
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 # ---------------------------------------------------------------- 設定
 # 唯一事實來源:參數來自 factor_definitions.json(經由 update_dashboard.DEFS 共用同一份)
