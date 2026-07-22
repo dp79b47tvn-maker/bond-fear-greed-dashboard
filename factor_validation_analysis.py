@@ -49,20 +49,22 @@ import quantstats as qs
 import update_dashboard as ud
 
 # ---------------------------------------------------------------- 設定
-TARGET = "ZN_futures"
-HORIZONS = [5, 10, 20, 60]
-LOO_HORIZON = 20
-BUCKET_HORIZON = 20
-N_BUCKETS = 5
-DEAD_ZONE = (48, 52)
+# 唯一事實來源:參數來自 factor_definitions.json(經由 update_dashboard.DEFS 共用同一份)
+_V = ud.DEFS["validation"]
+TARGET = _V["target"]
+HORIZONS = _V["horizons"]
+LOO_HORIZON = _V["loo_horizon"]
+BUCKET_HORIZON = _V["bucket_horizon"]
+N_BUCKETS = _V["n_buckets"]
+DEAD_ZONE = tuple(_V["dead_zone"])
 
 # ---- 10年期／10分組分位數分桶分析（附加模組，不取代上面5組版本） ----
-DECILE_YEARS = 10
-DECILE_N_BUCKETS = 10
-DECILE_HORIZON = 20
-DECILE_MIN_N_WARN = 10
-# 5年滾動百分位需要暖身期，往前多抓5年+margin原始資料，才能讓分數本身有滿10年可用
-PERCENTILE_LOOKBACK_DAYS = 5 * 365 + 30
+DECILE_YEARS = _V["decile_years"]
+DECILE_N_BUCKETS = _V["decile_n_buckets"]
+DECILE_HORIZON = _V["decile_horizon"]
+DECILE_MIN_N_WARN = _V["decile_min_n_warn"]
+# 滾動百分位需要暖身期，往前多抓視窗長度+margin原始資料，才能讓分數本身有滿N年可用
+PERCENTILE_LOOKBACK_DAYS = ud.DEFS["global"]["percentile_window_days"] + 30
 
 FACTOR_COLS = {
     "momentum_score": "動能",
@@ -554,12 +556,13 @@ def main():
     # 20年的抓取範圍完全涵蓋10年那份（往前多抓的原始資料不影響任何一天的分數，
     # 因為5年百分位是trailing window，只看『當天以前』），所以只抓一次20年的，
     # 10年版本用同一份分數資料，只是把最近10年之前的部分切掉，不用重抓一次。
-    ext_df_20y, raw_ranges_20y = fetch_extended_history(years=20)
-    decile_html_20 = render_decile_section(ext_df_20y, all_labels_map, years=20, buckets=20)
+    _vy, _vb = _V["vigintile_years"], _V["vigintile_n_buckets"]
+    ext_df_20y, raw_ranges_20y = fetch_extended_history(years=_vy)
+    decile_html_20 = render_decile_section(ext_df_20y, all_labels_map, years=_vy, buckets=_vb)
 
-    ten_year_cutoff = pd.Timestamp(date.today()) - pd.Timedelta(days=10 * 365)
+    ten_year_cutoff = pd.Timestamp(date.today()) - pd.Timedelta(days=DECILE_YEARS * 365)
     ext_df_10y = ext_df_20y.loc[ext_df_20y.index >= ten_year_cutoff]
-    decile_html_10 = render_decile_section(ext_df_10y, all_labels_map, years=10, buckets=10)
+    decile_html_10 = render_decile_section(ext_df_10y, all_labels_map, years=DECILE_YEARS, buckets=DECILE_N_BUCKETS)
 
     print("產生因子相關係數熱力圖 ...")
     print("組裝HTML報告 ...")

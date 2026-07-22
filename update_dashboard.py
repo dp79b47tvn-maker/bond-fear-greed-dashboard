@@ -56,8 +56,15 @@ import pandas as pd
 import requests
 import yfinance as yf
 
-FETCH_START_DATE = "2014-06-01"
-OUTPUT_START_DATE = "2020-01-01"
+# ---- 唯一事實來源:所有計算參數與因子定義都在 factor_definitions.json ----
+# 想改因子的視窗天數、門檻等,改那個檔就好,這裡不再寫死任何參數。
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "factor_definitions.json"), encoding="utf-8") as _f:
+    DEFS = json.load(_f)
+_G = DEFS["global"]
+_FP = {f["key"]: f["params"] for f in DEFS["factors"]}
+
+FETCH_START_DATE = _G["fetch_start_date"]
+OUTPUT_START_DATE = _G["output_start_date"]
 END_DATE = date.today().isoformat()
 
 INPUT_XLSX = "data_input.xlsx"
@@ -162,7 +169,9 @@ def load_user_input():
 
 
 # ---------------------------------------------------------------- scoring
-def rolling_percentile_score(series, window_days=5 * 365, min_periods=None):
+def rolling_percentile_score(series, window_days=None, min_periods=None):
+    if window_days is None:
+        window_days = _G["percentile_window_days"]
     if min_periods is None:
         min_periods = window_days
 
@@ -175,15 +184,10 @@ def rolling_percentile_score(series, window_days=5 * 365, min_periods=None):
 def label_fn(s):
     if pd.isna(s):
         return None
-    if s < 25:
-        return "極度恐懼"
-    if s < 45:
-        return "恐懼"
-    if s < 56:
-        return "中性"
-    if s < 76:
-        return "貪婪"
-    return "極度貪婪"
+    for th in _G["label_thresholds"]:
+        if s < th["lt"]:
+            return th["label"]
+    return _G["label_thresholds"][-1]["label"]
 
 
 SCORE_COLS = [
@@ -202,42 +206,49 @@ def compute_scores(df):
     """
     df = df.copy()
 
-    # ---- 1) 動能：ZN對125日均線乖離率 ----
-    df["ZN_SMA125"] = df["ZN_futures"].rolling(125, min_periods=125).mean()
+    # ---- 1) 動能：ZN對均線乖離率（視窗天數見 factor_definitions.json）----
+    _sma_w = _FP["momentum"]["sma_window"]
+    df["ZN_SMA125"] = df["ZN_futures"].rolling(_sma_w, min_periods=_sma_w).mean()
     df["momentum_bias_pct"] = (df["ZN_futures"] - df["ZN_SMA125"]) / df["ZN_SMA125"] * 100
     df["momentum_score"] = rolling_percentile_score(df["momentum_bias_pct"])
 
-    # ---- 2) 強度：NQ期貨（那斯達克100期貨）在252日高低區間位置 ----
-    roll_max = df["NQ_futures"].rolling(252, min_periods=252).max()
-    roll_min = df["NQ_futures"].rolling(252, min_periods=252).min()
+    # ---- 2) 強度：NQ期貨（那斯達克100期貨）在高低區間位置 ----
+    _rng_w = _FP["strength"]["range_window"]
+    roll_max = df["NQ_futures"].rolling(_rng_w, min_periods=_rng_w).max()
+    roll_min = df["NQ_futures"].rolling(_rng_w, min_periods=_rng_w).min()
     df["nq_252d_high"] = roll_max
     df["nq_252d_low"] = roll_min
     df["strength_score"] = (df["NQ_futures"] - roll_min) / (roll_max - roll_min) * 100
 
-    # ---- 3) 存續期間避險：TLT對SHY的40日報酬差 ----
-    df["TLT_ret40"] = (df["TLT"] / df["TLT"].shift(40) - 1) * 100
-    df["SHY_ret40"] = (df["SHY"] / df["SHY"].shift(40) - 1) * 100
+    # ---- 3) 存續期間避險：TLT對SHY的報酬差 ----
+    _ret_w = _FP["duration"]["return_window"]
+    df["TLT_ret40"] = (df["TLT"] / df["TLT"].shift(_ret_w) - 1) * 100
+    df["SHY_ret40"] = (df["SHY"] / df["SHY"].shift(_ret_w) - 1) * 100
     df["duration_spread"] = df["TLT_ret40"] - df["SHY_ret40"]
     # 利差越高＝長天期跑贏＝願意冒存續期間風險追價＝貪婪，不用反轉，直接用百分位
     df["duration_score"] = rolling_percentile_score(df["duration_spread"])
 
-    # ---- 4) Put/Call：5日均值 → 百分位反轉 ----
+    # ---- 4) Put/Call：均值 → 百分位反轉 ----
+    _pc_w = _FP["putcall"]["avg_window"]
+    _pc_min = _FP["putcall"]["min_periods"]
     df["put_call_ratio"] = pd.to_numeric(df["put_call_ratio"], errors="coerce")
     if df["put_call_ratio"].notna().any():
-        df["put_call_5d_avg"] = df["put_call_ratio"].rolling(5, min_periods=5).mean()
-        pc_pct = rolling_percentile_score(df["put_call_5d_avg"], min_periods=365)
+        df["put_call_5d_avg"] = df["put_call_ratio"].rolling(_pc_w, min_periods=_pc_w).mean()
+        pc_pct = rolling_percentile_score(df["put_call_5d_avg"], min_periods=_pc_min)
         df["putcall_score"] = 100 - pc_pct
     else:
         df["put_call_5d_avg"] = pd.NA
         df["putcall_score"] = pd.NA
 
-    # ---- 5) 波動度：MOVE指數90日滾動偏態係數（主要評分依據，反轉百分位） ----
-    df["move_skew_90d"] = df["MOVE_index"].rolling(90, min_periods=90).skew()
+    # ---- 5) 波動度：MOVE指數滾動偏態係數（主要評分依據，反轉百分位） ----
+    _skew_w = _FP["move"]["skew_window"]
+    _med_w = _FP["move"]["median_window"]
+    df["move_skew_90d"] = df["MOVE_index"].rolling(_skew_w, min_periods=_skew_w).skew()
     # 偏態係數越高（正偏態＝近期MOVE常急速飆高、右尾拉長）＝恐懼，分數應偏低，所以用 100−百分位反轉
     df["move_score"] = 100 - rolling_percentile_score(df["move_skew_90d"])
 
-    # 輔助欄位：對50日滾動中位數的乖離率（不參與任何分數計算，僅供圖表旁補充參考）
-    df["move_50d_median"] = df["MOVE_index"].rolling(50, min_periods=50).median()
+    # 輔助欄位：對滾動中位數的乖離率（不參與任何分數計算，僅供圖表旁補充參考）
+    df["move_50d_median"] = df["MOVE_index"].rolling(_med_w, min_periods=_med_w).median()
     df["move_deviation_pct"] = (df["MOVE_index"] - df["move_50d_median"]) / df["move_50d_median"] * 100
 
     # ---- 6) 殖利率曲線形狀：10年期減2年期利差（2s10s） ----
@@ -246,7 +257,8 @@ def compute_scores(df):
     df["curve_score"] = rolling_percentile_score(df["curve_spread"])
 
     # ---- 7) 通膨意外：CPI年增率 減 10年期損益兩平通膨率（市場隱含通膨預期） ----
-    df["CPI_YoY"] = (df["CPI_index"] / df["CPI_index"].shift(365) - 1) * 100
+    _yoy_d = _FP["inflation"]["yoy_shift_days"]
+    df["CPI_YoY"] = (df["CPI_index"] / df["CPI_index"].shift(_yoy_d) - 1) * 100
     df["inflation_surprise"] = df["CPI_YoY"] - df["Breakeven_10Y"]
     # 意外越高（實際通膨遠高於市場定價）＝恐慌訊號，分數應偏低，所以用 100−百分位反轉
     df["inflation_score"] = 100 - rolling_percentile_score(df["inflation_surprise"])
@@ -463,12 +475,47 @@ def main():
         regime_meta_out = None
     regime_meta_json = json.dumps(regime_meta_out, ensure_ascii=False)
 
+    # ---- 因子定義注入(唯一事實來源):名稱/kicker/說明文字經token替換後給前端 ----
+    import re as _re
+
+    def _sub_tokens(text, params):
+        merged = {**_G, **params}
+        return _re.sub(r"\{(\w+)\}", lambda m: str(merged.get(m.group(1), m.group(0))), text)
+
+    factor_defs_out = {
+        fx["key"]: {
+            "kicker": fx["kicker"],
+            "name": _sub_tokens(fx["name_tpl"], fx["params"]),
+            "explain": _sub_tokens(fx["explain_tpl"], fx["params"]),
+        }
+        for fx in DEFS["factors"]
+    }
+    factor_defs_json = json.dumps(factor_defs_out, ensure_ascii=False)
+
+    # ---- 跨頁連結(artifact_urls.json;空值退回本機相對路徑) ----
+    try:
+        with open("artifact_urls.json", encoding="utf-8") as f:
+            urls = json.load(f)
+    except FileNotFoundError:
+        urls = {}
+    link_manual = urls.get("manual") or "manual.html"
+    link_report = urls.get("report") or "factor_validation_report.html"
+    link_hub = urls.get("hub") or "index.html"
+
     with open("chart/dashboard_template.html") as f:
         template = f.read()
-    assert "__DATA_JSON__" in template, "模板缺少 __DATA_JSON__ 佔位符"
-    assert "__REGIME_META_JSON__" in template, "模板缺少 __REGIME_META_JSON__ 佔位符"
+    for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
+               "__LINK_MANUAL__", "__LINK_REPORT__", "__LINK_HUB__"]:
+        assert ph in template, f"模板缺少 {ph} 佔位符"
+    out_html = (template
+                .replace("__DATA_JSON__", data_json)
+                .replace("__REGIME_META_JSON__", regime_meta_json)
+                .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
+                .replace("__LINK_MANUAL__", link_manual)
+                .replace("__LINK_REPORT__", link_report)
+                .replace("__LINK_HUB__", link_hub))
     with open("chart/dashboard.html", "w") as f:
-        f.write(template.replace("__DATA_JSON__", data_json).replace("__REGIME_META_JSON__", regime_meta_json))
+        f.write(out_html)
 
     latest = records[-1]
     print(f"\n完成！共 {len(records)} 天（{records[0]['date']} ~ {latest['date']}）")
