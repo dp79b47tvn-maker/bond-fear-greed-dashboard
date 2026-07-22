@@ -1,7 +1,7 @@
 {
-  "_readme": "各產出頁面發布後的Artifact網址,供互相連結用。新頁面第一次發布後把網址填進來,重新generate+發布一次,連結就會生效。",
-  "dashboard": "https://claude.ai/code/artifact/ddfe32c6-c038-44e3-9b4e-47b489148904",
-  "report": "https://claude.ai/code/artifact/20189e6a-78f8-43e8-a3e3-4ddacc6c1474",
-  "manual": "https://claude.ai/code/artifact/40ad57f3-ded8-4ed8-a005-5ec86a10483f",
-  "hub": "https://claude.ai/code/artifact/7c015e2b-c62d-417d-b95b-488413a00a5d"
+  "_readme": "各產出頁面之間的跨頁連結設定。留空值時,程式會退回同資料夾的相對路徑連結(dashboard.html/manual.html/factor_validation_report.html/index.html皆為chart/底下的同層檔案)——這是GitHub Pages正式站的運作方式。若之後又想改回發布到Claude Artifact(各自獨立網址),把對應網址填回這裡即可。",
+  "dashboard": "",
+  "report": "",
+  "manual": "",
+  "hub": ""
 }

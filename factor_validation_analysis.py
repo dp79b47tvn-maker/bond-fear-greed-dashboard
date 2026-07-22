@@ -4,7 +4,7 @@
 
     python3 factor_validation_analysis.py
 
-輸出：factor_validation_report.html（單一自包含檔案，圖表以base64內嵌，瀏覽器直接開）
+輸出：chart/factor_validation_report.html（單一自包含檔案，圖表以base64內嵌，瀏覽器直接開）
 
 八大模組（對應需求書的一到八）：
   1. IC分析：每個因子 + 綜合分數，對未來5/10/20/60日ZN報酬的Spearman等級相關係數
@@ -36,7 +36,7 @@ from datetime import date
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-matplotlib.rcParams["font.sans-serif"] = ["PingFang TC", "Heiti TC", "Arial Unicode MS", "DejaVu Sans"]
+matplotlib.rcParams["font.sans-serif"] = ["PingFang TC", "Heiti TC", "Arial Unicode MS", "Noto Sans CJK TC", "Noto Sans CJK JP", "WenQuanYi Zen Hei", "DejaVu Sans"]
 matplotlib.rcParams["axes.unicode_minus"] = False
 import pandas as pd
 import seaborn as sns
@@ -567,9 +567,9 @@ def main():
     print("產生因子相關係數熱力圖 ...")
     print("組裝HTML報告 ...")
     html = render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html_10, decile_html_20)
-    with open("factor_validation_report.html", "w", encoding="utf-8") as f:
+    with open("chart/factor_validation_report.html", "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"完成！已輸出 factor_validation_report.html（{len(html)/1024:.0f} KB）")
+    print(f"完成！已輸出 chart/factor_validation_report.html（{len(html)/1024:.0f} KB）")
 
 
 # ---------------------------------------------------------------- HTML 模板
