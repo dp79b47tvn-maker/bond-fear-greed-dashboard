@@ -723,8 +723,8 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
   <header>
     <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
       <a href="{_hub_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">← 專案首頁</a>
-      <a href="{_dashboard_url}" target="_blank" style="color:#1e3a5f;text-decoration:none;font-weight:600;">即時儀表板</a>
-      <a href="{_manual_url}" target="_blank" style="color:#1e3a5f;text-decoration:none;font-weight:600;">因子定義手冊</a>
+      <a href="{_dashboard_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">即時儀表板</a>
+      <a href="{_manual_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">因子定義手冊</a>
     </nav>
     <div class="kicker">FACTOR VALIDATION REPORT</div>
     <h1>因子驗證分析報告</h1>

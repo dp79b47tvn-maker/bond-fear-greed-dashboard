@@ -74,8 +74,8 @@ for fx in DEFS["factors"]:
       </div>
     </div>
     <p class="crosslink">
-      <a href="{link_dashboard}" target="_blank">→ 在儀表板看此因子的即時分數與走勢</a>　·
-      <a href="{link_report}" target="_blank">→ 在驗證報告看此因子的IC/分桶/回測</a>
+      <a href="{link_dashboard}">→ 在儀表板看此因子的即時分數與走勢</a>　·
+      <a href="{link_report}">→ 在驗證報告看此因子的IC/分桶/回測</a>
     </p>
   </section>""")
 
@@ -183,8 +183,8 @@ html = f"""<meta charset="utf-8">
 <div class="wrap">
   <nav class="topnav">
     <a href="{link_hub}">← 專案首頁</a>
-    <a href="{link_dashboard}" target="_blank">即時儀表板</a>
-    <a href="{link_report}" target="_blank">因子驗證報告</a>
+    <a href="{link_dashboard}">即時儀表板</a>
+    <a href="{link_report}">因子驗證報告</a>
   </nav>
   <div class="kickertop">FACTOR DEFINITIONS MANUAL</div>
   <h1>因子定義手冊</h1>
@@ -250,7 +250,7 @@ html = f"""<meta charset="utf-8">
       <tr><td>策略回測</td><td>{V['position_rule_note']} quantstats產出夏普/回撤/勝率,與買進持有比較。</td></tr>
       <tr><td>前後半穩定性</td><td>資料切兩半各重跑,檢查訊號是否被單一時期主導。</td></tr>
     </table>
-    <p class="crosslink"><a href="{link_report}" target="_blank">→ 打開完整因子驗證報告</a></p>
+    <p class="crosslink"><a href="{link_report}">→ 打開完整因子驗證報告</a></p>
   </section>
 
   <section class="card" id="calculator">
@@ -360,17 +360,17 @@ hub_html = f"""<meta charset="utf-8">
   <h1>債券市場恐懼貪婪 · 專案首頁</h1>
   <p class="lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套完整的統計驗證與定義文件。三個分類互相連結,同一份定義來源(factor_definitions.json)驅動。</p>
   <div class="cards">
-    <a class="card" href="{link_dashboard}" target="_blank">
+    <a class="card" href="{link_dashboard}">
       <div class="ck">LIVE DASHBOARD</div>
       <h2>即時儀表板</h2>
       <p>今日綜合分數與{factor_count}項因子走勢,互動時間軸,每日收盤後更新。</p>
     </a>
-    <a class="card" href="{link_report}" target="_blank">
+    <a class="card" href="{link_report}">
       <div class="ck">VALIDATION REPORT</div>
       <h2>因子驗證報告</h2>
       <p>IC分析、分桶檢定、Leave-one-out、相關矩陣、回測、穩定性——分數到底準不準。</p>
     </a>
-    <a class="card" href="{URLS.get('manual') or 'manual.html'}" target="_blank">
+    <a class="card" href="{URLS.get('manual') or 'manual.html'}">
       <div class="ck">DEFINITIONS MANUAL</div>
       <h2>因子定義手冊</h2>
       <p>每個因子的公式、參數、設計理由、限制,含互動試算。改因子前必看。</p>
