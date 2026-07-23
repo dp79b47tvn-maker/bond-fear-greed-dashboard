@@ -109,6 +109,7 @@ tune_rows += (f"<tr><td>驗證</td><td class='mono'>dead_zone</td><td class='num
               f"<td>回測中性死區,區間內強制空手。</td></tr>")
 
 html = f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子定義手冊 · 債券市場恐懼貪婪</title>
 <style>
   :root {{
@@ -140,7 +141,8 @@ html = f"""<meta charset="utf-8">
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }}
   .wrap {{ max-width:1080px; margin:0 auto; padding:40px 24px 70px; }}
   .topnav {{ display:flex; gap:16px; flex-wrap:wrap; font-size:13px; margin-bottom:26px; }}
-  .topnav a {{ color:var(--accent); text-decoration:none; font-weight:600; border-bottom:1px solid transparent; }}
+  .topnav a {{ color:var(--accent); text-decoration:none; font-weight:600; border-bottom:1px solid transparent;
+    padding:10px 6px; margin:-10px -6px; border-radius:6px; }}
   .topnav a:hover {{ border-bottom-color:currentColor; }}
   .kickertop {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:8px; }}
   h1 {{ font-size:30px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
@@ -323,6 +325,7 @@ print(f"已生成 chart/manual.html（{len(html)/1024:.0f} KB）")
 # ================================================================ 入口頁 index.html
 factor_count = len(DEFS["factors"])
 hub_html = f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>債券市場恐懼貪婪 · 專案首頁</title>
 <style>
   :root {{

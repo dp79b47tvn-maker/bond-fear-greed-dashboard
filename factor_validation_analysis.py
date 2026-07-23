@@ -713,6 +713,7 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子驗證分析報告</title>
 <style>
 {REPORT_CSS}
@@ -722,9 +723,9 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
 <div class="wrap">
   <header>
     <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
-      <a href="{_hub_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">← 專案首頁</a>
-      <a href="{_dashboard_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">即時儀表板</a>
-      <a href="{_manual_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;">因子定義手冊</a>
+      <a href="{_hub_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
+      <a href="{_dashboard_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">即時儀表板</a>
+      <a href="{_manual_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">因子定義手冊</a>
     </nav>
     <div class="kicker">FACTOR VALIDATION REPORT</div>
     <h1>因子驗證分析報告</h1>
