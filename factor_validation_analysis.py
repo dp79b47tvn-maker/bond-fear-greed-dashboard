@@ -27,6 +27,8 @@
   - 部位在t日收盤用當天分數決定，套用在t+1日的報酬上（position.shift(1)），
     不使用未來資料。
   - IC全部用非重疊取樣，樣本數天生就少，報告會明確列出每組實際樣本數。
+  - 所有IC相關表格另外附上「重疊取樣」版本（每天都取樣、不跳過）供對照參考，
+    這個版本樣本間高度自相關，只看數值，不附顯著性檢定，判斷/建議一律以非重疊版本為準。
 """
 import base64
 import io
@@ -136,6 +138,20 @@ def non_overlapping_ic(df, score_col, horizon, target=TARGET):
     return {"rho": float(rho) if pd.notna(rho) else None, "pval": float(pval) if pd.notna(pval) else None, "n": len(sampled)}
 
 
+def overlapping_ic(df, score_col, horizon, target=TARGET):
+    """重疊取樣版本:每天都取樣、不像non_overlapping_ic那樣每隔horizon天才取一筆。
+    相鄰樣本的報酬窗口高度重疊、彼此高度自相關,樣本數雖然遠大於非重疊版本,
+    但「有效」樣本數並沒有真的變多——所以這裡不算、不回傳pval,report端也不會
+    顯示顯著性字樣,只把rho數值當非重疊版本的參考對照，不能拿來判斷統計顯著性。"""
+    sub = df[[score_col]].copy()
+    sub["fwd"] = forward_return(df[target], horizon)
+    sub = sub.dropna()
+    if len(sub) < 10:
+        return {"rho": None, "n": len(sub)}
+    rho, _ = stats.spearmanr(sub[score_col], sub["fwd"])
+    return {"rho": float(rho) if pd.notna(rho) else None, "n": len(sub)}
+
+
 def ic_table(df, score_cols_map, horizons=HORIZONS):
     rows = []
     for col, label in score_cols_map.items():
@@ -144,6 +160,7 @@ def ic_table(df, score_cols_map, horizons=HORIZONS):
         row = {"factor": label, "col": col}
         for h in horizons:
             row[f"h{h}"] = non_overlapping_ic(df, col, h)
+            row[f"h{h}_overlap"] = overlapping_ic(df, col, h)
         rows.append(row)
     return rows
 
@@ -376,16 +393,24 @@ def composite_loo(df, exclude_col, factor_cols):
 
 def leave_one_out_table(df, factor_cols_map, horizon=LOO_HORIZON):
     full_ic = non_overlapping_ic(df, COMPOSITE_COL, horizon)
+    full_ic_overlap = overlapping_ic(df, COMPOSITE_COL, horizon)
     rows = []
     for col, label in factor_cols_map.items():
         alt_score = composite_loo(df, col, list(factor_cols_map.keys()))
         tmp = df.copy()
         tmp["_loo"] = alt_score
         loo_ic = non_overlapping_ic(tmp, "_loo", horizon)
+        loo_ic_overlap = overlapping_ic(tmp, "_loo", horizon)
         delta = None
         if full_ic["rho"] is not None and loo_ic["rho"] is not None:
             delta = loo_ic["rho"] - full_ic["rho"]
-        rows.append({"factor": label, "col": col, "full_ic": full_ic, "loo_ic": loo_ic, "delta": delta})
+        delta_overlap = None
+        if full_ic_overlap["rho"] is not None and loo_ic_overlap["rho"] is not None:
+            delta_overlap = loo_ic_overlap["rho"] - full_ic_overlap["rho"]
+        rows.append({
+            "factor": label, "col": col, "full_ic": full_ic, "loo_ic": loo_ic, "delta": delta,
+            "full_ic_overlap": full_ic_overlap, "loo_ic_overlap": loo_ic_overlap, "delta_overlap": delta_overlap,
+        })
     return full_ic, rows
 
 
@@ -614,15 +639,19 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
     for col, label in all_labels.items():
         ic_row = next((r for r in full["ic_rows"] if r["col"] == col), None)
         ic20 = ic_row["h20"] if ic_row else None
+        ic20_overlap = ic_row["h20_overlap"] if ic_row else None
         bucket = full["buckets"].get(col)
         mono = bucket["monotonicity"] if bucket else None
         loo_delta = None
+        loo_delta_overlap = None
         if col != COMPOSITE_COL:
             loo_row = next((r for r in full["loo_rows"] if r["col"] == col), None)
             loo_delta = loo_row["delta"] if loo_row else None
+            loo_delta_overlap = loo_row["delta_overlap"] if loo_row else None
         verdict, reasons = build_recommendation(label, ic20, loo_delta, mono, is_composite=(col == COMPOSITE_COL))
         summary_rows.append({
-            "label": label, "col": col, "ic20": ic20, "mono": mono, "loo_delta": loo_delta,
+            "label": label, "col": col, "ic20": ic20, "ic20_overlap": ic20_overlap, "mono": mono,
+            "loo_delta": loo_delta, "loo_delta_overlap": loo_delta_overlap,
             "verdict": verdict, "reasons": reasons,
         })
 
@@ -630,24 +659,27 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
       <tr>
         <td class="fname">{r['label']}</td>
         <td>{fmt_rho(r['ic20'])}</td>
+        <td>{fmt_rho(r['ic20_overlap'])}</td>
         <td>{fmt_num(r['mono'], 2) if r['mono'] is not None else '—'}</td>
         <td>{(f"{r['loo_delta']:+.3f}" if r['loo_delta'] is not None else '—')}</td>
+        <td>{(f"{r['loo_delta_overlap']:+.3f}" if r['loo_delta_overlap'] is not None else '—')}</td>
         <td class="verdict-{'keep' if '保留' in r['verdict'] else ('cut' if '剔除' in r['verdict'] else 'watch')}">{r['verdict']}</td>
       </tr>""" for r in summary_rows)
 
     # ---- IC比較表（跨樣本） ----
-    def ic_compare_row(label, col):
+    def ic_compare_row(label, col, key="h20"):
         def cell(sample):
             row = next((r for r in sample["ic_rows"] if r["col"] == col), None)
             return row
         f_row, h1_row, h2_row = cell(full), cell(half1), cell(half2)
         cells = ""
         for r in (f_row, h1_row, h2_row):
-            d = r["h20"] if r else None
+            d = r[key] if r else None
             cells += f"<td>{fmt_rho(d)}</td>"
         return f"<tr><td class='fname'>{label}</td>{cells}</tr>"
 
     ic_compare_html = "".join(ic_compare_row(label, col) for col, label in all_labels.items())
+    ic_compare_overlap_html = "".join(ic_compare_row(label, col, key="h20_overlap") for col, label in all_labels.items())
 
     # ---- 回測穩定性比較表 ----
     def backtest_compare_row(label, col):
@@ -667,6 +699,7 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
     for col, label in FACTOR_COLS.items():
         ic_row = next((r for r in full["ic_rows"] if r["col"] == col), None)
         ic_cells = "".join(f"<td>{fmt_rho(ic_row[f'h{h}'])}</td>" for h in HORIZONS) if ic_row else ""
+        ic_cells_overlap = "".join(f"<td>{fmt_rho(ic_row[f'h{h}_overlap'])}</td>" for h in HORIZONS) if ic_row else ""
         bucket = full["buckets"].get(col)
         chart_b64 = bucket_chart_base64(bucket, f"{label}：未來{BUCKET_HORIZON}日平均報酬（依分數五分組）") if bucket else None
         bucket_table_html = ""
@@ -681,12 +714,13 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
         factor_sections.append(f"""
         <section class="card">
           <h2>{label}</h2>
-          <h3>資訊係數（IC，非重疊取樣，vs 未來N日ZN報酬）</h3>
+          <h3>資訊係數（IC，vs 未來N日ZN報酬）</h3>
           <table class="data-table">
-            <tr><th>5日</th><th>10日</th><th>20日</th><th>60日</th></tr>
-            <tr>{ic_cells}</tr>
+            <tr><th></th><th>5日</th><th>10日</th><th>20日</th><th>60日</th></tr>
+            <tr><td class="fname">非重疊取樣</td>{ic_cells}</tr>
+            <tr><td class="fname">重疊取樣（僅供參考）</td>{ic_cells_overlap}</tr>
           </table>
-          <p class="hint">負值＝符合「恐懼買入」假設方向；正值＝與假設相反（動能延續）。括號內n為非重疊樣本數。</p>
+          <p class="hint">負值＝符合「恐懼買入」假設方向；正值＝與假設相反（動能延續）。括號內n為樣本數。「重疊取樣」樣本間高度自相關，只當數值對照參考，不適合判斷顯著性，本報告的建議判斷一律以非重疊版本為準。</p>
 
           <h3>分位數分桶：未來{BUCKET_HORIZON}日平均報酬</h3>
           {"<img class='chart' src='data:image/png;base64," + chart_b64 + "'/>" if chart_b64 else "<p class='na'>資料不足，無法分桶</p>"}
@@ -694,8 +728,10 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
           <p class="hint">單調性係數（分組序 vs 平均報酬的Spearman rho）：{fmt_num(bucket['monotonicity'],3) if bucket else '—'}（接近-1代表報酬隨分數遞減、符合假設；接近+1代表遞增、動能延續）</p>
 
           <h3>Leave-one-out：拿掉此因子後對綜合分數IC（20日）的影響</h3>
-          <p>完整七項IC：{fmt_rho(loo_row['full_ic']) if loo_row else '—'}　→　拿掉此因子後：{fmt_rho(loo_row['loo_ic']) if loo_row else '—'}
+          <p>非重疊取樣：完整七項IC：{fmt_rho(loo_row['full_ic']) if loo_row else '—'}　→　拿掉此因子後：{fmt_rho(loo_row['loo_ic']) if loo_row else '—'}
           （Δ = {f"{loo_row['delta']:+.3f}" if loo_row and loo_row['delta'] is not None else '—'}）</p>
+          <p>重疊取樣（僅供參考）：完整七項IC：{fmt_rho(loo_row['full_ic_overlap']) if loo_row else '—'}　→　拿掉此因子後：{fmt_rho(loo_row['loo_ic_overlap']) if loo_row else '—'}
+          （Δ = {f"{loo_row['delta_overlap']:+.3f}" if loo_row and loo_row['delta_overlap'] is not None else '—'}）</p>
 
           <h3>單因子回測績效（此因子分數單獨當訊號來源）</h3>
           {render_backtest_mini_table(bt)}
@@ -735,7 +771,8 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
       產生日期：{date.today().isoformat()}
     </p>
     <p class="disclaimer">
-      方法論：所有IC一律用「非重疊取樣」（每隔N天取一次樣本，N=驗證的報酬期間）計算Spearman等級相關係數，避免相鄰樣本因報酬窗口重疊而互相高度相關、把統計顯著性灌水。
+      方法論：所有判斷、建議一律以「非重疊取樣」（每隔N天取一次樣本，N=驗證的報酬期間）算出來的IC為準，避免相鄰樣本因報酬窗口重疊而互相高度相關、把統計顯著性灌水。
+      部分表格另外附上「重疊取樣」版本的IC（每天都取樣，不跳過）供對照參考——這個版本樣本間高度自相關，只看數值本身跟非重疊版本差多少，不附顯著性檢定，不能拿來判斷訊號是否顯著。
       策略回測的部位在t日收盤用當天分數決定、套用在t+1日報酬（不使用未來資料）。「恐懼買入」是使用者設定的操作假設（分數低→未來報酬應該高→IC應為負），
       本報告如實呈現每個因子算出來的正負號與數值，不會為了迎合假設而扭曲呈現——這正是這份報告存在的目的。
     </p>
@@ -745,10 +782,11 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
   <section class="card">
     <h2><span class="bar"></span>摘要：七項因子總覽</h2>
     <table class="data-table summary-table">
-      <tr><th>因子</th><th>IC（20日，非重疊）</th><th>分桶單調性</th><th>Leave-one-out ΔIC</th><th>建議</th></tr>
+      <tr><th>因子</th><th>IC（20日，非重疊）</th><th>IC（20日，重疊，僅供參考）</th><th>分桶單調性</th><th>Leave-one-out ΔIC（非重疊）</th><th>Leave-one-out ΔIC（重疊，僅供參考）</th><th>建議</th></tr>
       {summary_table_html}
     </table>
     <p class="hint">分桶單調性：-1到+1之間，越接近-1代表報酬隨分數（恐懼→貪婪）單調遞減，符合「恐懼買入」假設；越接近+1代表單調遞增（動能延續，與假設相反）。</p>
+    <p class="hint">「重疊，僅供參考」欄：每天都取樣、不像非重疊版本每隔N天才取一筆，相鄰樣本的報酬窗口高度重疊、彼此高度自相關，樣本數雖然大很多，但「有效」樣本數並沒有真的變多。這個數字只拿來跟非重疊版本互相對照（差很多代表訊號對取樣方式敏感），不附顯著性檢定，也不能拿來判斷這個因子的訊號是否顯著——本報告的建議判斷一律以非重疊版本為準。</p>
   </section>
 
   <!-- ===== 2. 各因子詳細頁 ===== -->
@@ -807,10 +845,16 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
     <h2><span class="bar"></span>樣本穩定性：全樣本 / 前半段 / 後半段</h2>
     <p class="hint">前半段：{half1['date_range'][0]} ~ {half1['date_range'][1]}（{half1['n_days']}天）　·
       後半段：{half2['date_range'][0]} ~ {half2['date_range'][1]}（{half2['n_days']}天）</p>
-    <h3>IC（20日）比較</h3>
+    <h3>IC（20日）比較 — 非重疊取樣</h3>
     <table class="data-table">
       <tr><th>因子</th><th>全樣本</th><th>前半段</th><th>後半段</th></tr>
       {ic_compare_html}
+    </table>
+    <h3>IC（20日）比較 — 重疊取樣（僅供參考）</h3>
+    <p class="hint">每天都取樣、樣本間高度自相關，只當跟上表互相對照參考，不適合判斷顯著性或穩定性結論。</p>
+    <table class="data-table">
+      <tr><th>因子</th><th>全樣本</th><th>前半段</th><th>後半段</th></tr>
+      {ic_compare_overlap_html}
     </table>
     <h3>回測績效比較</h3>
     <table class="data-table">
