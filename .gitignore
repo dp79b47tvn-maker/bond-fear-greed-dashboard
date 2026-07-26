@@ -10,3 +10,6 @@ bond_yield_percentile_scores.csv
 bond_yield_data.csv
 bond_dashboard_data_input.xlsx
 .DS_Store
+
+# decile_overlap_comparison.py 的輸出:探索性比較用,不是正式發布產物,每次重跑內容都會變
+chart/decile_overlap_comparison.html
