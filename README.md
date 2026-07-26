@@ -39,9 +39,7 @@ python3 scripts/verify_dashboard.py    # 發布前一定要過這個檢查
 
 ## 給 AI Agent 的說明
 
-完整的開發/發布規則、單一事實來源的因子設定架構、常見的坑，請讀 [`CLAUDE.md`](./CLAUDE.md)。
-
-> ⚠️ **注意**：`CLAUDE.md` 目前寫的是「手動發布到 Claude Artifact」那套舊流程，但這個
-> repo 現在實際上已經改用 GitHub Actions + Pages 自動部署（見上方「上線網址」與
-> `.github/workflows/update-and-deploy.yml`）。這份 README 反映的是目前實際的部署方式；
-> `CLAUDE.md` 有過時的部分，之後有空建議整理更新，避免接手的人（或 agent）照著舊流程走。
+完整的開發/發布規則、單一事實來源的因子設定架構、常見的坑，請讀 [`AGENTS.md`](./AGENTS.md)——
+這是跨平台通用版本，不限 Claude Code，Cursor/Windsurf/Copilot 等工具也讀得到（各自有對應的
+薄指標檔 `.cursorrules`／`.windsurfrules`／`.github/copilot-instructions.md` 指回這裡）。
+`CLAUDE.md` 現在也只是指回 `AGENTS.md` 的指標檔，內容不重複維護。
