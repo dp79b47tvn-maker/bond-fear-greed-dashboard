@@ -206,11 +206,11 @@ def compute_scores(df):
     """
     df = df.copy()
 
-    # ---- 1) 動能：ZN對均線乖離率（視窗天數見 factor_definitions.json）----
+    # ---- 1) 動能：US 10Y對均線價差（視窗天數見 factor_definitions.json）----
     _sma_w = _FP["momentum"]["sma_window"]
-    df["ZN_SMA125"] = df["ZN_futures"].rolling(_sma_w, min_periods=_sma_w).mean()
-    df["momentum_bias_pct"] = (df["ZN_futures"] - df["ZN_SMA125"]) / df["ZN_SMA125"] * 100
-    df["momentum_score"] = rolling_percentile_score(df["momentum_bias_pct"])
+    df["UST10Y_SMA125"] = df["UST_10Yr"].rolling(_sma_w, min_periods=_sma_w).mean()
+    df["momentum_spread"] = df["UST_10Yr"] - df["UST10Y_SMA125"]
+    df["momentum_score"] = 100 - rolling_percentile_score(df["momentum_spread"])
 
     # ---- 2) 強度：NQ期貨（那斯達克100期貨）在高低區間位置 ----
     _rng_w = _FP["strength"]["range_window"]
@@ -401,7 +401,7 @@ def main():
     # ---- 輸出 CSV / 審閱 Excel ----
     out.sort_index(ascending=False).to_csv("bond_fear_greed_v2.csv")
     with pd.ExcelWriter("bond_dashboard_data_input.xlsx", engine="openpyxl") as writer:
-        raw_cols = ["ZN_futures", "ZN_SMA125", "momentum_bias_pct", "NQ_futures", "nq_252d_high", "nq_252d_low",
+        raw_cols = ["UST_10Yr", "UST10Y_SMA125", "momentum_spread", "NQ_futures", "nq_252d_high", "nq_252d_low",
                     "TLT", "SHY", "TLT_ret40", "SHY_ret40", "duration_spread",
                     "MOVE_index", "move_skew_90d", "move_50d_median", "move_deviation_pct",
                     "UST_10Yr", "UST_2Yr", "curve_spread", "CPI_index", "CPI_YoY", "Breakeven_10Y",
@@ -432,9 +432,9 @@ def main():
             "regimeScore": safe(row["regime_score"], 2) if regime_meta else None,
             "regimeFed": row["regime_fed"] if isinstance(row["regime_fed"], str) else None,
             "raw": {
-                "zn": safe(row["ZN_futures"]),
-                "sma125": safe(row["ZN_SMA125"]),
-                "bias": safe(row["momentum_bias_pct"], 2),
+                "us10y": safe(row["UST_10Yr"]),
+                "sma125": safe(row["UST10Y_SMA125"]),
+                "spread": safe(row["momentum_spread"], 2),
                 "nq": safe(row["NQ_futures"]),
                 "hi252": safe(row["nq_252d_high"]),
                 "lo252": safe(row["nq_252d_low"]),

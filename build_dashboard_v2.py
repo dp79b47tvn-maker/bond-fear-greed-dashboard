@@ -96,10 +96,11 @@ def main():
     first_valid = df.apply(lambda c: c.first_valid_index()).min()
     df = df.loc[first_valid:]
 
-    # ---------- 1) 動能 Momentum：ZN對125日均線乖離率 ----------
-    df["ZN_SMA125"] = df["ZN_futures"].rolling(125, min_periods=125).mean()
-    df["momentum_bias_pct"] = (df["ZN_futures"] - df["ZN_SMA125"]) / df["ZN_SMA125"] * 100
-    df["momentum_score"] = rolling_percentile_score(df["momentum_bias_pct"])
+    # ---------- 1) 動能 Momentum：US 10Y對125日均線價差 ----------
+    _sma_w = 125
+    df["UST10Y_SMA125"] = df["UST_10Yr"].rolling(_sma_w, min_periods=_sma_w).mean()
+    df["momentum_spread"] = df["UST_10Yr"] - df["UST10Y_SMA125"]
+    df["momentum_score"] = 100 - rolling_percentile_score(df["momentum_spread"])
 
     # ---------- 2) 強度 Strength：ZN在252日高低區間的位置 ----------
     roll_max = df["ZN_futures"].rolling(252, min_periods=252).max()
@@ -153,7 +154,7 @@ def main():
     # ---------- Excel 資料輸入/審閱檔 ----------
     excel_path = "bond_dashboard_data_input.xlsx"
     with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
-        raw_cols = ["ZN_futures", "ZN_SMA125", "momentum_bias_pct", "zn_252d_high", "zn_252d_low",
+        raw_cols = ["UST_10Yr", "UST10Y_SMA125", "momentum_spread", "zn_252d_high", "zn_252d_low",
                     "MOVE_index", "UST_10Yr", "put_call_ratio", "put_call_5d_avg"]
         df.loc[OUTPUT_START_DATE:].sort_index()[raw_cols].to_excel(writer, sheet_name="RawData")
         df.loc[OUTPUT_START_DATE:].sort_index()[score_cols + ["composite_score", "label"]].to_excel(writer, sheet_name="Scores")

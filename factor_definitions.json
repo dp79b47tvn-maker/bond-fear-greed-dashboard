@@ -23,16 +23,16 @@
       "key": "momentum",
       "score_col": "momentum_score",
       "kicker": "MOMENTUM",
-      "name_tpl": "動能 — ZN期貨 {sma_window}日均線乖離率",
+      "name_tpl": "動能 — US 10Y {sma_window}日均線價差",
       "params": { "sma_window": 125 },
-      "inputs": ["ZN_futures"],
-      "intermediate_cols": ["ZN_SMA{sma_window}→ZN_SMA125", "momentum_bias_pct"],
-      "formula_tpl": "乖離率% = (ZN − ZN過去{sma_window}日均價) ÷ 均價 × 100 → 丟{percentile_years_label}百分位",
+      "inputs": ["UST_10Yr"],
+      "intermediate_cols": ["UST10Y_SMA{sma_window}", "momentum_spread"],
+      "formula_tpl": "價差 = US 10Y − US 10Y過去{sma_window}日均值 → 丟{percentile_years_label}百分位並反轉",
       "uses_percentile": true,
-      "invert": false,
+      "invert": true,
       "code_location": "update_dashboard.py compute_scores() 第1段",
       "tuning_note": "sma_window 改短→追短線動能;改長→只看長期趨勢偏離。",
-      "explain_tpl": "<b>怎麼算：</b>取ZN期貨（10年期美債期貨）收盤價對其{sma_window}日移動平均線的乖離率（(價格−均線)/均線），再把當天乖離率放進過去{percentile_years_label}分佈裡取百分位（0–100）。<b>為什麼：</b>價格持續站在均線之上代表債市漲勢有慣性（資金湧入、偏貪婪）；深度跌破均線代表拋售動能強（偏恐懼）。對應CNN原版的「Market Momentum（S&P500 vs 125日均線）」，改成債券版。<br><b>資料來源與可信度：</b>ZN=F每日收盤價來自Yahoo Finance（CME原始行情），可與CME官網收盤價逐日核對；乖離率轉成{percentile_years_label}百分位後不受價格單位影響，卡片上同時顯示當日原始乖離率供人工驗算。"
+      "explain_tpl": "<b>怎麼算：</b>取US 10Y（10年期美國公債殖利率）對其{sma_window}日移動平均線的價差（殖利率−均線），再把當天價差放進過去{percentile_years_label}分佈裡取百分位（0–100）並反轉。<b>為什麼：</b>殖利率走勢與價格相反。殖利率高於均線（正價差）代表價格跌破均線，拋售動能強（偏恐懼）；殖利率低於均線（負價差）代表債市漲勢有慣性（資金湧入、偏貪婪）。反轉百分位以符合恐懼貪婪指數的定義（低分恐懼、高分貪婪）。<br><b>資料來源與可信度：</b>UST_10Yr每日數值來自FRED（DGS10），可與官方發布時間核對；轉成百分位後不受殖利率絕對水準影響，卡片上同時顯示當日原始價差供人工驗算。"
     },
     {
       "key": "strength",

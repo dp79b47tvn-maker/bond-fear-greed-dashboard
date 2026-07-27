@@ -937,10 +937,10 @@ if (hasRegimeScore && REGIME_META) {
 const COMPONENTS = [
   {
     key: "momentum",
-    rawText: r => r && r.bias != null ? `乖離率 ${r.bias >= 0 ? "+" : ""}${r.bias.toFixed(2)}%（ZN ${r.zn?.toFixed(2) ?? "—"} vs 125日均線 ${r.sma125?.toFixed(2) ?? "—"}）` : "",
+    rawText: r => r && r.spread != null ? `價差 ${r.spread >= 0 ? "+" : ""}${r.spread.toFixed(2)}%（US 10Y ${r.us10y?.toFixed(2) ?? "—"} vs 125日均線 ${r.sma125?.toFixed(2) ?? "—"}）` : "",
     rawChart: {
       series: [
-        { key: "zn", label: "ZN期貨收盤價", color: "var(--series-1)" },
+        { key: "us10y", label: "US 10Y 殖利率", color: "var(--series-1)" },
         { key: "sma125", label: "125日移動平均線", color: "var(--series-2)" },
       ],
     },

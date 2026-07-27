@@ -31,9 +31,9 @@ for d, row in df.iterrows():
         "putcall": safe(row["putcall_score"], 2),
         "move": safe(row["move_score"], 2),
         "raw": {
-            "zn": safe(row["ZN_futures"]),
-            "sma125": safe(row["ZN_SMA125"]),
-            "bias": safe(row["momentum_bias_pct"], 2),
+            "us10y": safe(row["UST_10Yr"]),
+            "sma125": safe(row["UST10Y_SMA125"]),
+            "spread": safe(row["momentum_spread"], 2),
             "hi252": safe(row["zn_252d_high"]),
             "lo252": safe(row["zn_252d_low"]),
             "move": safe(row["MOVE_index"], 2),
