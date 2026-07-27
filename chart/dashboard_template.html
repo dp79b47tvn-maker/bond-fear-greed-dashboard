@@ -152,6 +152,16 @@
   .zoom-reset-btn { font-size: 11px; padding: 4px 10px; }
   .zoom-reset-btn.active { border-color: var(--series-1); color: var(--series-1); font-weight: 600; }
   .zoom-hint { font-size: 11px; color: var(--text-muted); }
+  .range-btns { display: inline-flex; gap: 4px; }
+  .range-btn {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--text-secondary);
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .range-btn:hover { border-color: var(--axis); color: var(--text-primary); }
+  .range-btn.active { border-color: var(--series-1); color: var(--series-1); background: color-mix(in srgb, var(--series-1) 8%, var(--surface-2)); }
+  svg.zoomed { cursor: grab; touch-action: none; }
+  svg.panning { cursor: grabbing; }
 
   /* ---- component cards ---- */
   #componentCards { overflow: hidden; }
@@ -270,8 +280,8 @@
       <b>藍線</b>是綜合恐懼貪婪分數（左軸0–100），背景五色橫帶對應五個分級區間，線落在哪個顏色就是哪個情緒等級。
       <b>橘線</b>是美國10年期公債殖利率（右軸，%），資料來自Treasury.gov官方每日殖利率曲線——它<b>只是參考疊圖，不參與分數計算</b>，
       放在一起是為了讓你對照情緒指標與利率水準的走勢關係（例如2022年殖利率急升期間，分數長期處於恐懼區）。<br>
-      <b>互動：</b>直接在圖上按住拖曳、拖下方滑桿、或用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
-      <b>縮放（跟拖曳選日期是兩件事）：</b>滑鼠滾輪可縮放，或按住 Shift 拖曳框選一段範圍放大；按「回到全部時間範圍」或雙擊圖表可重置。
+      <b>互動：</b>直接在圖上點擊或拖下方滑桿、用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
+      <b>縮放與平移（所有圖表聯動）：</b>滑鼠滾輪可縮放，按住 Shift 拖曳可框選放大，縮放後直接拖曳可左右平移瀏覽；也可使用上方 1M/3M/6M/1Y/2Y/ALL 快速切換。所有圖表的時間範圍會同步連動。雙擊或按「回到全部時間範圍」可重置。
     </div>
     <div id="regimeScoreExplainWrap" style="display:none">
       <button class="logic-btn" type="button" data-target="logic-regime-explain"><span class="i-dot">i</span>紫色虛線是什麼（實驗性）</button>
@@ -294,8 +304,16 @@
       <svg id="mainChart" class="main-chart-svg" viewBox="0 0 1140 440" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
     <div class="chart-toolbar">
+      <div class="range-btns" id="mainRangeBtns">
+        <button class="range-btn" data-range="1M">1M</button>
+        <button class="range-btn" data-range="3M">3M</button>
+        <button class="range-btn" data-range="6M">6M</button>
+        <button class="range-btn" data-range="1Y">1Y</button>
+        <button class="range-btn" data-range="2Y">2Y</button>
+        <button class="range-btn active" data-range="ALL">ALL</button>
+      </div>
       <button class="jump-today zoom-reset-btn" id="mainZoomReset" type="button">回到全部時間範圍</button>
-      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
     </div>
     <div class="selected-readout" id="mainReadout"></div>
     <div class="controls">
@@ -306,8 +324,8 @@
       <button class="jump-today" id="jumpToday">回到最新</button>
     </div>
     <p class="foot-note">
-      分數為每日收盤資料計算，非盤中即時。拖曳上方任何圖表（含下方各分項小圖）都會連動整頁的選定日期；
-      縮放是每張圖各自獨立的檢視範圍，跟「選定日期」是兩件不同的事。殖利率線只是價格參考疊圖，不參與分數計算。
+      分數為每日收盤資料計算，非盤中即時。點擊任何圖表（含下方各分項小圖）會連動整頁的選定日期；
+      縮放與平移所有圖表同步聯動，也可用 1M/3M/6M/1Y/2Y/ALL 按鈕快速切換時間範圍。殖利率線只是價格參考疊圖，不參與分數計算。
     </p>
   </div>
 
@@ -367,8 +385,8 @@ const ZONES = [
 
 // ================================================================
 // 通用可縮放折線圖工廠：主圖、各分項分數圖、各分項原始走勢圖都共用這一份邏輯。
-// 縮放（滾輪／Shift拖曳框選／重置按鈕）跟「拖曳選日期」是分開的兩套互動：
-// 一般拖曳＝scrub（呼叫 onScrub 更新全頁選定日期），按住 Shift 拖曳＝框選放大。
+// 三種互動模式：點擊＝scrub（選日期）、拖曳（已縮放時）＝pan（平移）、Shift+拖曳＝框選放大。
+// 未縮放時拖曳仍為scrub。所有圖表透過 onViewChange 全域同步。
 // ================================================================
 function buildChart(cfg) {
   const {
@@ -380,6 +398,7 @@ function buildChart(cfg) {
     tooltipEl, tooltipRender, // optional hover tooltip
     onScrub,                 // (idx) => {}
     resetBtnEl,               // optional <button>
+    onViewChange,             // optional (lo, hi) => {} — called after zoom/pan/reset
     minSpan = 15,
     markerDot = true,
   } = cfg;
@@ -564,7 +583,7 @@ function buildChart(cfg) {
     return viewLo + frac * (viewHi - viewLo);
   }
 
-  function setView(newLo, newHi) {
+  function setView(newLo, newHi, _skipCallback) {
     newLo = Math.max(0, newLo);
     newHi = Math.min(n - 1, newHi);
     if (newHi - newLo < minSpan) {
@@ -575,7 +594,10 @@ function buildChart(cfg) {
     }
     viewLo = newLo; viewHi = newHi;
     redraw();
-    if (resetBtnEl) resetBtnEl.classList.toggle("active", !(viewLo <= 0.001 && viewHi >= n - 1 - 0.001));
+    const zoomed = !(viewLo <= 0.001 && viewHi >= n - 1 - 0.001);
+    if (resetBtnEl) resetBtnEl.classList.toggle("active", zoomed);
+    svgEl.classList.toggle("zoomed", zoomed);
+    if (!_skipCallback && onViewChange) onViewChange(viewLo, viewHi);
   }
   function resetView() { setView(0, n - 1); }
   if (resetBtnEl) resetBtnEl.addEventListener("click", resetView);
@@ -592,6 +614,9 @@ function buildChart(cfg) {
 
   let dragMode = null;
   let dragStartClientX = null;
+  let panStartLo = 0, panStartHi = n - 1;
+
+  function isZoomed() { return !(viewLo <= 0.001 && viewHi >= n - 1 - 0.001); }
 
   overlay.addEventListener("mousedown", (e) => {
     if (e.shiftKey) {
@@ -601,6 +626,11 @@ function buildChart(cfg) {
       const x0 = xScale(idxFromClientX(e.clientX));
       selectRect.setAttribute("x", x0);
       selectRect.setAttribute("width", 0);
+    } else if (isZoomed()) {
+      dragMode = "pan";
+      dragStartClientX = e.clientX;
+      panStartLo = viewLo; panStartHi = viewHi;
+      svgEl.classList.add("panning");
     } else {
       dragMode = "scrub";
       if (onScrub) onScrub(Math.round(idxFromClientX(e.clientX)));
@@ -610,6 +640,16 @@ function buildChart(cfg) {
     const idx = idxFromClientX(e.clientX);
     if (dragMode === "scrub") {
       if (onScrub) onScrub(Math.round(idx));
+    } else if (dragMode === "pan") {
+      const rect = svgEl.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const dx = (e.clientX - dragStartClientX) * scaleX;
+      const idxShift = -(dx / plotW) * (panStartHi - panStartLo);
+      let newLo = panStartLo + idxShift;
+      let newHi = panStartHi + idxShift;
+      if (newLo < 0) { newHi -= newLo; newLo = 0; }
+      if (newHi > n - 1) { newLo -= (newHi - (n - 1)); newHi = n - 1; }
+      setView(newLo, newHi);
     } else if (dragMode === "zoom") {
       const startIdx = idxFromClientX(dragStartClientX);
       const x1 = xScale(Math.max(viewLo, Math.min(startIdx, idx)));
@@ -634,24 +674,50 @@ function buildChart(cfg) {
       const curIdx = idxFromClientX(e.clientX);
       selectRect.style.display = "none";
       if (Math.abs(curIdx - startIdx) > 3) setView(Math.min(startIdx, curIdx), Math.max(startIdx, curIdx));
+    } else if (dragMode === "pan") {
+      svgEl.classList.remove("panning");
+      if (Math.abs(e.clientX - dragStartClientX) < 5) {
+        if (onScrub) onScrub(Math.round(idxFromClientX(e.clientX)));
+      }
     }
     dragMode = null;
   });
   overlay.addEventListener("dblclick", () => resetView());
   overlay.addEventListener("touchstart", (e) => {
-    dragMode = "scrub";
-    if (onScrub) onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
+    if (e.touches.length === 1) {
+      if (isZoomed()) {
+        dragMode = "pan";
+        dragStartClientX = e.touches[0].clientX;
+        panStartLo = viewLo; panStartHi = viewHi;
+      } else {
+        dragMode = "scrub";
+        if (onScrub) onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
+      }
+    }
   }, { passive: true });
   overlay.addEventListener("touchmove", (e) => {
-    if (dragMode === "scrub" && onScrub) onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
-  }, { passive: true });
+    if (dragMode === "pan" && e.touches.length === 1) {
+      e.preventDefault();
+      const rect = svgEl.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      const dx = (e.touches[0].clientX - dragStartClientX) * scaleX;
+      const idxShift = -(dx / plotW) * (panStartHi - panStartLo);
+      let newLo = panStartLo + idxShift;
+      let newHi = panStartHi + idxShift;
+      if (newLo < 0) { newHi -= newLo; newLo = 0; }
+      if (newHi > n - 1) { newLo -= (newHi - (n - 1)); newHi = n - 1; }
+      setView(newLo, newHi);
+    } else if (dragMode === "scrub" && onScrub) {
+      onScrub(Math.round(idxFromClientX(e.touches[0].clientX)));
+    }
+  }, { passive: false });
   overlay.addEventListener("touchend", () => { dragMode = null; });
 
   function setSecondaryVisible(v) { secondaryVisible = v; secondaryGroup.style.display = v ? "" : "none"; }
   function setSeriesVisible(idx, v) { seriesVisible[idx] = v; redraw(); }
 
   redraw();
-  return { setMarker, setSecondaryVisible, setSeriesVisible, resetView };
+  return { setMarker, setSecondaryVisible, setSeriesVisible, resetView, setView, getView: () => ({ lo: viewLo, hi: viewHi }) };
 }
 
 // ============ 1. Gauge ============
@@ -749,6 +815,51 @@ const compareRow = document.getElementById("compareRow");
   compareRow.appendChild(div);
 });
 
+// ============ Global viewport sync ============
+const allChartHandles = [];
+const RANGE_MAP = { "1M": 21, "3M": 63, "6M": 126, "1Y": 252, "2Y": 504 };
+let broadcasting = false;
+
+function broadcastView(lo, hi) {
+  if (broadcasting) return;
+  broadcasting = true;
+  allChartHandles.forEach(h => {
+    const v = h.getView();
+    if (Math.abs(v.lo - lo) > 0.01 || Math.abs(v.hi - hi) > 0.01) {
+      h.setView(lo, hi, true);
+    }
+  });
+  updateRangeBtnActive(lo, hi);
+  broadcasting = false;
+}
+
+function updateRangeBtnActive(lo, hi) {
+  document.querySelectorAll(".range-btn").forEach(btn => {
+    const key = btn.dataset.range;
+    if (key === "ALL") {
+      btn.classList.toggle("active", lo <= 0.001 && hi >= n - 1 - 0.001);
+    } else {
+      const days = RANGE_MAP[key];
+      const expectedLo = Math.max(0, n - 1 - days);
+      btn.classList.toggle("active", Math.abs(lo - expectedLo) < 1 && hi >= n - 1 - 0.001);
+    }
+  });
+}
+
+function applyRange(rangeKey) {
+  if (rangeKey === "ALL") {
+    broadcastView(0, n - 1);
+  } else {
+    const days = RANGE_MAP[rangeKey];
+    broadcastView(Math.max(0, n - 1 - days), n - 1);
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".range-btn");
+  if (btn) applyRange(btn.dataset.range);
+});
+
 // ============ 2. Main composite chart with UST10Y overlay ============
 const MW = 1140, MH = 440;
 const MM = { left: 46, right: 52, top: 14, bottom: 34 };
@@ -780,7 +891,9 @@ const mainChartHandle = buildChart({
   secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
   resetBtnEl: document.getElementById("mainZoomReset"),
   onScrub: (idx) => setSelectedIndex(idx),
+  onViewChange: (lo, hi) => broadcastView(lo, hi),
 });
+allChartHandles.push(mainChartHandle);
 
 // ---- 情境加權分數（實驗性）toggle + 說明 ----
 function escapeHtml(s) {
@@ -930,7 +1043,7 @@ COMPONENTS.forEach(comp => {
     </div>
     <div class="chart-toolbar">
       <button class="jump-today zoom-reset-btn score-zoom-reset" type="button">回到全部時間範圍</button>
-      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
     </div>` : `
     <div class="placeholder-box">
       尚無歷史資料 — 等待 Put/Call 數據輸入<br>
@@ -953,7 +1066,7 @@ COMPONENTS.forEach(comp => {
       </div>
       <div class="chart-toolbar">
         <button class="jump-today zoom-reset-btn raw-zoom-reset" type="button">回到全部時間範圍</button>
-        <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／雙擊重置</span>
+        <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
       </div>
     </div>` : ""}
   `;
@@ -998,7 +1111,9 @@ COMPONENTS.forEach(comp => {
     secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
     resetBtnEl: card.querySelector(".score-zoom-reset"),
     onScrub: (idx) => setSelectedIndex(idx),
+    onViewChange: (lo, hi) => broadcastView(lo, hi),
   });
+  allChartHandles.push(scoreChart);
 
   const ustToggle = card.querySelector(".ust-toggle");
   ustToggle.addEventListener("change", () => scoreChart.setSecondaryVisible(ustToggle.checked));
@@ -1056,7 +1171,9 @@ COMPONENTS.forEach(comp => {
       },
       resetBtnEl: rawPanel.querySelector(".raw-zoom-reset"),
       onScrub: (idx) => setSelectedIndex(idx),
+      onViewChange: (lo, hi) => broadcastView(lo, hi),
     });
+    allChartHandles.push(rawChart);
     compUpdaters.push((idx) => rawChart.setMarker(idx));
   }
 });
