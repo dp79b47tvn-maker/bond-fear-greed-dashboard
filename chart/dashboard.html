@@ -462,11 +462,18 @@ function buildChart(cfg) {
     return ticks;
   }
 
+  const clipId = "clip-" + Math.random().toString(36).slice(2, 9);
+  const defs = el("defs", {});
+  const clipPath = el("clipPath", { id: clipId });
+  clipPath.appendChild(el("rect", { x: M.left, y: M.top, width: plotW, height: plotH }));
+  defs.appendChild(clipPath);
+  svgEl.appendChild(defs);
+
   // ---- persistent layer groups ----
-  const staticGroup = el("g", {});
+  const staticGroup = el("g", { "clip-path": `url(#${clipId})` });
   const axisGroup = el("g", {});
-  const secondaryGroup = el("g", {});
-  const seriesGroup = el("g", {});
+  const secondaryGroup = el("g", { "clip-path": `url(#${clipId})` });
+  const seriesGroup = el("g", { "clip-path": `url(#${clipId})` });
   const selGroup = el("g", {});
   const selectRectGroup = el("g", {});
   [staticGroup, axisGroup, secondaryGroup, seriesGroup, selGroup].forEach(g => svgEl.appendChild(g));
