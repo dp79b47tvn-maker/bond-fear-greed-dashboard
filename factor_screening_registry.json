@@ -23,5 +23,13 @@
     "max_corr": -0.2632440782044932,
     "max_corr_key": "殖利率曲線形狀",
     "loo_delta": -0.031529967358844335
+  },
+  {
+    "key": "jpy",
+    "label": "jpy",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第一關（資料健檢）未通過",
+    "stopped_at": 1
   }
 ]

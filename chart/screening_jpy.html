@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>因子篩選：jpy</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:1.6; }
+  .wrap { max-width:980px; margin:0 auto; padding:44px 24px 80px; }
+  header { margin-bottom:36px; }
+  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }
+  h1 { font-size:30px; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
+  .meta { font-size:13px; color:#4a5568; margin:0 0 14px; }
+  .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; }
+  .section-heading { font-size:20px; font-weight:700; margin:44px 0 18px; display:flex; align-items:center; gap:10px; }
+  .card { background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:26px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }
+  .card h2 { font-size:19px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:10px; }
+  .card h3 { font-size:14px; font-weight:700; margin:22px 0 8px; color:#2d3440; }
+  .bar { width:5px; height:20px; background:#1e3a5f; border-radius:2px; display:inline-block; }
+  .data-table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
+  .data-table th, .data-table td { text-align:left; padding:7px 10px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }
+  .data-table th { color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }
+  .data-table td.fname { font-weight:600; white-space:nowrap; }
+  .data-table.mini { max-width:760px; }
+  .hint { font-size:12px; color:#667085; margin:6px 0 4px; line-height:1.6; }
+  .chart { max-width:100%; display:block; margin:10px 0; border-radius:8px; }
+  .na { color:#a7adb9; font-style:italic; }
+  .pos { color:#b1592f; font-weight:700; }
+  .neg { color:#2f6b4f; font-weight:700; }
+  .n { color:#a7adb9; font-size:11px; }
+  .verdict-keep { color:#2f6b4f; font-weight:700; }
+  .verdict-watch { color:#a6742a; font-weight:700; }
+  .verdict-cut { color:#a6362f; font-weight:700; }
+  .rec-item { margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid #e5e7eb; }
+  .rec-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .rec-head { font-size:15px; font-weight:700; margin-bottom:6px; }
+  .rec-item ul { margin:4px 0 0; padding-left:20px; font-size:13px; color:#4a5568; }
+  .rec-item li { margin-bottom:3px; }
+  .tearsheet-wrap { margin-top:14px; border:1px solid #dfe2e8; border-radius:10px; overflow:hidden; }
+  iframe.tearsheet { width:100%; height:2600px; border:none; display:block; }
+  .decile-block { margin-bottom:32px; padding-bottom:26px; border-bottom:1px solid #e5e7eb; }
+  .decile-block:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:#2d3440; }
+  .data-table tr.low-n td { color:#a6362f; }
+  .warn-hint { color:#a6362f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
+      <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
+      <a href="screening_index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 因子篩選登記簿</a>
+    </nav>
+    <div class="kicker">FACTOR SCREENING</div>
+    <h1>因子篩選：jpy</h1>
+    <p class="meta">key：jpy　·　轉換模式：均線乖離百分位　·　測試日期：2026-07-28</p>
+    <p class="disclaimer verdict-cut">第一關（資料健檢）未通過</p>
+  </header>
+  
+    <section class="card">
+      <h2><span class="bar"></span>第一關：資料健檢 <span class="verdict-cut">未通過</span></h2>
+      <table class="data-table mini">
+        <tr><th>有效資料天數</th><th>缺值比例</th><th>look-ahead檢查</th></tr>
+        <tr><td>354</td><td>85.3%</td>
+            <td>通過（資料太少，略過）</td></tr>
+      </table>
+      <ul><li>歷史長度不足：只有354天有效資料（含暖身期），至少需要2190天</li></ul>
+    </section>
+</div>
+</body>
+</html>
