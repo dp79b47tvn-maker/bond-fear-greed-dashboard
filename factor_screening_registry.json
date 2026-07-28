@@ -9,5 +9,19 @@
     "main_ic": -0.00600741377387188,
     "monotonicity": -0.7,
     "pattern_tag": "型態不明顯"
+  },
+  {
+    "key": "gold",
+    "label": "黃金",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "通過全部五關，建議納入正式綜合分數（可實作性門檻尚待補上成本假設，目前只供參考）",
+    "stopped_at": 5,
+    "main_ic": 0.13013471491971926,
+    "monotonicity": 0.7,
+    "pattern_tag": "動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）",
+    "max_corr": -0.2632440782044932,
+    "max_corr_key": "殖利率曲線形狀",
+    "loo_delta": -0.031529967358844335
   }
 ]
