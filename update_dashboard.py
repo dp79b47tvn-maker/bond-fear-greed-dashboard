@@ -89,9 +89,18 @@ def fetch_yahoo_close(ticker, name):
             time.sleep(2)
     else:
         raise RuntimeError(f"無法下載 {ticker}")
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    s = df["Close"].rename(name)
+    if "Close" not in df.columns:
+        if isinstance(df.columns, pd.MultiIndex) and "Close" in df.columns.get_level_values(0):
+            s = df["Close"]
+        else:
+            s = pd.Series(dtype=float)
+    else:
+        s = df["Close"]
+
+    if isinstance(s, pd.DataFrame):
+        s = s.iloc[:, 0]
+
+    s = s.rename(name)
     s.index = pd.to_datetime(s.index).tz_localize(None)
     return s
 
@@ -99,10 +108,13 @@ def fetch_yahoo_close(ticker, name):
 def fetch_treasury_yield_curve():
     """回傳 (UST_10Yr, UST_2Yr) 兩條 Series。"""
     frames = []
+    import time
     for year in range(int(FETCH_START_DATE[:4]), date.today().year + 1):
-        resp = requests.get(TREASURY_URL.format(year=year), timeout=30)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+        resp = requests.get(TREASURY_URL.format(year=year), timeout=30, headers=headers)
         resp.raise_for_status()
         frames.append(pd.read_csv(io.StringIO(resp.text)))
+        time.sleep(0.5)
     combined = pd.concat(frames, ignore_index=True)
     combined["Date"] = pd.to_datetime(combined["Date"], format="%m/%d/%Y")
     combined = combined.set_index("Date").sort_index()
