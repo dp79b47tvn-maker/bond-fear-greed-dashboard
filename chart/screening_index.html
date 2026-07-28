@@ -3,47 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>因子篩選登記簿</title>
+<title>因子篩選登記簿與實驗室 · 債券市場恐懼貪婪</title>
 <style>
   * { box-sizing: border-box; }
   body { margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:1.6; }
   .wrap { max-width:980px; margin:0 auto; padding:44px 24px 80px; }
-  header { margin-bottom:36px; }
+  header { margin-bottom:28px; }
   .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }
   h1 { font-size:30px; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
   .meta { font-size:13px; color:#4a5568; margin:0 0 14px; }
   .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; }
-  .section-heading { font-size:20px; font-weight:700; margin:44px 0 18px; display:flex; align-items:center; gap:10px; }
-  .card { background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:26px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }
-  .card h2 { font-size:19px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:10px; }
-  .card h3 { font-size:14px; font-weight:700; margin:22px 0 8px; color:#2d3440; }
-  .bar { width:5px; height:20px; background:#1e3a5f; border-radius:2px; display:inline-block; }
+  .card { background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }
+  .card h2 { font-size:18px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+  .bar { width:4px; height:18px; background:#1e3a5f; border-radius:2px; display:inline-block; }
   .data-table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
-  .data-table th, .data-table td { text-align:left; padding:7px 10px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }
+  .data-table th, .data-table td { text-align:left; padding:8px 12px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }
   .data-table th { color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }
   .data-table td.fname { font-weight:600; white-space:nowrap; }
-  .data-table.mini { max-width:760px; }
-  .hint { font-size:12px; color:#667085; margin:6px 0 4px; line-height:1.6; }
-  .chart { max-width:100%; display:block; margin:10px 0; border-radius:8px; }
-  .na { color:#a7adb9; font-style:italic; }
-  .pos { color:#b1592f; font-weight:700; }
-  .neg { color:#2f6b4f; font-weight:700; }
-  .n { color:#a7adb9; font-size:11px; }
   .verdict-keep { color:#2f6b4f; font-weight:700; }
   .verdict-watch { color:#a6742a; font-weight:700; }
   .verdict-cut { color:#a6362f; font-weight:700; }
-  .rec-item { margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid #e5e7eb; }
-  .rec-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-  .rec-head { font-size:15px; font-weight:700; margin-bottom:6px; }
-  .rec-item ul { margin:4px 0 0; padding-left:20px; font-size:13px; color:#4a5568; }
-  .rec-item li { margin-bottom:3px; }
-  .tearsheet-wrap { margin-top:14px; border:1px solid #dfe2e8; border-radius:10px; overflow:hidden; }
-  iframe.tearsheet { width:100%; height:2600px; border:none; display:block; }
-  .decile-block { margin-bottom:32px; padding-bottom:26px; border-bottom:1px solid #e5e7eb; }
-  .decile-block:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-  .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:#2d3440; }
-  .data-table tr.low-n td { color:#a6362f; }
-  .warn-hint { color:#a6362f; }
+  .na { color:#a7adb9; font-style:italic; }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1 / -1; }
+  label { font-size:13px; font-weight:600; color:#161a23; }
+  .hint { font-size:12px; color:#667085; }
+  input[type="text"], input[type="number"], input[type="password"], select {
+    width:100%; padding:9px 12px; border:1px solid #dfe2e8; border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none;
+  }
+  input:focus, select:focus { border-color:#1e3a5f; }
+  .checkbox-group { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .checkbox-group input { width:16px; height:16px; cursor:pointer; }
+  .btn-submit {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer;
+  }
+  .btn-submit:hover { opacity:.92; }
+  .token-box { background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px; padding:14px 16px; margin-bottom:18px; font-size:12.5px; }
+  .token-box summary { font-weight:700; color:#a6742a; cursor:pointer; }
+  .status-card { display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:20px; text-align:center; margin-bottom:22px; }
+  .spinner { width:32px; height:32px; border:3px solid #dfe2e8; border-top-color:#1e3a5f; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .status-title { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .status-desc { font-size:12.5px; color:#4a5568; margin-bottom:14px; }
+  .progress-steps { display:flex; justify-content:space-around; font-size:11.5px; color:#667085; border-top:1px solid #e5e7eb; padding-top:12px; }
+  .step.active { color:#1e3a5f; font-weight:700; }
+  .step.done { color:#2f6b4f; font-weight:700; }
+  .report-viewer { display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:16px; margin-bottom:22px; }
+  iframe.report-frame { width:100%; height:1300px; border:none; display:block; }
+  .factor-link { color:#1e3a5f; text-decoration:none; font-weight:600; cursor:pointer; }
+  .factor-link:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -51,23 +61,122 @@
   <header>
     <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
       <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
-      <a href="screening_form.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">➕ 線上驗證新因子</a>
     </nav>
-    <div class="kicker">FACTOR SCREENING REGISTRY</div>
-    <h1>因子篩選登記簿</h1>
+    <div class="kicker">FACTOR SCREENING REGISTRY &amp; LAB</div>
+    <h1>因子篩選登記簿與實驗室</h1>
     <p class="meta">累計測試 1 個因子，通過全部五關 0 個。</p>
     <p class="disclaimer">
-      這份登記簿記錄「每一次」測試過的因子，不只是成功的——刻意這樣做是為了防止多重比較的自欺：
-      如果測了20個因子只有1個通過，這裡看得到實際命中率是1/20，不會只記得那1個成功案例、
-      忘記自己已經試過19次。判定邏輯與門檻見<a href="AGENTS.md">AGENTS.md</a>。
+      這份登記簿記錄「每一次」測試過的因子。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
     </p>
   </header>
+
+  <!-- 線上驗證輸入表單 -->
   <section class="card">
+    <h2><span class="bar"></span>➕ 輸入新因子進行驗證</h2>
+    
+    <details class="token-box" id="tokenDetails">
+      <summary>🔑 設定 GitHub Personal Access Token (第一次使用必填)</summary>
+      <p style="margin:6px 0 10px;color:#4a5568;">填入授權 Token (具備 repo/workflow 權限)，安全儲存於本機瀏覽器 (localStorage)。</p>
+      <div class="form-group">
+        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
+      </div>
+    </details>
+
+    <form id="screeningForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="key">因子英文代號 (Key)</label>
+          <input type="text" id="key" placeholder="例: vix_ma_dev" required pattern="[a-zA-Z0-9_]+" title="英文字母、數字與底線">
+        </div>
+        <div class="form-group">
+          <label for="label">因子中文名稱 (Label)</label>
+          <input type="text" id="label" placeholder="例: VIX 125日均線乖離率" required>
+        </div>
+        <div class="form-group full">
+          <label for="mode">轉換模式 (Transformation Mode)</label>
+          <select id="mode" required onchange="handleModeChange()">
+            <option value="ma_deviation">均線乖離百分位 (Single Series vs N-day SMA)</option>
+            <option value="range_position">區間位置 (N-day High/Low Range Position 0-100)</option>
+            <option value="return_spread">兩序列報酬差百分位 (Series A N-day Ret - Series B N-day Ret)</option>
+            <option value="value_spread">兩序列差值百分位 (Series A - Series B)</option>
+            <option value="moving_average">移動平均百分位 (N-day SMA)</option>
+            <option value="rolling_stat">滾動統計量百分位 (N-day Skew / StdDev)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sourceType">資料來源 A 類型</label>
+          <select id="sourceType" required>
+            <option value="yahoo">Yahoo Finance (代號如 ^VIX)</option>
+            <option value="fred">FRED 經濟數據 (代號如 DGS10)</option>
+            <option value="existing">儀表板既有欄位 (UST_10Yr 等)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sourceId">資料來源 A 識別碼</label>
+          <input type="text" id="sourceId" placeholder="例: ^VIX / DGS10 / UST_10Yr" required>
+        </div>
+        <div class="form-group source-b-group" style="display:none;">
+          <label for="sourceBType">資料來源 B 類型</label>
+          <select id="sourceBType">
+            <option value="yahoo">Yahoo Finance</option>
+            <option value="fred">FRED</option>
+            <option value="existing">儀表板既有欄位</option>
+          </select>
+        </div>
+        <div class="form-group source-b-group" style="display:none;">
+          <label for="sourceBId">資料來源 B 識別碼</label>
+          <input type="text" id="sourceBId" placeholder="例: SHY / DGS2">
+        </div>
+        <div class="form-group">
+          <label for="window">滾動視窗 (Window Days)</label>
+          <input type="number" id="window" value="125" min="5" max="500" required>
+        </div>
+        <div class="form-group">
+          <label>分數反轉</label>
+          <div class="checkbox-group">
+            <input type="checkbox" id="invert">
+            <label for="invert" style="font-weight:normal;">數值越高代表「恐懼」時請勾選 (將分數反轉)</label>
+          </div>
+        </div>
+        <div class="form-group full" style="margin-top:8px;">
+          <button type="submit" class="btn-submit" id="btnSubmit">
+            🚀 提交驗證並即時呈現分析報告圖表
+          </button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- 運算進度狀態卡片 -->
+  <div class="status-card" id="statusCard">
+    <div class="spinner" id="statusSpinner"></div>
+    <div class="status-title" id="statusTitle">已提交分析請求</div>
+    <div class="status-desc" id="statusDesc">GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...</div>
+    <div class="progress-steps">
+      <div class="step active" id="step1">1. 提交請求</div>
+      <div class="step" id="step2">2. 執行 20 年運算</div>
+      <div class="step" id="step3">3. 產生報告圖表</div>
+      <div class="step" id="step4">4. 呈現分析報告</div>
+    </div>
+  </div>
+
+  <!-- 報告圖表內嵌呈現區 (直接在登記簿頁面上展示) -->
+  <div class="report-viewer" id="reportViewer">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e5e7eb;">
+      <h3 style="margin:0;font-size:16px;" id="reportViewerTitle">📊 因子分析報告與視覺化圖表</h3>
+      <button onclick="closeReportViewer()" style="background:none;border:1px solid #dfe2e8;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">關閉報告</button>
+    </div>
+    <iframe class="report-frame" id="reportFrame"></iframe>
+  </div>
+
+  <!-- 歷史紀錄表格卡片 -->
+  <section class="card">
+    <h2><span class="bar"></span>歷史測試紀錄登記簿 (點擊名稱可直接在下方展開報告圖表)</h2>
     <table class="data-table">
       <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,非重疊)</th><th>型態標記</th><th>結果</th></tr>
       <tr>
           <td>2026-07-28</td>
-          <td><a href="screening_vix_test.html">VIX 125日均線乖離</a></td>
+          <td><a class="factor-link" href="screening_vix_test.html" onclick="loadReport('screening_vix_test.html', 'VIX 125日均線乖離'); return false;">VIX 125日均線乖離</a></td>
           <td>均線乖離百分位</td>
           <td>-0.006</td>
           <td>型態不明顯</td>
@@ -76,5 +185,151 @@
     </table>
   </section>
 </div>
+
+<script>
+  const REPO_OWNER = "dp79b47tvn-maker";
+  const REPO_NAME = "bond-fear-greed-dashboard";
+
+  const savedToken = localStorage.getItem("gh_pat_token");
+  if (savedToken) {
+    document.getElementById("ghToken").value = savedToken;
+  } else {
+    document.getElementById("tokenDetails").open = true;
+  }
+
+  function handleModeChange() {
+    const mode = document.getElementById("mode").value;
+    const isTwoSources = (mode === "return_spread" || mode === "value_spread");
+    document.querySelectorAll(".source-b-group").forEach(el => {
+      el.style.display = isTwoSources ? "flex" : "none";
+    });
+  }
+
+  function loadReport(reportUrl, label) {
+    const viewer = document.getElementById("reportViewer");
+    const frame = document.getElementById("reportFrame");
+    const title = document.getElementById("reportViewerTitle");
+    title.innerText = "📊 因子分析報告與圖表：" + (label || "");
+    frame.src = reportUrl;
+    viewer.style.display = "block";
+    viewer.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function closeReportViewer() {
+    document.getElementById("reportViewer").style.display = "none";
+  }
+
+  document.getElementById("screeningForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const token = document.getElementById("ghToken").value.trim();
+    if (!token) {
+      alert("請先填寫 GitHub Personal Access Token (PAT)！");
+      document.getElementById("tokenDetails").open = true;
+      document.getElementById("ghToken").focus();
+      return;
+    }
+    localStorage.setItem("gh_pat_token", token);
+
+    const key = document.getElementById("key").value.trim();
+    const label = document.getElementById("label").value.trim();
+    const mode = document.getElementById("mode").value;
+    const sourceType = document.getElementById("sourceType").value;
+    const sourceId = document.getElementById("sourceId").value.trim();
+    const sourceBType = document.getElementById("sourceBType").value;
+    const sourceBId = document.getElementById("sourceBId").value.trim();
+    const windowVal = document.getElementById("window").value;
+    const invert = document.getElementById("invert").checked;
+
+    const btnSubmit = document.getElementById("btnSubmit");
+    const statusCard = document.getElementById("statusCard");
+
+    btnSubmit.disabled = true;
+    statusCard.style.display = "block";
+    closeReportViewer();
+    
+    updateStatus(1, "已提交分析請求", "GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...");
+
+    try {
+      const resp = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/factor-screening.yml/dispatches`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ref: "main",
+          inputs: {
+            key: key,
+            label: label,
+            mode: mode,
+            source_type: sourceType,
+            source_id: sourceId,
+            source_b_type: sourceBType || "none",
+            source_b_id: sourceBId || "",
+            window: String(windowVal),
+            invert: invert
+          }
+        })
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`GitHub API 錯誤 (${resp.status}): ${errText}`);
+      }
+
+      updateStatus(2, "正在執行 20 年驗證與熱力圖分析", "運算約需要 2~3 分鐘，請保持此頁面開啟...");
+      pollForReport(key, label);
+
+    } catch (err) {
+      alert("提交失敗：" + err.message);
+      btnSubmit.disabled = false;
+      statusCard.style.display = "none";
+    }
+  });
+
+  function updateStatus(stepNum, title, desc) {
+    document.getElementById("statusTitle").innerText = title;
+    document.getElementById("statusDesc").innerText = desc;
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`step${i}`);
+      el.className = "step";
+      if (i < stepNum) el.classList.add("done");
+      if (i === stepNum) el.classList.add("active");
+    }
+  }
+
+  function pollForReport(key, label) {
+    const reportUrl = `screening_${key}.html?t=${Date.now()}`;
+    let attempts = 0;
+    const maxAttempts = 40;
+
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > 15) {
+        updateStatus(3, "正在生成圖表並部署報告...", "已完成資料運算，正在把報告與圖表發布至網頁...");
+      }
+
+      try {
+        const resp = await fetch(reportUrl, { method: "HEAD", cache: "no-store" });
+        if (resp.status === 200) {
+          clearInterval(interval);
+          updateStatus(4, "🎉 分析完成！報告與圖表已呈現在下方", "已成功產出該因子的完整 5 道關卡評估與視覺化圖表：");
+          document.getElementById("statusSpinner").style.display = "none";
+          document.getElementById("btnSubmit").disabled = false;
+          
+          loadReport(reportUrl, label);
+        }
+      } catch (e) {}
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        alert("等待逾時：請重新整理頁面查看表格內的最新結果。");
+        document.getElementById("btnSubmit").disabled = false;
+      }
+    }, 10000);
+  }
+</script>
 </body>
 </html>
