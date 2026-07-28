@@ -721,7 +721,7 @@ def render_registry_index(registry):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>因子篩選登記簿與實驗室 · 債券市場恐懼貪婪</title>
+<title>因子開發與篩選平台 · 債券市場恐懼貪婪</title>
 <style>
   * {{ box-sizing: border-box; }}
   body {{ margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:1.6; }}
@@ -780,8 +780,8 @@ def render_registry_index(registry):
     <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
       <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
     </nav>
-    <div class="kicker">FACTOR SCREENING REGISTRY &amp; LAB</div>
-    <h1>因子篩選登記簿與實驗室</h1>
+    <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
+    <h1>因子開發與篩選平台</h1>
     <p class="meta">累計測試 {n_total} 個因子，通過全部五關 {n_passed} 個。</p>
     <p class="disclaimer">
       這份登記簿記錄「每一次」測試過的因子。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
