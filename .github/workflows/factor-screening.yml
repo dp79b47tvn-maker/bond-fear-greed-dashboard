@@ -1,0 +1,134 @@
+name: 因子篩選器 (手動觸發)
+
+on:
+  workflow_dispatch:
+    inputs:
+      key:
+        description: '因子代號 (英文小寫與底線，例: vix_ma_dev)'
+        required: true
+        type: string
+      label:
+        description: '因子中文名稱 (例: VIX 125日均線乖離率)'
+        required: true
+        type: string
+      mode:
+        description: '轉換模式'
+        required: true
+        type: choice
+        options:
+          - ma_deviation
+          - range_position
+          - return_spread
+          - value_spread
+          - moving_average
+          - rolling_stat
+      source_type:
+        description: '資料來源 A 類型'
+        required: true
+        type: choice
+        options:
+          - yahoo
+          - fred
+          - existing
+      source_id:
+        description: '資料來源 A 識別碼 (例: ^VIX / DGS10 / UST_10Yr)'
+        required: true
+        type: string
+      source_b_type:
+        description: '資料來源 B 類型 (僅兩序列模式需要)'
+        required: false
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - yahoo
+          - fred
+          - existing
+      source_b_id:
+        description: '資料來源 B 識別碼 (僅兩序列模式需要)'
+        required: false
+        type: string
+      window:
+        description: '滾動視窗天數 (預設 125)'
+        required: false
+        default: '125'
+        type: string
+      invert:
+        description: '是否反轉分數 (高數值代表恐懼時打勾)'
+        required: false
+        type: boolean
+        default: false
+      raw_json:
+        description: '高階自訂 JSON (若填寫此項，則忽略上方輸入)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 安裝中文字型 (圖表用)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 執行因子篩選
+        run: |
+          python3 scripts/run_workflow_screening.py \
+            --key "${{ inputs.key }}" \
+            --label "${{ inputs.label }}" \
+            --mode "${{ inputs.mode }}" \
+            --source-type "${{ inputs.source_type }}" \
+            --source-id "${{ inputs.source_id }}" \
+            --source-b-type "${{ inputs.source_b_type }}" \
+            --source-b-id "${{ inputs.source_b_id }}" \
+            --window "${{ inputs.window }}" \
+            ${{ inputs.invert && '--invert' || '' }} \
+            --raw-json '${{ inputs.raw_json }}'
+
+      - name: 驗證儀表板與頁面
+        run: python3 scripts/verify_dashboard.py
+
+      - name: Commit 並 Push 篩選結果
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add chart/screening_*.html chart/screening_index.html factor_screening_registry.json
+          git diff --staged --quiet || git commit -m "feat(screening): 測試新因子 [${{ inputs.key }}] ${{ inputs.label }}"
+          git push
+
+      - name: 上傳 Pages 產物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: chart
+
+  deploy:
+    needs: screen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

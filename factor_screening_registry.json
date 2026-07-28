@@ -1,0 +1,13 @@
+[
+  {
+    "key": "vix_test",
+    "label": "VIX 125日均線乖離",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第二關（單獨效力）未通過",
+    "stopped_at": 2,
+    "main_ic": -0.00600741377387188,
+    "monotonicity": -0.7,
+    "pattern_tag": "型態不明顯"
+  }
+]
