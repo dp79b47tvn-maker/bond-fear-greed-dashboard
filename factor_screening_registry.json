@@ -58,5 +58,16 @@
     "main_ic": -0.0561741373952812,
     "monotonicity": -0.6,
     "pattern_tag": "長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）"
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第三關（穩定性）未通過",
+    "stopped_at": 3,
+    "main_ic": -0.0561741373952812,
+    "monotonicity": -0.6,
+    "pattern_tag": "長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）"
   }
 ]
