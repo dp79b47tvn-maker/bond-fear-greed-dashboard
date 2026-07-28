@@ -29,10 +29,12 @@ def main():
     parser.add_argument("--source-b-id", type=str, default="")
     parser.add_argument("--window", type=int, default=125)
     parser.add_argument("--stat", type=str, default="skew")
-    parser.add_argument("--invert", action="store_true")
+    parser.add_argument("--invert", type=str, default="false")
     parser.add_argument("--raw-json", type=str, default="")
 
     args = parser.parse_args()
+
+    is_invert = str(args.invert).lower() in ["true", "1", "yes"]
 
     raw_json_str = args.raw_json.strip() if args.raw_json else ""
     if raw_json_str:
@@ -46,7 +48,7 @@ def main():
             "key": args.key,
             "label": args.label or args.key,
             "mode": args.mode,
-            "invert": args.invert,
+            "invert": is_invert,
             "params": {"window": args.window}
         }
         if args.mode == "rolling_stat":

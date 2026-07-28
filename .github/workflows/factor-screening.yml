@@ -103,7 +103,7 @@ jobs:
             --source-b-type "${{ inputs.source_b_type }}" \
             --source-b-id "${{ inputs.source_b_id }}" \
             --window "${{ inputs.window }}" \
-            ${{ inputs.invert && '--invert' || '' }} \
+            --invert "${{ inputs.invert }}" \
             --raw-json '${{ inputs.raw_json }}'
 
       - name: 驗證儀表板與頁面
@@ -114,8 +114,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add chart/screening_*.html chart/screening_index.html factor_screening_registry.json
-          git diff --staged --quiet || git commit -m "feat(screening): 測試新因子 [${{ inputs.key }}] ${{ inputs.label }}"
-          git push
+          git diff --staged --quiet || (git commit -m "feat(screening): 測試新因子 [${{ inputs.key }}] ${{ inputs.label }}" && git pull --rebase origin main && git push)
 
       - name: 上傳 Pages 產物
         uses: actions/upload-pages-artifact@v3
