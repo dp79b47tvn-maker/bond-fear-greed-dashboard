@@ -39,5 +39,13 @@
     "mode": "ma_deviation",
     "final_verdict": "第一關（資料健檢）未通過",
     "stopped_at": 1
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第一關（資料健檢）未通過",
+    "stopped_at": 1
   }
 ]
