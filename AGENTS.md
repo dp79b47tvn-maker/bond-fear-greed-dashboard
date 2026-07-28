@@ -113,6 +113,58 @@ GitHub Actions用的是全新的Ubuntu runner，跟本機Mac環境不一樣，�
 `artifact_urls.json`：跨頁連結設定。目前留空，四個頁面（chart/底下）互為同資料夾的相對路徑連結
 （GitHub Pages同站託管的緣故）。只有想改回發布到Claude Artifact（各頁各自獨立網址）時才需要填值。
 
+### 第四個功能：因子篩選框架（factor_screening.py）
+跟儀表板/驗證報告/定義手冊並列的第四個功能，2026-07-28新增。目的：之後想到新的候選因子，
+填一張設定表餵進去，自動跑五道關卡判定該不該加入正式的七因子綜合分數，不用每次重新手動分析。
+
+**用法**：
+```python
+from factor_screening import screen_and_save
+config = {
+    "key": "my_candidate",             # 英文、當檔名跟欄位名用
+    "label": "我的候選因子中文名",
+    "mode": "return_spread",           # 六種模式之一，見下方
+    "sources": {"a": "TLT", "b": "SHY"},   # 依mode不同,見TRANSFORM_MODES
+    "params": {"window": 40},
+    "invert": False,
+}
+screen_and_save(config)
+```
+或命令列：`python3 factor_screening.py my_candidate.json`（把上面的config存成json檔）。
+
+**六種轉換模式**（`TRANSFORM_MODES`）：均線乖離百分位(`ma_deviation`)、區間位置(`range_position`，
+本身已經是0-100不轉百分位)、兩序列報酬差百分位(`return_spread`)、兩序列差值百分位(`value_spread`)、
+移動平均百分位(`moving_average`)、滾動統計量百分位(`rolling_stat`，`params.stat`可選`skew`/`std`/`median_dev`)。
+既有七個因子全部落在這六種模式裡（可以直接讀`factor_screening.py`頂部的docstring對照）。
+`sources`裡的值可以是df裡已有的欄位名稱字串，也可以是`{"yahoo": "TICKER"}`或`{"fred": "SERIES_ID"}`
+指定全新資料來源（會自動抓取）。
+
+**五道關卡**（任一關沒過就停在那關、標示原因，不繼續跑；門檻寫在`THRESHOLDS`常數裡）：
+1. 資料健檢：歷史長度、look-ahead檢查（抽樣日期截斷重算比對）、缺值比例、分數分佈鑑別力
+2. 單獨效力：IC(5/10/20/60/120/250日,非重疊+重疊並列)、10年/20年分桶、雙版本熱力圖(原始報酬
+   vs 超額報酬,分桶×持有天數)、動能延續/長期反轉描述性標記(不當及格條件)
+3. 穩定性：前後半段IC必須同號(硬性)；跨Fed循環IC(用`regime_lib.py`,僅供參考不擋關)
+4. 增量價值：跟現有七因子相關係數≤0.6；加入候選後對綜合分數的LOO ΔIC方向必須是「拿掉候選IC會變差」
+5. 可實作性：換手率(成本門檻尚待補上bps假設，目前只回報數字不擋關)
+
+**輸出**：`chart/screening_<key>.html`（單一因子完整體檢報告）、`chart/screening_index.html`
+（登記簿一覽表，首頁第四張卡片連過去）、`factor_screening_registry.json`（登記簿資料來源，
+append-only，**每次測試都會寫進去，不只是成功的**——這是刻意設計，用來防止多重比較偏誤造成的
+自欺：測了很多次只記得成功那幾次，會誤判實際命中率）。
+
+**重要的資料處理細節**（踩過的坑，換人接手時容易重犯）：
+- 內部所有計算都用`fva.fetch_extended_history()`抓完整20年+5年暖身期的資料，
+  絕對不要用`fva.load_data()`讀的已裁切6年CSV去算候選因子的分數——CSV已經裁掉暖身期，
+  拿它算滾動百分位會在早期日期整段失真（實測過，直接用CSV算會跟正確答案的相關係數只有負值）。
+- Look-ahead檢查(`_check_lookahead`)的截斷來源也必須是完整20年版本，不能是裁切過的6年版本，
+  理由同上。
+- `decile_bucket_analysis()`（10年/20年分桶用的函式）不會回傳`monotonicity`欄位，那個欄位
+  只存在於5組版本`bucket_analysis()`裡——單獨效力關的分桶單調性是用主6年範圍跑`bucket_analysis()`
+  另外算的，不是從10年分桶結果裡拿。
+- `fva.FACTOR_COLS`是`{score_col: 中文名}`（例如`{"momentum_score": "動能"}`），key是欄位名
+  不是短代號——不要誤用成`{短代號: score_col}`去查表，兩個方向搞反會讓相關係數關卡整個失效
+  卻不會報錯（比對到不存在的欄位名，迴圈直接空跑過去）。
+
 ### 其他檔案說明
 - `regime_lib.py`：情境（Fed利率循環）分類共用邏輯。
 - `regime_weights_v1.json`：情境加權分數（實驗性）的凍結權重快照，只在手動執行
