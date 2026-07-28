@@ -378,8 +378,13 @@ hub_html = f"""<meta charset="utf-8">
       <h2>因子定義手冊</h2>
       <p>每個因子的公式、參數、設計理由、限制,含互動試算。改因子前必看。</p>
     </a>
+    <a class="card" href="screening_form.html">
+      <div class="ck">FACTOR SCREENER APP</div>
+      <h2>線上驗證新因子</h2>
+      <p>直接在網頁上填寫參數提交驗證，自動跑20年資料與5道關卡，即時呈現所有分析圖表。</p>
+    </a>
     <a class="card" href="screening_index.html">
-      <div class="ck">FACTOR SCREENING</div>
+      <div class="ck">FACTOR SCREENING REGISTRY</div>
       <h2>因子篩選登記簿</h2>
       <p>五道關卡自動判定新因子該不該加入正式分數,每次測試都留紀錄,防止多重比較自欺。</p>
     </a>
