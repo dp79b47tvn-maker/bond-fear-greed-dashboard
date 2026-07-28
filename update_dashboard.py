@@ -460,8 +460,12 @@ def main():
             },
         })
     data_json = json.dumps(records, ensure_ascii=False)
-    with open("chart/dashboard_v2_data.json", "w") as f:
-        f.write(data_json)
+    # 這裡曾經也把同一份data_json寫進chart/dashboard_v2_data.json,那是舊版
+    # (build_dashboard_v2.py/dashboard_v2.html)的殘留輸出,現在沒有任何被連結、
+    # 可觸及的頁面會讀它——但這個檔案是git追蹤的,每次CI跑完都留下一筆未加入
+    # git add清單的異動,擋住了update-and-deploy.yml裡的`git pull --rebase`步驟
+    # (2026-07-28發生過一次:CI連續跑失敗、正式站卡在舊版本沒更新)。
+    # 移除這行寫入,連同下面git rm掉這個檔案,徹底解決,不要只在CI腳本裡補git add。
 
     if regime_meta:
         regime_meta_out = {

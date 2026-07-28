@@ -13,3 +13,8 @@ bond_dashboard_data_input.xlsx
 
 # decile_overlap_comparison.py 的輸出:探索性比較用,不是正式發布產物,每次重跑內容都會變
 chart/decile_overlap_comparison.html
+
+# 舊版(build_dashboard_v2.py/dashboard_v2.html)殘留輸出,沒有任何被連結、可觸及的
+# 頁面會讀它。曾經因為留著追蹤、卻沒被daily workflow的git add列進去,每次CI跑完
+# 都留下未加入的異動,擋住git pull --rebase,導致2026-07-28正式站卡在舊版本沒更新。
+chart/dashboard_v2_data.json
