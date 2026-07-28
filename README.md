@@ -1,7 +1,7 @@
 # 美債市場恐懼貪婪儀表板
 
 用美國公債市場相關資料（殖利率曲線、MOVE 波動指數、避險需求、Put/Call 等）建構的
-「美債版恐懼貪婪指數」，含儀表板、指標定義手冊、因子驗證分析報告。
+「美債版恐懼貪婪指數」，含儀表板、指標定義手冊、因子驗證分析報告、因子篩選框架四個功能。
 
 🌐 **上線網址**：https://dp79b47tvn-maker.github.io/bond-fear-greed-dashboard/
 
@@ -18,11 +18,26 @@ update_dashboard.py           # 抓資料、算分數、重新產生 chart/dashb
 generate_manual.py            # 產生 chart/manual.html(指標定義手冊) 與 chart/index.html(首頁)
 factor_validation_analysis.py # 因子驗證分析(IC/分桶/回測)，產生 chart/factor_validation_report.html
 factor_definitions.json       # 單一事實來源：所有因子的計算參數、標籤門檻、說明文字
+factor_screening.py           # 因子篩選框架：五道關卡自動判定候選因子該不該加入正式分數
 regime_lib.py                 # 情境(Fed利率循環)分類共用邏輯
 scripts/verify_dashboard.py   # 發布前自動檢查(JS語法/JSON合法性/關鍵HTML id)
 chart/                        # 前端頁面，這個資料夾整個部署到 GitHub Pages
 data_input.xlsx               # 使用者手動輸入/覆蓋的原始資料(例如Put/Call)，優先於自動抓取
 ```
+
+## 因子篩選框架
+
+想到新的候選因子時，填一張設定表（見 [`AGENTS.md`](./AGENTS.md#第四個功能因子篩選框架factor_screeningpy)）
+餵給 `factor_screening.py`，自動跑五道關卡（資料健檢／單獨效力／穩定性／增量價值／可實作性），
+判定該不該加入正式的七因子綜合分數：
+
+```bash
+python3 factor_screening.py my_candidate.json
+```
+
+每次測試都會留紀錄在 `factor_screening_registry.json`，累積結果看 `chart/screening_index.html`
+（首頁第四張卡片連過去）——這份登記簿刻意記錄「每一次」測試，不只是成功的，避免多重比較偏誤
+造成的自欺（測了20次只記得成功那1次，會誤判實際命中率）。
 
 ## 本機開發
 
