@@ -41,6 +41,12 @@ def _ma_deviation(series, window):
     return (series - ma) / ma * 100
 
 
+def _ma_spread(series, window):
+    """均線價差：現值 − N日均線"""
+    ma = series.rolling(window, min_periods=window).mean()
+    return series - ma
+
+
 def _range_position(series, window):
     """區間位置：現值在過去N日高低點之間的位置，0–100，本身已經是0–100不需要再轉百分位"""
     lo = series.rolling(window, min_periods=window).min()
@@ -78,6 +84,8 @@ def _rolling_stat(series, window, stat):
 TRANSFORM_MODES = {
     "ma_deviation": {"fn": _ma_deviation, "n_sources": 1, "uses_percentile_default": True,
                       "label": "均線乖離百分位"},
+    "ma_spread": {"fn": _ma_spread, "n_sources": 1, "uses_percentile_default": True,
+                   "label": "均線價差百分位"},
     "range_position": {"fn": _range_position, "n_sources": 1, "uses_percentile_default": False,
                         "label": "區間位置"},
     "return_spread": {"fn": _return_spread, "n_sources": 2, "uses_percentile_default": True,

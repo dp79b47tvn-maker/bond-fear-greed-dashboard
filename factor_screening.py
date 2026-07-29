@@ -1075,6 +1075,7 @@ def render_registry_index(registry):
           <label for="mode">轉換模式 (Transformation Mode)</label>
           <select id="mode" required onchange="handleModeChange()">
             <option value="ma_deviation">均線乖離百分位 (Single Series vs N-day SMA)</option>
+            <option value="ma_spread">均線價差百分位 (Single Series - N-day SMA)</option>
             <option value="range_position">區間位置 (N-day High/Low Range Position 0-100)</option>
             <option value="return_spread">兩序列報酬差百分位 (Series A N-day Ret - Series B N-day Ret)</option>
             <option value="value_spread">兩序列差值百分位 (Series A - Series B)</option>
