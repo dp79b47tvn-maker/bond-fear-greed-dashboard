@@ -37,6 +37,7 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 import factor_validation_analysis as fva
 import regime_lib
@@ -47,12 +48,18 @@ plt = fva.plt
 # ================================================================ 設定
 HORIZONS = [5, 10, 20, 60, 120, 250]
 MAIN_HORIZON = 20  # 判定門檻用哪個horizon的IC，跟現有正式報告一致
-HEATMAP_HOLD_DAYS = [1, 5, 10, 20, 30, 40, 50, 60, 90, 120, 180, 250]
+# product framework要求「持有期間從10天到90天」，跟現有分桶用的10天間距對齊
+HEATMAP_HOLD_DAYS = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 HEATMAP_BUCKETS = 10
 
+# 2026-07-28根據現有七因子重疊取樣版本的實測分布重新校準(舊門檻是照非重疊版本
+# 訂的,直接套用會誤判掉原本表現不錯的因子——實測後單調性普遍降到0.47~0.75，
+# IC普遍降到0.04~0.12，殖利率曲線形狀維持墊底(接近零/負值))。
+# 這些門檻現在只用來生成「建議」文字,不再擋關——五道關卡一律全部跑完、
+# 報告一律完整輸出,最終是否採用交給使用者自行判斷。
 THRESHOLDS = {
-    "min_abs_ic": 0.03,
-    "min_abs_monotonicity": 0.6,
+    "min_abs_ic": 0.02,
+    "min_abs_monotonicity": 0.4,
     "max_correlation": 0.6,
     # 至少要有：5年百分位暖身期 + 1年份的分析資料，才勉強夠做基本驗證
     "min_history_days": ud._G["percentile_window_days"] + 365,
@@ -60,6 +67,17 @@ THRESHOLDS = {
 
 REGISTRY_PATH = "factor_screening_registry.json"
 CHART_DIR = "chart"
+
+# 產品定位聲明(2026-07-28product framework)：這個平台是輔助交易員判斷氛圍的研究工具，
+# 不是策略、不是投資建議——每個對外頁面的頁首都要看得到這句話。
+POSITIONING_STATEMENT = (
+    "本平台協助債券交易者判斷美債市場目前的整體氛圍，作為交易員的輔助判斷工具，"
+    "非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，"
+    "不產出即時部位建議或操作指令。"
+)
+
+# 跟儀表板一致的情緒分級色階(淺色模式)，用在分數走勢圖的背景色帶
+TIER_COLORS = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"]
 
 # fva.FACTOR_COLS 是 {score_col: 中文名} 例如 {"momentum_score": "動能", ...}，
 # 直接沿用它的順序與對照，不要另外重建一份、容易對錯 key/value。
@@ -324,6 +342,36 @@ def heatmap_chart_base64(heatmap_data, title, cmap="RdBu_r"):
     return fva.fig_to_base64(fig)
 
 
+def decile_bucket_analysis_overlap(df, score_col, horizon, buckets, target=None):
+    """跟fva.decile_bucket_analysis()邏輯相同(qcut等分＋看未來N日平均報酬)，
+    唯一差別:不做.iloc[::horizon]跳過，每天都取樣——這個平台全面改用重疊取樣，
+    理由是避免非重疊取樣固定間隔取點、漏看區間內真正發生過的漲跌波動。"""
+    target = target or fva.TARGET
+    sub = df[[score_col]].copy()
+    sub["fwd"] = fva.forward_return(df[target], horizon)
+    sub = sub.dropna()
+    if len(sub) < buckets * 3:
+        return None
+    actual_start, actual_end = sub.index.min(), sub.index.max()
+    if len(sub) < buckets:
+        return None
+    try:
+        sub["bucket"] = pd.qcut(sub[score_col], buckets, labels=False, duplicates="drop")
+    except ValueError:
+        return None
+    grp = sub.groupby("bucket").agg(
+        mean_score=(score_col, "mean"), mean_fwd_ret=("fwd", "mean"),
+        median_fwd_ret=("fwd", "median"), n=("fwd", "count"),
+    ).reset_index()
+    grp["label"] = [f"D{i + 1}" for i in range(len(grp))]
+    mono_rho, _ = stats.spearmanr(grp["bucket"], grp["mean_fwd_ret"]) if len(grp) >= 3 else (None, None)
+    return {
+        "table": grp, "date_range": (actual_start, actual_end),
+        "n_sampled_total": len(sub), "n_daily_total": len(sub),
+        "monotonicity": float(mono_rho) if pd.notna(mono_rho) else None,
+    }
+
+
 def gate2_efficacy(key, score_full, ext_df_20y):
     out_start = pd.Timestamp(ud._G["output_start_date"])
     main_df = ext_df_20y.loc[ext_df_20y.index >= out_start].copy()
@@ -336,21 +384,22 @@ def gate2_efficacy(key, score_full, ext_df_20y):
     df_20y = ext_df_20y.copy()
     df_20y[key] = score_full.reindex(df_20y.index)
 
+    # 全平台一律採重疊取樣(product framework 2026-07-28決定):非重疊版本還是算,
+    # 附在報告裡當對照參考,但門檻判斷、主要陳述一律看重疊版本。
     ic_by_horizon = {}
     for h in HORIZONS:
         ic_by_horizon[h] = {
             "non_overlap": fva.non_overlapping_ic(main_df, key, h),
             "overlap": fva.overlapping_ic(main_df, key, h),
         }
-    main_ic = ic_by_horizon[MAIN_HORIZON]["non_overlap"]
+    main_ic = ic_by_horizon[MAIN_HORIZON]["overlap"]
 
-    decile_10 = fva.decile_bucket_analysis(df_10y, key, horizon=fva.DECILE_HORIZON, buckets=fva.DECILE_N_BUCKETS)
+    decile_10 = decile_bucket_analysis_overlap(df_10y, key, horizon=fva.DECILE_HORIZON, buckets=fva.DECILE_N_BUCKETS)
     vigintile_buckets = fva._V["vigintile_n_buckets"]
-    decile_20 = fva.decile_bucket_analysis(df_20y, key, horizon=fva.DECILE_HORIZON, buckets=vigintile_buckets)
-    # decile_bucket_analysis()不回傳monotonicity(那是5組版本bucket_analysis()才有的欄位)，
-    # 這裡跟現有正式報告一致，用主6年範圍的5組分析取單調性，不是10年分桶版本。
-    bucket_5 = fva.bucket_analysis(main_df, key)
-    monotonicity = bucket_5["monotonicity"] if bucket_5 else None
+    decile_20 = decile_bucket_analysis_overlap(df_20y, key, horizon=fva.DECILE_HORIZON, buckets=vigintile_buckets)
+    # 單調性改用10年分桶(重疊)版本算出來的monotonicity,跟決定IC用哪個版本的邏輯一致，
+    # 不再用主6年範圍的5組非重疊前身版本。
+    monotonicity = decile_10["monotonicity"] if decile_10 else None
 
     heatmap_raw, heatmap_excess = _build_dual_heatmap(main_df, key)
     pattern_tag = _tag_pattern(ic_by_horizon)
@@ -361,11 +410,11 @@ def gate2_efficacy(key, score_full, ext_df_20y):
     if ic_val is None or abs(ic_val) < THRESHOLDS["min_abs_ic"]:
         passed = False
         shown = f"{abs(ic_val):.3f}" if ic_val is not None else "無資料"
-        reasons.append(f"IC({MAIN_HORIZON}日，非重疊)絕對值{shown}，低於門檻{THRESHOLDS['min_abs_ic']}")
+        reasons.append(f"IC({MAIN_HORIZON}日，重疊)絕對值{shown}，低於參考門檻{THRESHOLDS['min_abs_ic']}")
     if monotonicity is None or abs(monotonicity) < THRESHOLDS["min_abs_monotonicity"]:
         passed = False
         shown = f"{monotonicity:.3f}" if monotonicity is not None else "無資料"
-        reasons.append(f"分桶單調性{shown}，低於門檻{THRESHOLDS['min_abs_monotonicity']}")
+        reasons.append(f"分桶單調性(重疊){shown}，低於參考門檻{THRESHOLDS['min_abs_monotonicity']}")
 
     return {
         "passed": passed, "reasons": reasons,
@@ -380,9 +429,9 @@ def gate2_efficacy(key, score_full, ext_df_20y):
 # ================================================================ 第三關：穩定性
 def gate3_stability(key, main_df):
     h1, h2, split_date = fva.split_halves(main_df)
-    ic_full = fva.non_overlapping_ic(main_df, key, MAIN_HORIZON)
-    ic_h1 = fva.non_overlapping_ic(h1, key, MAIN_HORIZON)
-    ic_h2 = fva.non_overlapping_ic(h2, key, MAIN_HORIZON)
+    ic_full = fva.overlapping_ic(main_df, key, MAIN_HORIZON)
+    ic_h1 = fva.overlapping_ic(h1, key, MAIN_HORIZON)
+    ic_h2 = fva.overlapping_ic(h2, key, MAIN_HORIZON)
 
     same_sign = None
     if ic_h1["rho"] is not None and ic_h2["rho"] is not None:
@@ -403,7 +452,7 @@ def gate3_stability(key, main_df):
     for regime_label in sorted(set(tmp["regime_fed"].dropna())):
         seg = tmp[tmp["regime_fed"] == regime_label]
         if len(seg) >= 60:
-            regime_ic[regime_label] = fva.non_overlapping_ic(seg, key, MAIN_HORIZON)
+            regime_ic[regime_label] = fva.overlapping_ic(seg, key, MAIN_HORIZON)
     signs = [v["rho"] > 0 for v in regime_ic.values() if v["rho"] is not None]
     regime_same_sign = (len(set(signs)) <= 1) if signs else None
 
@@ -429,8 +478,8 @@ def gate4_incremental(key, main_score, main_df):
     existing_cols = [c for c in fva.FACTOR_COLS.keys() if c in main_df.columns]
     tmp = main_df.copy()
     tmp["_with_candidate"] = tmp[existing_cols + [key]].mean(axis=1, skipna=True)
-    ic_without = fva.non_overlapping_ic(tmp, fva.COMPOSITE_COL, MAIN_HORIZON)
-    ic_with = fva.non_overlapping_ic(tmp, "_with_candidate", MAIN_HORIZON)
+    ic_without = fva.overlapping_ic(tmp, fva.COMPOSITE_COL, MAIN_HORIZON)
+    ic_with = fva.overlapping_ic(tmp, "_with_candidate", MAIN_HORIZON)
     delta = None
     if ic_with["rho"] is not None and ic_without["rho"] is not None:
         delta = ic_without["rho"] - ic_with["rho"]
@@ -484,43 +533,62 @@ def run_screening(config):
     result = {"key": key, "label": label, "config": config, "test_date": date.today().isoformat(),
               "raw_ranges": {k: (str(v[0].date()), str(v[1].date()), v[2]) for k, v in raw_ranges.items()}}
 
+    # 五關固定全部跑完，不再因為某一關沒過就提早停止——這個平台的定位是研究輔助工具，
+    # 只提供判斷建議，不擋結果，最終是否採用交給使用者自行判斷。任一關萬一因為資料
+    # 太極端而算不出來，用try/except接住、記成「此關無法完成分析」，不讓整次測試中斷。
     print(f"[{label}] 第一關：資料健檢 ...")
-    g1 = gate1_data_health(config, main_score_pre, main_raw_pre, ext_df_20y)
+    try:
+        g1 = gate1_data_health(config, main_score_pre, main_raw_pre, ext_df_20y)
+    except Exception as e:
+        g1 = {"passed": None, "reasons": [f"此關計算失敗：{e}"]}
     result["gate1"] = g1
-    if not g1["passed"]:
-        result["final_verdict"] = "第一關（資料健檢）未通過"
-        result["stopped_at"] = 1
-        return result
 
     print(f"[{label}] 第二關：單獨效力 ...")
-    g2 = gate2_efficacy(key, score_full, ext_df_20y)
+    try:
+        g2 = gate2_efficacy(key, score_full, ext_df_20y)
+    except Exception as e:
+        g2 = {"passed": None, "reasons": [f"此關計算失敗：{e}"], "main_df": main_df_pre}
     result["gate2"] = g2
-    if not g2["passed"]:
-        result["final_verdict"] = "第二關（單獨效力）未通過"
-        result["stopped_at"] = 2
-        return result
+    main_df = g2.get("main_df", main_df_pre)
 
     print(f"[{label}] 第三關：穩定性 ...")
-    g3 = gate3_stability(key, g2["main_df"])
+    try:
+        g3 = gate3_stability(key, main_df)
+    except Exception as e:
+        g3 = {"passed": None, "reasons": [f"此關計算失敗：{e}"]}
     result["gate3"] = g3
-    if not g3["passed"]:
-        result["final_verdict"] = "第三關（穩定性）未通過"
-        result["stopped_at"] = 3
-        return result
 
     print(f"[{label}] 第四關：增量價值 ...")
-    g4 = gate4_incremental(key, g2["main_df"][key], g2["main_df"])
+    try:
+        g4 = gate4_incremental(key, main_df[key], main_df)
+    except Exception as e:
+        g4 = {"passed": None, "reasons": [f"此關計算失敗：{e}"]}
     result["gate4"] = g4
-    if not g4["passed"]:
-        result["final_verdict"] = "第四關（增量價值）未通過"
-        result["stopped_at"] = 4
-        return result
 
     print(f"[{label}] 第五關：可實作性 ...")
-    g5 = gate5_implementability(g2["main_df"][key])
+    try:
+        g5 = gate5_implementability(main_df[key])
+    except Exception as e:
+        g5 = {"passed": None, "reasons": [f"此關計算失敗：{e}"]}
     result["gate5"] = g5
-    result["final_verdict"] = "通過全部五關，建議納入正式綜合分數（可實作性門檻尚待補上成本假設，目前只供參考）"
-    result["stopped_at"] = 5
+
+    # 整體建議：只統計「真的判斷出及格/不及格」的關卡(第一到四關；第五關换手率
+    # 本身就沒有及格線，永遠不計入分母)，第五關永遠是資訊性質。
+    judged = [g1, g2, g3, g4]
+    n_judged = sum(1 for g in judged if g.get("passed") is not None)
+    n_passed = sum(1 for g in judged if g.get("passed") is True)
+    result["gates_passed"] = f"{n_passed}/{n_judged}" if n_judged else "無法判斷"
+
+    if n_judged == 0:
+        headline = "資料不足，無法完成關卡判斷"
+    elif n_passed == n_judged:
+        headline = f"{n_passed}/{n_judged}項關卡通過，初步判斷具備統計相關性，建議可以考慮"
+    elif n_passed >= n_judged / 2:
+        headline = f"{n_passed}/{n_judged}項關卡通過，部分指標有疑慮，建議謹慎評估後再決定"
+    else:
+        headline = f"{n_passed}/{n_judged}項關卡通過，多項指標不理想，建議不採用"
+    result["final_verdict"] = f"{headline}——本工具僅提供研究建議，最終是否採用由使用者自行判斷。"
+    result["stopped_at"] = None  # 不再有「停在哪一關」這件事，保留欄位是為了跟舊登記簿資料相容
     return result
 
 
@@ -538,16 +606,18 @@ def _registry_summary(result):
     entry = {
         "key": result["key"], "label": result["label"], "test_date": result["test_date"],
         "mode": result["config"]["mode"], "final_verdict": result["final_verdict"],
-        "stopped_at": result["stopped_at"],
+        "gates_passed": result["gates_passed"],
     }
-    if "gate2" in result:
-        entry["main_ic"] = result["gate2"]["main_ic"]["rho"]
-        entry["monotonicity"] = result["gate2"]["monotonicity"]
-        entry["pattern_tag"] = result["gate2"]["pattern_tag"]
-    if "gate4" in result:
-        entry["max_corr"] = result["gate4"]["max_corr"]
-        entry["max_corr_key"] = result["gate4"]["max_corr_key"]
-        entry["loo_delta"] = result["gate4"]["delta"]
+    g2 = result.get("gate2", {})
+    if "main_ic" in g2:
+        entry["main_ic"] = g2["main_ic"]["rho"]
+        entry["monotonicity"] = g2["monotonicity"]
+        entry["pattern_tag"] = g2["pattern_tag"]
+    g4 = result.get("gate4", {})
+    if "max_corr" in g4:
+        entry["max_corr"] = g4["max_corr"]
+        entry["max_corr_key"] = g4["max_corr_key"]
+        entry["loo_delta"] = g4["delta"]
     return entry
 
 
@@ -568,17 +638,130 @@ def _gate_badge(passed):
     return '<span class="verdict-watch">僅供參考（未設門檻）</span>'
 
 
+def score_trend_chart_base64(main_df, key, label):
+    """圖1:分數走勢圖。背景疊五色情緒分級色帶(跟儀表板一致)，右軸疊美國10年期
+    公債殖利率(UST_10Yr)當視覺參考——殖利率純粹對照用，不參與任何統計計算，
+    這點也跟儀表板現有每個因子卡片的第一張圖完全一致的做法。"""
+    if key not in main_df.columns:
+        return None
+    score = main_df[key].dropna()
+    if score.empty:
+        return None
+    fig, ax = plt.subplots(figsize=(7.6, 3.6), dpi=140)
+    prev = 0
+    for i, th in enumerate(ud._G["label_thresholds"]):
+        hi = min(th["lt"], 100)
+        ax.axhspan(prev, hi, color=TIER_COLORS[i % len(TIER_COLORS)], alpha=0.10, zorder=0)
+        prev = th["lt"]
+    ax.plot(main_df.index, main_df[key], color="#1e3a5f", linewidth=1.2, label=label, zorder=3)
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("分數 (0–100)", fontsize=9)
+    ax.tick_params(labelsize=8)
+    if "UST_10Yr" in main_df.columns:
+        ax2 = ax.twinx()
+        ax2.plot(main_df.index, main_df["UST_10Yr"], color="#a6742a", linewidth=1.0,
+                  linestyle="--", alpha=0.75, zorder=2)
+        ax2.set_ylabel("10年期公債殖利率 (%，僅供對照)", fontsize=9, color="#a6742a")
+        ax2.tick_params(labelsize=8, colors="#a6742a")
+    ax.set_title(f"{label}：分數走勢（疊加美國10年期公債殖利率，僅供對照）", fontsize=10)
+    for spine in ["top"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    return fva.fig_to_base64(fig)
+
+
+def raw_data_chart_base64(config, main_df, label):
+    """圖2:原始資料走勢圖。依候選因子選的轉換模式，對應現有七個因子在儀表板上
+    各自第二張圖的呈現邏輯(例如動能秀ZN期貨+125日均線、殖利率曲線形狀秀
+    10年期+2年期殖利率原始數值)。"""
+    mode = config["mode"]
+    sources = config["sources"]
+    params = config.get("params", {})
+    window = params.get("window")
+
+    try:
+        if mode in ("ma_deviation", "moving_average"):
+            series, _ = _resolve_source(sources["series"], main_df)
+            series = series.reindex(main_df.index)
+            ma = series.rolling(window, min_periods=window).mean() if window else None
+            fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
+            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            if ma is not None:
+                ax.plot(main_df.index, ma, color="#a6742a", linewidth=1.1, label=f"{window}日移動平均")
+        elif mode == "range_position":
+            series, _ = _resolve_source(sources["series"], main_df)
+            series = series.reindex(main_df.index)
+            hi = series.rolling(window, min_periods=window).max() if window else None
+            lo = series.rolling(window, min_periods=window).min() if window else None
+            fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
+            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            if hi is not None:
+                ax.plot(main_df.index, hi, color="#a6362f", linewidth=0.9, alpha=0.75, label=f"{window}日滾動高點")
+                ax.plot(main_df.index, lo, color="#2f6b4f", linewidth=0.9, alpha=0.75, label=f"{window}日滾動低點")
+        elif mode == "return_spread":
+            series_a, _ = _resolve_source(sources["a"], main_df)
+            series_b, _ = _resolve_source(sources["b"], main_df)
+            series_a, series_b = series_a.reindex(main_df.index), series_b.reindex(main_df.index)
+            base_a, base_b = series_a.dropna().iloc[0] if series_a.dropna().size else None, \
+                series_b.dropna().iloc[0] if series_b.dropna().size else None
+            fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
+            if base_a:
+                ax.plot(main_df.index, series_a / base_a * 100, color="#1e3a5f", linewidth=1.1,
+                        label="數列A（指數化，起點=100）")
+            if base_b:
+                ax.plot(main_df.index, series_b / base_b * 100, color="#a6742a", linewidth=1.1,
+                        label="數列B（指數化，起點=100）")
+        elif mode == "value_spread":
+            series_a, _ = _resolve_source(sources["a"], main_df)
+            series_b, _ = _resolve_source(sources["b"], main_df)
+            series_a, series_b = series_a.reindex(main_df.index), series_b.reindex(main_df.index)
+            fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
+            ax.plot(main_df.index, series_a, color="#1e3a5f", linewidth=1.1, label="數列A")
+            ax.plot(main_df.index, series_b, color="#a6742a", linewidth=1.1, label="數列B")
+        elif mode == "rolling_stat":
+            series, _ = _resolve_source(sources["series"], main_df)
+            series = series.reindex(main_df.index)
+            med = series.rolling(window, min_periods=window).median() if window else None
+            fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
+            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            if med is not None:
+                ax.plot(main_df.index, med, color="#a6742a", linewidth=1.1, label=f"{window}日滾動中位數")
+        else:
+            return None
+    except Exception:
+        return None
+
+    ax.legend(fontsize=8, loc="upper left", frameon=False)
+    ax.tick_params(labelsize=8)
+    ax.set_title(f"{label}：原始資料走勢", fontsize=10)
+    ax.spines["top"].set_visible(False)
+    fig.tight_layout()
+    return fva.fig_to_base64(fig)
+
+
 def render_screening_report(result):
     key, label = result["key"], result["label"]
     mode_label = TRANSFORM_MODES[result["config"]["mode"]]["label"]
+    main_df = result.get("gate2", {}).get("main_df")
 
     sections = []
 
-    g1 = result.get("gate1")
-    if g1:
+    # 圖1+圖2固定放最前面,不管五道關卡跑得如何都會顯示(只要main_df算得出來)
+    if main_df is not None:
+        score_chart = score_trend_chart_base64(main_df, key, label)
+        raw_chart = raw_data_chart_base64(result["config"], main_df, label)
         sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>第一關：資料健檢 {_gate_badge(g1["passed"])}</h2>
+      <h2><span class="bar"></span>分數走勢與原始資料</h2>
+      {"<img class='chart' src='data:image/png;base64," + score_chart + "'/>" if score_chart else "<p class='na'>分數走勢圖資料不足</p>"}
+      {"<img class='chart' src='data:image/png;base64," + raw_chart + "'/>" if raw_chart else "<p class='na'>原始資料走勢圖資料不足</p>"}
+    </section>""")
+
+    g1 = result.get("gate1", {})
+    if "history_days" in g1:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第一關：資料健檢 {_gate_badge(g1.get("passed"))}</h2>
       <table class="data-table mini">
         <tr><th>有效資料天數</th><th>缺值比例</th><th>look-ahead檢查</th></tr>
         <tr><td>{g1["history_days"]}</td><td>{g1["missing_pct"]:.1f}%</td>
@@ -586,94 +769,129 @@ def render_screening_report(result):
       </table>
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g1["reasons"]) + "</ul>" if g1["reasons"] else ""}
     </section>""")
+    else:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第一關：資料健檢 {_gate_badge(g1.get("passed"))}</h2>
+      {"<ul>" + "".join(f"<li>{r}</li>" for r in g1.get("reasons", [])) + "</ul>" if g1.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
+    </section>""")
 
-    g2 = result.get("gate2")
-    if g2:
+    g2 = result.get("gate2", {})
+    if "ic_by_horizon" in g2:
         ic_rows = ""
         for h in HORIZONS:
-            non_ov = fva.fmt_rho(g2["ic_by_horizon"][h]["non_overlap"])
             ov = fva.fmt_rho(g2["ic_by_horizon"][h]["overlap"])
-            ic_rows += f"<tr><td>{h}日</td><td>{non_ov}</td><td>{ov}</td></tr>"
+            non_ov = fva.fmt_rho(g2["ic_by_horizon"][h]["non_overlap"])
+            ic_rows += f"<tr><td>{h}日</td><td>{ov}</td><td>{non_ov}</td></tr>"
         decile10_chart = fva.decile_chart_base64(
-            g2["decile_10"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（10分組，非重疊取樣）",
+            g2["decile_10"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（10分組，重疊取樣）",
             fva.DECILE_N_BUCKETS, fva.DECILE_HORIZON
         ) if g2["decile_10"] else None
         vigintile_buckets = fva._V["vigintile_n_buckets"]
         decile20_chart = fva.decile_chart_base64(
-            g2["decile_20"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（{vigintile_buckets}分組，非重疊取樣）",
+            g2["decile_20"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（{vigintile_buckets}分組，重疊取樣）",
             vigintile_buckets, fva.DECILE_HORIZON
         ) if g2["decile_20"] else None
-        heatmap_raw_chart = heatmap_chart_base64(g2["heatmap_raw"], f"{label}：原始報酬熱力圖（分桶×持有天數）")
+        heatmap_raw_chart = heatmap_chart_base64(g2["heatmap_raw"], f"{label}：原始報酬熱力圖（分桶×持有天數，重疊取樣）")
         heatmap_excess_chart = heatmap_chart_base64(
-            g2["heatmap_excess"], f"{label}：超額報酬熱力圖（扣除同期無條件平均買進持有）"
+            g2["heatmap_excess"], f"{label}：超額報酬熱力圖（扣除同期無條件平均買進持有，重疊取樣）"
         )
         sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>第二關：單獨效力 {_gate_badge(g2["passed"])}</h2>
+      <h2><span class="bar"></span>第二關：單獨效力 {_gate_badge(g2.get("passed"))}</h2>
       <p class="hint">型態標記：<b>{g2["pattern_tag"]}</b>（描述性標記，不當作及格條件——現有七因子裡多數呈現動能延續型，
         不是長期反轉型，這個標記純粹讓你知道候選因子屬於哪一種，不會因為不是反轉型就被判定不及格）</p>
-      <h3>IC（vs 未來N日ZN報酬）</h3>
+      <h3>IC（vs 未來N日ZN報酬，全平台一律以重疊取樣為主）</h3>
       <table class="data-table mini">
-        <tr><th>持有天數</th><th>非重疊</th><th>重疊（僅供參考）</th></tr>
+        <tr><th>持有天數</th><th>重疊</th><th>非重疊（對照參考）</th></tr>
         {ic_rows}
       </table>
-      <p class="hint">分桶單調性（10年版本）：{fva.fmt_num(g2["monotonicity"], 3) if g2["monotonicity"] is not None else "無資料"}</p>
+      <p class="hint">分桶單調性（10年版本，重疊取樣）：{fva.fmt_num(g2["monotonicity"], 3) if g2["monotonicity"] is not None else "無資料"}</p>
       {"<img class='chart' src='data:image/png;base64," + decile10_chart + "'/>" if decile10_chart else "<p class='na'>10年分桶資料不足</p>"}
       {"<img class='chart' src='data:image/png;base64," + decile20_chart + "'/>" if decile20_chart else "<p class='na'>20年分桶資料不足</p>"}
       {"<img class='chart' src='data:image/png;base64," + heatmap_raw_chart + "'/>" if heatmap_raw_chart else "<p class='na'>熱力圖資料不足</p>"}
       {"<img class='chart' src='data:image/png;base64," + heatmap_excess_chart + "'/>" if heatmap_excess_chart else ""}
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g2["reasons"]) + "</ul>" if g2["reasons"] else ""}
     </section>""")
+    else:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第二關：單獨效力 {_gate_badge(g2.get("passed"))}</h2>
+      {"<ul>" + "".join(f"<li>{r}</li>" for r in g2.get("reasons", [])) + "</ul>" if g2.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
+    </section>""")
 
-    g3 = result.get("gate3")
-    if g3:
+    g3 = result.get("gate3", {})
+    if "regime_ic" in g3:
         regime_rows = "".join(
             f"<tr><td>{label_}</td><td>{fva.fmt_rho(ic)}</td></tr>"
             for label_, ic in g3["regime_ic"].items()
         )
         sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>第三關：穩定性 {_gate_badge(g3["passed"])}</h2>
+      <h2><span class="bar"></span>第三關：穩定性 {_gate_badge(g3.get("passed"))}</h2>
       <table class="data-table mini">
         <tr><th>全樣本</th><th>前半段</th><th>後半段</th><th>前後半段同號？</th></tr>
         <tr><td>{fva.fmt_rho(g3["ic_full"])}</td><td>{fva.fmt_rho(g3["ic_h1"])}</td>
             <td>{fva.fmt_rho(g3["ic_h2"])}</td><td>{"是" if g3["same_sign"] else "否"}</td></tr>
       </table>
-      <h3>跨Fed循環IC（僅供參考，不擋關）</h3>
+      <h3>跨Fed循環IC（僅供參考，不擋關；重疊取樣）</h3>
       <table class="data-table mini"><tr><th>循環階段</th><th>IC</th></tr>{regime_rows}</table>
       <p class="hint">跨循環同號：{"是" if g3["regime_same_sign"] else ("否" if g3["regime_same_sign"] is False else "資料不足無法判斷")}</p>
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g3["reasons"]) + "</ul>" if g3["reasons"] else ""}
     </section>""")
+    else:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第三關：穩定性 {_gate_badge(g3.get("passed"))}</h2>
+      {"<ul>" + "".join(f"<li>{r}</li>" for r in g3.get("reasons", [])) + "</ul>" if g3.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
+    </section>""")
 
-    g4 = result.get("gate4")
-    if g4:
+    g4 = result.get("gate4", {})
+    if "correlations" in g4:
         corr_rows = "".join(
             f"<tr><td>{k}</td><td>{v:+.2f}</td></tr>"
             for k, v in g4["correlations"].items()
         )
         sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>第四關：增量價值 {_gate_badge(g4["passed"])}</h2>
+      <h2><span class="bar"></span>第四關：增量價值 {_gate_badge(g4.get("passed"))}</h2>
       <h3>跟現有七因子的相關係數</h3>
       <table class="data-table mini"><tr><th>因子</th><th>相關係數</th></tr>{corr_rows}</table>
       <p class="hint">最高相關：{g4["max_corr_key"]}（{g4["max_corr"]:+.2f}），門檻±{THRESHOLDS['max_correlation']}</p>
-      <h3>Leave-one-out：加入候選因子對綜合分數IC的影響</h3>
+      <h3>Leave-one-out：加入候選因子對綜合分數IC的影響（重疊取樣）</h3>
       <p>不含候選：{fva.fmt_rho(g4["ic_without"])}　→　含候選：{fva.fmt_rho(g4["ic_with"])}
         （Δ = {f"{g4['delta']:+.3f}" if g4["delta"] is not None else "無資料"}，負值代表候選因子有正貢獻）</p>
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g4["reasons"]) + "</ul>" if g4["reasons"] else ""}
     </section>""")
-
-    g5 = result.get("gate5")
-    if g5:
+    else:
         sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>第五關：可實作性 {_gate_badge(g5["passed"])}</h2>
-      <p>平均每日部位變動量：{g5["turnover_daily_avg"]:.3f}（0=完全不動，2=從滿多轉滿空）　·　
+      <h2><span class="bar"></span>第四關：增量價值 {_gate_badge(g4.get("passed"))}</h2>
+      {"<ul>" + "".join(f"<li>{r}</li>" for r in g4.get("reasons", [])) + "</ul>" if g4.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
+    </section>""")
+
+    g5 = result.get("gate5", {})
+    if "turnover_daily_avg" in g5:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第五關：可實作性 {_gate_badge(g5.get("passed"))}</h2>
+      <p>平均每日部位變動量：{g5["turnover_daily_avg"]:.3f}（0=完全不動，2=從滿多轉滿空）　·
          部位方向改變次數：{g5["n_position_changes"]}</p>
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g5["reasons"]) + "</ul>" if g5["reasons"] else ""}
     </section>""")
+    else:
+        sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>第五關：可實作性 {_gate_badge(g5.get("passed"))}</h2>
+      {"<ul>" + "".join(f"<li>{r}</li>" for r in g5.get("reasons", [])) + "</ul>" if g5.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
+    </section>""")
 
-    verdict_class = "verdict-keep" if result["stopped_at"] == 5 else "verdict-cut"
+    gp = result.get("gates_passed", "無法判斷")
+    n_passed_str = gp.split("/")[0] if "/" in gp else "0"
+    n_judged_str = gp.split("/")[1] if "/" in gp else "0"
+    verdict_class = ("verdict-keep" if n_judged_str != "0" and int(n_passed_str) == int(n_judged_str)
+                      else "verdict-watch" if n_judged_str != "0" and int(n_passed_str) >= int(n_judged_str) / 2
+                      else "verdict-cut")
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -691,7 +909,8 @@ def render_screening_report(result):
     </nav>
     <div class="kicker">FACTOR SCREENING</div>
     <h1>因子篩選：{label}</h1>
-    <p class="meta">key：{key}　·　轉換模式：{mode_label}　·　測試日期：{result["test_date"]}</p>
+    <p class="meta">key：{key}　·　轉換模式：{mode_label}　·　測試日期：{result["test_date"]}　·　關卡通過：{gp}</p>
+    <p class="disclaimer">{POSITIONING_STATEMENT}</p>
     <p class="disclaimer {verdict_class}">{result["final_verdict"]}</p>
   </header>
   {"".join(sections)}
@@ -704,18 +923,27 @@ def render_screening_report(result):
 def render_registry_index(registry):
     rows = ""
     for e in reversed(registry):
-        verdict_cls = "verdict-keep" if e["stopped_at"] == 5 else "verdict-cut"
+        gp = e.get("gates_passed", "無法判斷")
+        n_p, n_j = (gp.split("/") if "/" in gp else ("0", "0"))
+        verdict_cls = ("verdict-keep" if n_j != "0" and int(n_p) == int(n_j)
+                        else "verdict-watch" if n_j != "0" and int(n_p) >= int(n_j) / 2
+                        else "verdict-cut")
         rows += f"""<tr>
           <td>{e["test_date"]}</td>
           <td><a class="factor-link" href="screening_{e['key']}.html" onclick="loadReport('screening_{e['key']}.html', '{e['label']}'); return false;">{e['label']}</a></td>
           <td>{TRANSFORM_MODES[e['mode']]['label']}</td>
           <td>{fva.fmt_num(e.get('main_ic'), 3) if e.get('main_ic') is not None else '—'}</td>
           <td>{e.get('pattern_tag', '—')}</td>
+          <td>{gp}</td>
           <td class="{verdict_cls}">{e['final_verdict']}</td>
         </tr>"""
 
     n_total = len(registry)
-    n_passed = sum(1 for e in registry if e["stopped_at"] == 5)
+    n_passed = sum(
+        1 for e in registry
+        if "/" in e.get("gates_passed", "") and e["gates_passed"].split("/")[1] != "0"
+        and e["gates_passed"].split("/")[0] == e["gates_passed"].split("/")[1]
+    )
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -782,9 +1010,10 @@ def render_registry_index(registry):
     </nav>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1>因子開發與篩選平台</h1>
-    <p class="meta">累計測試 {n_total} 個因子，通過全部五關 {n_passed} 個。</p>
+    <p class="meta">累計測試 {n_total} 個因子，各關卡全數通過 {n_passed} 個。</p>
+    <p class="disclaimer">{POSITIONING_STATEMENT}</p>
     <p class="disclaimer">
-      這份登記簿記錄「每一次」測試過的因子。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
+      這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
     </p>
   </header>
 
@@ -891,8 +1120,8 @@ def render_registry_index(registry):
   <section class="card">
     <h2><span class="bar"></span>歷史測試紀錄登記簿 (點擊名稱可直接在下方展開報告圖表)</h2>
     <table class="data-table">
-      <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,非重疊)</th><th>型態標記</th><th>結果</th></tr>
-      {rows if rows else "<tr><td colspan='6' class='na'>尚無測試記錄</td></tr>"}
+      <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th></tr>
+      {rows if rows else "<tr><td colspan='7' class='na'>尚無測試記錄</td></tr>"}
     </table>
   </section>
 </div>
