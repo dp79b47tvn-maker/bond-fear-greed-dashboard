@@ -52,16 +52,18 @@
   .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 44px 0 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
   .event-rail {
     flex: 0 0 260px; position: sticky; top: 20px; margin-top: 44px;
-    max-height: calc(100vh - 40px); overflow-y: auto;
+    max-height: calc(100vh - 40px);
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
     padding: 16px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; min-height: 0;
   }
+  .event-rail-header { flex: 0 0 auto; }
   .event-rail h3 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
   .event-rail-hint { font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.55; }
   .event-rail-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
   .event-rail-legend .legend-item { display: flex; align-items: center; gap: 5px; }
   .event-rail-legend .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .event-rail-list { display: flex; flex-direction: column; gap: 2px; }
+  .event-rail-list { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
   .event-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
   .event-item:hover { background: var(--surface-2); }
   .event-item.active { background: var(--surface-2); border-left-color: var(--series-1); }
@@ -399,12 +401,14 @@
 </div>
 
 <aside class="event-rail" id="eventRail">
-  <h3>總經事件行事曆</h3>
-  <p class="event-rail-hint">FOMC／CPI／NFP等重大經濟數據發布日。點事件可跳到當天的儀表板數值；點左邊圖表也會捲動到對應時間點附近的事件。</p>
-  <div class="event-rail-legend">
-    <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>FOMC</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>CPI</span>
-    <span class="legend-item"><span class="swatch" style="background:var(--series-4)"></span>NFP</span>
+  <div class="event-rail-header">
+    <h3>總經事件行事曆</h3>
+    <p class="event-rail-hint">FOMC／CPI／NFP等重大經濟數據發布日。點事件可跳到當天的儀表板數值；點左邊圖表也會捲動到對應時間點附近的事件。</p>
+    <div class="event-rail-legend">
+      <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>FOMC</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>CPI</span>
+      <span class="legend-item"><span class="swatch" style="background:var(--series-4)"></span>NFP</span>
+    </div>
   </div>
   <div class="event-rail-list" id="eventRailList"></div>
 </aside>
@@ -1557,9 +1561,14 @@ function scrollEventRailTo(idx) {
     // 故意不用 behavior:"smooth"：實測發現在部分瀏覽器/自動化環境下(可能是
     // prefers-reduced-motion或類似設定)smooth捲動完全不會動、卡在原地，
     // 直接跳(behavior:"auto")雖然沒有動畫但保證一定會捲到正確位置。
-    const rail = document.getElementById("eventRail");
-    const targetCenter = target.offsetTop + target.offsetHeight / 2;
-    rail.scrollTo({ top: targetCenter - rail.clientHeight / 2, behavior: "auto" });
+    // 用 getBoundingClientRect() 算相對位置，而非 offsetTop：標題/圖例區獨立
+    // 出來後，.event-rail-list 才是真正的捲動容器，但 event-item 的
+    // offsetParent 仍可能是外層 .event-rail(position:sticky)，offsetTop 會
+    // 連標題區高度一起算進去，造成捲動位置偏移。
+    const listRect = eventRailListEl.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const targetCenter = eventRailListEl.scrollTop + (targetRect.top - listRect.top) + targetRect.height / 2;
+    eventRailListEl.scrollTo({ top: targetCenter - eventRailListEl.clientHeight / 2, behavior: "auto" });
   }
 }
 
