@@ -45,6 +45,7 @@ import factor_validation_analysis as fva
 import nav_bar
 import regime_lib
 import update_dashboard as ud
+from transform_modes import TRANSFORM_MODES, _resolve_source, build_candidate_score
 
 plt = fva.plt
 
@@ -81,6 +82,21 @@ POSITIONING_STATEMENT = (
 
 # 跟儀表板一致的情緒分級色階(淺色模式)，用在分數走勢圖的背景色帶
 TIER_COLORS = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"]
+
+# 單一因子報告頁「升等為可選因子」按鈕用的CSS——render_screening_report()用的是
+# fva.REPORT_CSS，沒有.token-box/.btn-submit這些class(那些只在render_registry_index()
+# 自己的<style>裡定義)，這裡補一份自成一體的、視覺語言跟登記簿頁一致。
+PROMOTE_UI_CSS = """
+  .promote-card .token-box { background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px;
+    padding:14px 16px; margin:12px 0; font-size:12.5px; }
+  .promote-card .token-box summary { font-weight:700; color:#a6742a; cursor:pointer; }
+  .promote-card input[type="password"] { width:100%; padding:9px 12px; margin-top:8px; border:1px solid #dfe2e8;
+    border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none; }
+  .promote-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 20px; background:#1e3a5f; color:#fff;
+    border:none; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; }
+  .promote-btn:hover { opacity:.92; }
+  .promote-btn:disabled { opacity:.55; cursor:not-allowed; }
+"""
 
 # fva.FACTOR_COLS 是 {score_col: 中文名} 例如 {"momentum_score": "動能", ...}，
 # 直接沿用它的順序與對照，不要另外重建一份、容易對錯 key/value。
@@ -137,124 +153,6 @@ SOURCE_CATALOG = (
 )
 
 
-# ================================================================ 六種轉換模式（原始指標，尚未轉百分位）
-def _ma_deviation(series, window):
-    """均線乖離百分比：(現值 − N日均線) / N日均線 × 100"""
-    ma = series.rolling(window, min_periods=window).mean()
-    return (series - ma) / ma * 100
-
-
-def _range_position(series, window):
-    """區間位置：現值在過去N日高低點之間的位置，0–100，本身已經是0–100不需要再轉百分位"""
-    lo = series.rolling(window, min_periods=window).min()
-    hi = series.rolling(window, min_periods=window).max()
-    return (series - lo) / (hi - lo) * 100
-
-
-def _return_spread(series_a, series_b, window):
-    """兩序列報酬差：series_a的N日報酬 − series_b的N日報酬"""
-    ret_a = (series_a / series_a.shift(window) - 1) * 100
-    ret_b = (series_b / series_b.shift(window) - 1) * 100
-    return ret_a - ret_b
-
-
-def _value_spread(series_a, series_b):
-    """兩序列差值：series_a − series_b（例如利差、意外值）"""
-    return series_a - series_b
-
-
-def _moving_average(series, window):
-    """移動平均：N日簡單移動平均"""
-    return series.rolling(window, min_periods=window).mean()
-
-
-def _rolling_stat(series, window, stat):
-    """滾動統計量：N日窗口的偏態(skew)、標準差(std)，或對N日中位數的乖離百分比(median_dev)"""
-    if stat == "median_dev":
-        med = series.rolling(window, min_periods=window).median()
-        return (series - med) / med * 100
-    return series.rolling(window, min_periods=window).apply(
-        lambda w: pd.Series(w).skew() if stat == "skew" else pd.Series(w).std(), raw=False
-    )
-
-
-TRANSFORM_MODES = {
-    "ma_deviation": {"fn": _ma_deviation, "n_sources": 1, "uses_percentile_default": True,
-                      "label": "均線乖離百分位"},
-    "range_position": {"fn": _range_position, "n_sources": 1, "uses_percentile_default": False,
-                        "label": "區間位置"},
-    "return_spread": {"fn": _return_spread, "n_sources": 2, "uses_percentile_default": True,
-                       "label": "兩序列報酬差百分位"},
-    "value_spread": {"fn": _value_spread, "n_sources": 2, "uses_percentile_default": True,
-                      "label": "兩序列差值百分位"},
-    "moving_average": {"fn": _moving_average, "n_sources": 1, "uses_percentile_default": True,
-                        "label": "移動平均百分位"},
-    "rolling_stat": {"fn": _rolling_stat, "n_sources": 1, "uses_percentile_default": True,
-                      "label": "滾動統計量百分位"},
-}
-
-
-# ================================================================ 資料來源解析
-def _resolve_source(spec, df):
-    """spec可以是: 字串(df裡已經有的欄位名稱)、{"yahoo": ticker}、{"fred": series_id}。
-    回傳 (series, updated_df)——如果是新抓的資料，順便併回df讓後續步驟(例如look-ahead檢查)可以用。"""
-    if isinstance(spec, str):
-        if spec not in df.columns:
-            raise ValueError(f"df裡沒有欄位 '{spec}'，如果是新資料來源請用 {{'yahoo': ticker}} 或 {{'fred': series_id}} 指定")
-        return df[spec], df
-    if isinstance(spec, dict):
-        if "yahoo" in spec:
-            name = spec.get("name", spec["yahoo"])
-            if name in df.columns:
-                return df[name], df
-            s = ud.fetch_yahoo_close(spec["yahoo"], name)
-            df = df.copy()
-            df[name] = s.reindex(df.index).ffill()
-            return df[name], df
-        if "fred" in spec:
-            name = spec.get("name", spec["fred"])
-            if name in df.columns:
-                return df[name], df
-            s = ud.fetch_fred_series(spec["fred"], name)
-            df = df.copy()
-            df[name] = s.reindex(df.index).ffill()
-            return df[name], df
-    raise ValueError(f"看不懂的資料來源設定：{spec}")
-
-
-def build_candidate_score(config, df):
-    """照 config 指定的轉換模式，把原始資料變成0–100分數，回傳 (score_series, raw_metric_series, df)。"""
-    mode = TRANSFORM_MODES[config["mode"]]
-    params = config.get("params", {})
-    sources = config["sources"]
-
-    if mode["n_sources"] == 1:
-        series, df = _resolve_source(sources["series"], df)
-        if config["mode"] == "rolling_stat":
-            raw_metric = mode["fn"](series, params["window"], params.get("stat", "skew"))
-        elif config["mode"] == "value_spread":
-            raw_metric = mode["fn"](series)  # 理論上不會走到這，value_spread是2-source模式
-        else:
-            raw_metric = mode["fn"](series, params.get("window"))
-    else:
-        series_a, df = _resolve_source(sources["a"], df)
-        series_b, df = _resolve_source(sources["b"], df)
-        if config["mode"] == "return_spread":
-            raw_metric = mode["fn"](series_a, series_b, params["window"])
-        else:
-            raw_metric = mode["fn"](series_a, series_b)
-
-    uses_percentile = config.get("uses_percentile", mode["uses_percentile_default"])
-    if uses_percentile:
-        score = ud.rolling_percentile_score(raw_metric)
-    else:
-        score = raw_metric.clip(0, 100)
-
-    if config.get("invert", False):
-        score = 100 - score
-
-    return score, raw_metric, df
-
 
 # ================================================================ 第一關：資料健檢
 def _check_lookahead(config, df_full, score, n_samples=5):
@@ -271,7 +169,7 @@ def _check_lookahead(config, df_full, score, n_samples=5):
     mismatches = []
     for d in sample_idx:
         truncated_df = df_full.loc[:d]
-        truncated_score, _, _ = build_candidate_score(config, truncated_df)
+        truncated_score, _, _ = build_candidate_score(config, truncated_df, ud.fetch_yahoo_close, ud.fetch_fred_series)
         a = truncated_score.iloc[-1] if len(truncated_score) else None
         b = score.loc[d]
         both_nan = pd.isna(a) and pd.isna(b)
@@ -577,7 +475,7 @@ def run_screening(config):
     print(f"[{label}] 抓取延伸歷史資料（20年＋暖身期）...")
     ext_df_20y, raw_ranges = fva.fetch_extended_history(years=fva._V["vigintile_years"])
 
-    score_full, raw_metric_full, ext_df_20y = build_candidate_score(config, ext_df_20y)
+    score_full, raw_metric_full, ext_df_20y = build_candidate_score(config, ext_df_20y, ud.fetch_yahoo_close, ud.fetch_fred_series)
 
     out_start = pd.Timestamp(ud._G["output_start_date"])
     main_df_pre = ext_df_20y.loc[ext_df_20y.index >= out_start].copy()
@@ -953,7 +851,8 @@ def render_screening_report(result):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子篩選：{label}</title>
 <style>{fva.REPORT_CSS}
-{nav_bar.NAV_BAR_CSS}</style>
+{nav_bar.NAV_BAR_CSS}
+{PROMOTE_UI_CSS}</style>
 </head>
 <body>
 <div class="wrap">
@@ -966,7 +865,71 @@ def render_screening_report(result):
     <p class="disclaimer {verdict_class}">{result["final_verdict"]}</p>
   </header>
   {"".join(sections)}
+  <section class="card promote-card">
+    <h2><span class="bar"></span>升等為儀表板可選因子</h2>
+    <p class="hint">
+      覺得這個因子值得留著探索？升等後會在<b>儀表板</b>多一張分項卡片（標示「候選因子」，<b>不計入官方綜合分數</b>），
+      也可以在儀表板「自訂權重」區塊選用它。不論上面幾道關卡通過與否都可以升等——這個平台只提供研究建議，
+      最終要不要留著由你決定。升等後大約幾分鐘內會反映在正式儀表板上。
+    </p>
+    <details class="token-box" id="promoteTokenDetails">
+      <summary>🔑 設定 GitHub Personal Access Token（跟因子篩選登記簿共用同一組）</summary>
+      <input type="password" id="promoteGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
+    </details>
+    <button class="promote-btn" type="button" id="promoteBtn">🚀 升等為可選因子</button>
+    <p class="hint" id="promoteStatus" style="margin-top:10px;"></p>
+  </section>
 </div>
+<script>
+  const PROMOTE_REPO_OWNER = "dp79b47tvn-maker";
+  const PROMOTE_REPO_NAME = "bond-fear-greed-dashboard";
+  const PROMOTE_CANDIDATE_CONFIG = {json.dumps(result["config"], ensure_ascii=False)};
+
+  const promoteTokenInput = document.getElementById("promoteGhToken");
+  const savedPromoteToken = localStorage.getItem("gh_pat_token");
+  if (savedPromoteToken) {{
+    promoteTokenInput.value = savedPromoteToken;
+  }} else {{
+    document.getElementById("promoteTokenDetails").open = true;
+  }}
+
+  document.getElementById("promoteBtn").addEventListener("click", async () => {{
+    const token = promoteTokenInput.value.trim();
+    const statusEl = document.getElementById("promoteStatus");
+    const btn = document.getElementById("promoteBtn");
+    if (!token) {{
+      alert("請先填寫 GitHub Personal Access Token（PAT）！");
+      document.getElementById("promoteTokenDetails").open = true;
+      promoteTokenInput.focus();
+      return;
+    }}
+    localStorage.setItem("gh_pat_token", token);
+    btn.disabled = true;
+    statusEl.textContent = "已送出升等請求，GitHub Actions 正在寫入設定並重新產生儀表板...";
+    try {{
+      const resp = await fetch(`https://api.github.com/repos/${{PROMOTE_REPO_OWNER}}/${{PROMOTE_REPO_NAME}}/actions/workflows/promote-factor.yml/dispatches`, {{
+        method: "POST",
+        headers: {{
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${{token}}`,
+          "Content-Type": "application/json"
+        }},
+        body: JSON.stringify({{
+          ref: "main",
+          inputs: {{ config_json: JSON.stringify(PROMOTE_CANDIDATE_CONFIG) }}
+        }})
+      }});
+      if (!resp.ok) {{
+        const errText = await resp.text();
+        throw new Error(`GitHub API 錯誤 (${{resp.status}}): ${{errText}}`);
+      }}
+      statusEl.textContent = "已成功送出！幾分鐘後到儀表板查看新的分項卡片與自訂權重選項。";
+    }} catch (err) {{
+      statusEl.textContent = "送出失敗：" + err.message;
+      btn.disabled = false;
+    }}
+  }});
+</script>
 </body>
 </html>"""
 

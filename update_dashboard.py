@@ -51,6 +51,7 @@ from datetime import date
 
 import nav_bar
 import regime_lib
+from transform_modes import rolling_percentile_score, _resolve_source, build_candidate_score
 
 import numpy as np
 import pandas as pd
@@ -182,16 +183,8 @@ def load_user_input():
 
 
 # ---------------------------------------------------------------- scoring
-def rolling_percentile_score(series, window_days=None, min_periods=None):
-    if window_days is None:
-        window_days = _G["percentile_window_days"]
-    if min_periods is None:
-        min_periods = window_days
-
-    def pct_rank_of_last(window):
-        return (window <= window[-1]).mean() * 100
-
-    return series.rolling(window=window_days, min_periods=min_periods).apply(pct_rank_of_last, raw=True)
+# rolling_percentile_score 定義在 transform_modes.py 共用(跟factor_screening.py的
+# 候選因子分數計算共用同一份邏輯，避免兩邊各自維護一份、改一邊忘了改另一邊)。
 
 
 def label_fn(s):
@@ -319,6 +312,107 @@ def assert_no_lookahead_bias(raw_df, full_scored_df, n_samples=8):
     print(f"✓ 未來資料檢查通過（抽樣 {len(sample_idx)} 個日期，無look-ahead bias）")
 
 
+# ---------------------------------------------------------------- 升等候選因子(Phase 4)
+PROMOTED_FACTORS_PATH = "promoted_candidate_factors.json"
+
+
+def _promoted_factor_raw_series(config, df):
+    """依候選因子的轉換模式，回傳(aux_series, chart_series_spec, df)——
+    aux_series是{欄位後綴: pd.Series}，chart_series_spec是給前端畫「原始資料走勢圖」用的
+    [{key, label, color}]列表。跟factor_screening.py的raw_data_chart_base64()是同一套
+    per-mode邏輯，只是這裡回傳原始數列給互動圖表用，不是matplotlib靜態圖。"""
+    mode = config["mode"]
+    sources = config["sources"]
+    params = config.get("params", {})
+    window = params.get("window")
+
+    if mode in ("ma_deviation", "moving_average"):
+        series, df = _resolve_source(sources["series"], df, fetch_yahoo_close, fetch_fred_series)
+        aux = {"raw": series}
+        spec = [{"key": "raw", "label": "原始序列", "color": "var(--series-1)"}]
+        if window:
+            aux["ma"] = series.rolling(window, min_periods=window).mean()
+            spec.append({"key": "ma", "label": f"{window}日移動平均", "color": "var(--series-2)"})
+    elif mode == "range_position":
+        series, df = _resolve_source(sources["series"], df, fetch_yahoo_close, fetch_fred_series)
+        aux = {"raw": series}
+        spec = [{"key": "raw", "label": "原始序列", "color": "var(--series-1)"}]
+        if window:
+            aux["hi"] = series.rolling(window, min_periods=window).max()
+            aux["lo"] = series.rolling(window, min_periods=window).min()
+            spec.append({"key": "hi", "label": f"{window}日滾動高點", "color": "var(--series-2)"})
+            spec.append({"key": "lo", "label": f"{window}日滾動低點", "color": "var(--series-4)"})
+    elif mode == "return_spread":
+        series_a, df = _resolve_source(sources["a"], df, fetch_yahoo_close, fetch_fred_series)
+        series_b, df = _resolve_source(sources["b"], df, fetch_yahoo_close, fetch_fred_series)
+        base_a = series_a.dropna().iloc[0] if series_a.dropna().size else None
+        base_b = series_b.dropna().iloc[0] if series_b.dropna().size else None
+        aux = {
+            "a": series_a / base_a * 100 if base_a else series_a,
+            "b": series_b / base_b * 100 if base_b else series_b,
+        }
+        spec = [
+            {"key": "a", "label": "數列A（指數化，起點=100）", "color": "var(--series-1)"},
+            {"key": "b", "label": "數列B（指數化，起點=100）", "color": "var(--series-2)"},
+        ]
+    elif mode == "value_spread":
+        series_a, df = _resolve_source(sources["a"], df, fetch_yahoo_close, fetch_fred_series)
+        series_b, df = _resolve_source(sources["b"], df, fetch_yahoo_close, fetch_fred_series)
+        aux = {"a": series_a, "b": series_b}
+        spec = [
+            {"key": "a", "label": "數列A", "color": "var(--series-1)"},
+            {"key": "b", "label": "數列B", "color": "var(--series-2)"},
+        ]
+    elif mode == "rolling_stat":
+        series, df = _resolve_source(sources["series"], df, fetch_yahoo_close, fetch_fred_series)
+        aux = {"raw": series}
+        spec = [{"key": "raw", "label": "原始序列", "color": "var(--series-1)"}]
+        if window and params.get("stat", "skew") == "median_dev":
+            aux["med"] = series.rolling(window, min_periods=window).median()
+            spec.append({"key": "med", "label": f"{window}日滾動中位數", "color": "var(--series-2)"})
+    else:
+        aux, spec = {}, []
+    return aux, spec, df
+
+
+def compute_promoted_factors(df, out):
+    """讀 promoted_candidate_factors.json(因子篩選平台「升等為可選因子」寫入的暫存清單)，
+    對每個因子重算完整歷史分數＋原始資料走勢，回傳(out含新欄位, promoted_defs給前端用)。
+
+    務必用還沒裁切過的df(含5年百分位暖身期)算分數，理由跟官方七因子一模一樣：
+    百分位是trailing window，裁切過的df會讓早期日期誤判成look-ahead問題。算完才
+    reindex進out(裁切過的6年輸出範圍)。單一因子算失敗不該讓整個儀表板產生失敗，
+    所以逐一包try/except，失敗只跳過那個因子、印警告。"""
+    if not os.path.exists(PROMOTED_FACTORS_PATH):
+        return out, []
+    with open(PROMOTED_FACTORS_PATH, encoding="utf-8") as f:
+        promoted_raw = json.load(f).get("factors", [])
+
+    promoted_defs = []
+    for config in promoted_raw:
+        pf_key = config.get("key", "?")
+        try:
+            score, _, df = build_candidate_score(config, df, fetch_yahoo_close, fetch_fred_series)
+            aux, chart_spec, df = _promoted_factor_raw_series(config, df)
+
+            score_col = f"promoted_{pf_key}_score"
+            out[score_col] = score.reindex(out.index)
+            aux_cols = {}
+            for aux_key, aux_series in aux.items():
+                col = f"promoted_{pf_key}_{aux_key}"
+                out[col] = aux_series.reindex(out.index)
+                aux_cols[aux_key] = col
+
+            promoted_defs.append({
+                "key": pf_key, "label": config.get("label", pf_key),
+                "score_col": score_col, "aux_cols": aux_cols, "chart_series": chart_spec,
+            })
+            print(f"  升等候選因子已納入儀表板：{config.get('label', pf_key)}")
+        except Exception as e:
+            print(f"  升等候選因子「{config.get('label', pf_key)}」計算失敗，略過此因子：{e}")
+    return out, promoted_defs
+
+
 def main():
     ensure_input_template()
 
@@ -411,6 +505,10 @@ def main():
     else:
         print("找不到 regime_weights_v1.json，略過情境加權分數（先執行 derive_regime_weights.py 產生權重快照）")
 
+    # ---- 【Phase 4】升等候選因子：因子篩選平台驗證過、使用者選擇升等的候選因子 ----
+    print("檢查升等候選因子 ...")
+    out, promoted_defs = compute_promoted_factors(df, out)
+
     # ---- 輸出 CSV / 審閱 Excel ----
     out.sort_index(ascending=False).to_csv("bond_fear_greed_v2.csv")
     with pd.ExcelWriter("bond_dashboard_data_input.xlsx", engine="openpyxl") as writer:
@@ -430,7 +528,7 @@ def main():
 
     records = []
     for d, row in out.iterrows():
-        records.append({
+        rec = {
             "date": d.strftime("%Y-%m-%d"),
             "score": safe(row["composite_score"], 2),
             "label": row["label"] if isinstance(row["label"], str) else None,
@@ -471,7 +569,12 @@ def main():
                 "breakeven": safe(row["Breakeven_10Y"], 2),
                 "inflation_surprise": safe(row["inflation_surprise"], 2),
             },
-        })
+        }
+        for pf in promoted_defs:
+            rec[pf["key"]] = safe(row[pf["score_col"]], 2)
+            for aux_key, col in pf["aux_cols"].items():
+                rec["raw"][f"{pf['key']}_{aux_key}"] = safe(row[col])
+        records.append(rec)
     data_json = json.dumps(records, ensure_ascii=False)
     # 這裡曾經也把同一份data_json寫進chart/dashboard_v2_data.json,那是舊版
     # (build_dashboard_v2.py/dashboard_v2.html)的殘留輸出,現在沒有任何被連結、
@@ -509,6 +612,13 @@ def main():
     }
     factor_defs_json = json.dumps(factor_defs_out, ensure_ascii=False)
 
+    # ---- 升等候選因子定義注入(只給前端需要的欄位，score_col/aux_cols是Python內部用的
+    # DataFrame欄名，不用給前端) ----
+    promoted_factors_json = json.dumps(
+        [{"key": pf["key"], "label": pf["label"], "chartSeries": pf["chart_series"]} for pf in promoted_defs],
+        ensure_ascii=False,
+    )
+
     # ---- 跨頁連結(artifact_urls.json;空值退回本機相對路徑) ----
     try:
         with open("artifact_urls.json", encoding="utf-8") as f:
@@ -520,12 +630,14 @@ def main():
     with open("chart/dashboard_template.html") as f:
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
+               "__PROMOTED_FACTORS_JSON__",
                "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
     out_html = (template
                 .replace("__DATA_JSON__", data_json)
                 .replace("__REGIME_META_JSON__", regime_meta_json)
                 .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
+                .replace("__PROMOTED_FACTORS_JSON__", promoted_factors_json)
                 .replace("__LINK_MANUAL__", link_manual)
                 .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
                 .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard")))

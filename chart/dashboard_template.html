@@ -207,6 +207,25 @@
   .cw-readout { font-size: 12.5px; color: var(--text-secondary); margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; line-height: 1.7; }
   .cw-readout b { font-variant-numeric: tabular-nums; }
 
+  .cw-presets { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .cw-preset-save { display: flex; gap: 8px; margin-bottom: 10px; }
+  .cw-preset-save input[type="text"] { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-2); color: var(--text-primary); font-size: 12.5px; outline: none; }
+  .cw-preset-save input[type="text"]:focus { border-color: var(--series-4); }
+  .cw-preset-save-btn { padding: 8px 14px; border: none; border-radius: 8px; background: var(--series-4); color: #fff;
+    font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .cw-preset-save-btn:hover { opacity: 0.9; }
+  .cw-preset-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .cw-preset-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 8px 10px;
+    background: var(--surface-2); border-radius: 8px; }
+  .cw-preset-name { font-weight: 600; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cw-preset-date { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+  .cw-preset-apply, .cw-preset-delete { border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1);
+    color: var(--text-secondary); font-size: 11.5px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
+  .cw-preset-apply:hover { border-color: var(--series-4); color: var(--series-4); }
+  .cw-preset-delete:hover { border-color: var(--tier-extreme-greed); color: var(--tier-extreme-greed); }
+  .cw-preset-hint { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
   .logic-btn {
     display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
     padding: 2px 0; border: none; border-bottom: 1px solid transparent;
@@ -289,7 +308,7 @@
       給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
       <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是七項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
       當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
-      純前端即時運算，重新整理頁面就恢復預設，不會儲存、不會回饋到儀表板或任何報告。
+      純前端即時運算，不會回饋到儀表板或任何報告；設定可以選擇性存到瀏覽器本機（見下方「儲存目前設定」），不存的話重新整理頁面就恢復預設。
     </div>
     <label class="overlay-toggle" id="customModeToggleWrap">
       <input type="checkbox" id="customModeToggle">
@@ -298,6 +317,14 @@
     <div class="cw-panel" id="customWeightPanel" style="display:none">
       <div class="cw-rows" id="customWeightRows"></div>
       <div class="cw-readout" id="customWeightReadout"></div>
+      <div class="cw-presets">
+        <div class="cw-preset-save">
+          <input type="text" id="cwPresetName" placeholder="幫這組設定取個名字，例如「重視波動度」" maxlength="40">
+          <button class="cw-preset-save-btn" type="button" id="cwPresetSaveBtn">儲存目前設定</button>
+        </div>
+        <div class="cw-preset-list" id="cwPresetList"></div>
+        <p class="cw-preset-hint">設定僅存於<b>目前這台裝置的這個瀏覽器</b>（localStorage）——換裝置、換瀏覽器、清瀏覽器資料、或用無痕視窗，都不會看到已儲存的設定；不會上傳到任何伺服器。</p>
+      </div>
     </div>
   </div>
 
@@ -375,6 +402,9 @@ const DATA = __DATA_JSON__;
 const REGIME_META = __REGIME_META_JSON__;
 // 因子名稱/說明文字來自 factor_definitions.json(唯一事實來源),由 update_dashboard.py 注入
 const FACTOR_DEFS = __FACTOR_DEFS_JSON__;
+// 升等候選因子(因子篩選平台驗證後由使用者手動升等)：{key, label, chartSeries}，
+// 每個因子的每日分數/原始資料已經併進DATA[i][key]／DATA[i].raw[`${key}_${seriesKey}`]
+const PROMOTED_FACTORS = __PROMOTED_FACTORS_JSON__;
 const MANUAL_URL = "__LINK_MANUAL__";
 const n = DATA.length;
 const latestIdx = n - 1;
@@ -980,6 +1010,9 @@ const CUSTOM_WEIGHT_FACTORS = [
   { key: "curve", label: "殖利率曲線形狀" },
   { key: "inflation", label: "通膨意外" },
 ];
+// 升等候選因子也能在自訂權重裡選用(標籤加註「候選」跟官方七項區分開)
+PROMOTED_FACTORS.forEach(pf => { CUSTOM_WEIGHT_FACTORS.push({ key: pf.key, label: `${pf.label}（候選）` }); });
+
 const customState = {};
 CUSTOM_WEIGHT_FACTORS.forEach(f => { customState[f.key] = { included: true, weight: 50 }; });
 
@@ -1050,6 +1083,103 @@ customModeToggle.addEventListener("change", () => {
   mainChartHandle.setSeriesVisible(customSeriesIdx, customModeToggle.checked);
   if (customModeToggle.checked) refreshCustomWeight();
 });
+
+// ---- 自訂權重組合儲存（localStorage，僅存於本機瀏覽器） ----
+const CW_STORAGE_KEY = "bond_fg_custom_weight_presets_v1";
+
+function loadCwPresets() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CW_STORAGE_KEY) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveCwPresets(presets) {
+  try {
+    localStorage.setItem(CW_STORAGE_KEY, JSON.stringify(presets));
+  } catch (e) {
+    alert("儲存失敗（可能是瀏覽器封鎖了本機儲存空間）：" + e.message);
+  }
+}
+
+function applyCwPreset(preset) {
+  CUSTOM_WEIGHT_FACTORS.forEach(f => {
+    const saved = preset.weights ? preset.weights[f.key] : null;
+    customState[f.key] = saved
+      ? { included: !!saved.included, weight: Math.max(0, Math.min(100, Number(saved.weight) || 0)) }
+      : { included: true, weight: 50 };
+  });
+  customWeightRowsEl.querySelectorAll(".cw-include").forEach(el => {
+    const included = customState[el.dataset.key].included;
+    el.checked = included;
+    el.closest(".cw-row").classList.toggle("cw-excluded", !included);
+  });
+  customWeightRowsEl.querySelectorAll(".cw-slider").forEach(el => {
+    const w = customState[el.dataset.key].weight;
+    el.value = w;
+    customWeightRowsEl.querySelector(`.cw-value[data-key="${el.dataset.key}"]`).textContent = w;
+  });
+  if (!customModeToggle.checked) {
+    customModeToggle.checked = true;
+    customWeightPanel.style.display = "";
+    mainChartHandle.setSeriesVisible(customSeriesIdx, true);
+  }
+  refreshCustomWeight();
+}
+
+const cwPresetListEl = document.getElementById("cwPresetList");
+function renderCwPresetList() {
+  const presets = loadCwPresets();
+  if (!presets.length) {
+    cwPresetListEl.innerHTML = `<p class="na" style="font-size:12px;margin:0;">尚未儲存任何設定</p>`;
+    return;
+  }
+  cwPresetListEl.innerHTML = presets.map((p, i) => `
+    <div class="cw-preset-row">
+      <span class="cw-preset-name">${escapeHtml(p.name)}</span>
+      <span class="cw-preset-date">${escapeHtml((p.savedAt || "").slice(0, 10))}</span>
+      <button class="cw-preset-apply" type="button" data-idx="${i}">套用</button>
+      <button class="cw-preset-delete" type="button" data-idx="${i}">刪除</button>
+    </div>
+  `).join("");
+  cwPresetListEl.querySelectorAll(".cw-preset-apply").forEach(btn => {
+    btn.addEventListener("click", () => applyCwPreset(loadCwPresets()[parseInt(btn.dataset.idx, 10)]));
+  });
+  cwPresetListEl.querySelectorAll(".cw-preset-delete").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const presetsNow = loadCwPresets();
+      const idx = parseInt(btn.dataset.idx, 10);
+      if (!presetsNow[idx]) return;
+      if (!confirm(`確定要刪除「${presetsNow[idx].name}」這組設定嗎？`)) return;
+      presetsNow.splice(idx, 1);
+      saveCwPresets(presetsNow);
+      renderCwPresetList();
+    });
+  });
+}
+
+document.getElementById("cwPresetSaveBtn").addEventListener("click", () => {
+  const nameInput = document.getElementById("cwPresetName");
+  const name = nameInput.value.trim();
+  if (!name) { alert("請先幫這組設定取個名字"); nameInput.focus(); return; }
+  const presets = loadCwPresets();
+  const weights = {};
+  CUSTOM_WEIGHT_FACTORS.forEach(f => { weights[f.key] = { ...customState[f.key] }; });
+  const entry = { name, weights, savedAt: new Date().toISOString() };
+  const existingIdx = presets.findIndex(p => p.name === name);
+  if (existingIdx >= 0) {
+    if (!confirm(`已經有一組叫「${name}」的設定，要覆蓋它嗎？`)) return;
+    presets[existingIdx] = entry;
+  } else {
+    presets.push(entry);
+  }
+  saveCwPresets(presets);
+  nameInput.value = "";
+  renderCwPresetList();
+});
+
+renderCwPresetList();
 
 // ============ 3. Component cards ============
 const COMPONENTS = [
@@ -1126,6 +1256,28 @@ const COMPONENTS = [
     },
   },
 ];
+
+// 升等候選因子也各自併一張分項卡片，沿用官方七項同一套卡片渲染邏輯——
+// FACTOR_DEFS補一筆給卡片標題/說明用；kicker特意標「候選因子」跟官方七項的
+// 英文kicker(MOMENTUM等)區分，不會讓人誤以為是官方方法論的一部分。
+PROMOTED_FACTORS.forEach(pf => {
+  FACTOR_DEFS[pf.key] = {
+    kicker: "候選因子 · CANDIDATE",
+    name: pf.label,
+    explain: "這是透過「因子開發與篩選平台」驗證後由使用者手動升等的候選因子，" +
+      "<b>不是官方七項因子之一，不計入上方官方綜合分數</b>——這裡只是讓你觀察它的歷史走勢，" +
+      "也可以在上方「自訂權重」區塊把它加進你自己的組合分數裡實驗看看。完整的驗證數據(IC、分桶、穩定性等)請到因子篩選平台查看對應報告。",
+  };
+  COMPONENTS.push({
+    key: pf.key,
+    rawText: r => (pf.chartSeries || [])
+      .map(s => `${s.label} ${r && r[`${pf.key}_${s.key}`] != null ? r[`${pf.key}_${s.key}`].toFixed(2) : "—"}`)
+      .join("，"),
+    rawChart: {
+      series: (pf.chartSeries || []).map(s => ({ key: `${pf.key}_${s.key}`, label: s.label, color: s.color })),
+    },
+  });
+});
 
 const CW = 1040, CH = 190;
 const CM = { left: 40, right: 52, top: 8, bottom: 26 };

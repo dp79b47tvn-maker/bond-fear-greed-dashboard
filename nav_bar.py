@@ -13,6 +13,10 @@ CSS故意不吃各頁面自己的CSS變數——儀表板/manual.html的變數�
 沒有深色模式支援。這裡自己帶一份獨立的淺色/深色配色(取自儀表板既有色票)，不管插進
 哪個頁面都長一樣、都能正常運作，不需要先把五個頁面的變數系統統一。
 
+nav本身固定own max-width、置中、四角全圓角、非sticky(跟著頁面內容捲動，不吸在頂端)——
+故意不吃各頁面`.wrap`/`.viz-root`自己的max-width(980/1080/880/1180px不等)，不然
+同一份nav在不同頁面上會看起來寬度不一致。
+
 用法：
     from nav_bar import render_nav_bar, NAV_BAR_CSS
     html = f"<style>{NAV_BAR_CSS}</style>...{render_nav_bar('dashboard')}..."
@@ -31,11 +35,9 @@ PAGES = [
 
 NAV_BAR_CSS = """
 .site-topnav {
-  position: sticky; top: 0; z-index: 500;
   display: flex; gap: 2px; flex-wrap: wrap; align-items: center;
-  padding: 10px 18px; margin: 0 0 24px; border-radius: 0 0 14px 14px;
-  background: rgba(255,255,255,0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06);
+  max-width: 920px; margin: 0 auto 28px; padding: 10px 18px; border-radius: 14px;
+  background: #ffffff; border: 1px solid #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06);
 }
 .site-topnav a, .site-topnav span.active {
   color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
@@ -44,16 +46,16 @@ NAV_BAR_CSS = """
 .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
 .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
 @media (prefers-color-scheme: dark) {
-  .site-topnav { background: rgba(15,18,24,0.86); border-bottom-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+  .site-topnav { background: #171b24; border-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
   .site-topnav a, .site-topnav span.active { color: #b8c0cc; }
   .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
   .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
 }
-:root[data-theme="dark"] .site-topnav { background: rgba(15,18,24,0.86); border-bottom-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+:root[data-theme="dark"] .site-topnav { background: #171b24; border-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 :root[data-theme="dark"] .site-topnav a, :root[data-theme="dark"] .site-topnav span.active { color: #b8c0cc; }
 :root[data-theme="dark"] .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
 :root[data-theme="dark"] .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
-:root[data-theme="light"] .site-topnav { background: rgba(255,255,255,0.86); border-bottom-color: #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06); }
+:root[data-theme="light"] .site-topnav { background: #ffffff; border-color: #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06); }
 :root[data-theme="light"] .site-topnav a, :root[data-theme="light"] .site-topnav span.active { color: #4a5568; }
 :root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
 :root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }

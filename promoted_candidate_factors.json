@@ -1,0 +1,4 @@
+{
+  "_readme": "因子篩選平台「升等為可選因子」寫入的暫存清單——跟factor_definitions.json(官方七因子唯一事實來源)刻意分開存放，不會污染到官方定義。這裡的因子只會：1) 在儀表板多一張分項卡片（標示「候選因子」，不計入官方綜合分數）2) 在儀表板「自訂權重」區塊多一個可勾選的選項。每筆因子的格式(key/label/mode/sources/params/invert)跟factor_screening.py的候選因子設定檔一致。由.github/workflows/promote-factor.yml的promote_factor.py自動寫入，也可以手動編輯。",
+  "factors": []
+}
