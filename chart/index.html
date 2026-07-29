@@ -2,34 +2,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>債券市場恐懼貪婪 · 專案首頁</title>
 <style>
+  
   :root {
-    --page:#f4f5f7; --surface:#ffffff; --text:#161a23; --text2:#4a5568; --muted:#667085;
-    --accent:#1e3a5f; --accent2:#a6742a; --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --page:#0f1218; --surface:#171b24; --text:#f1f3f6; --text2:#b8c0cc; --muted:#8b93a3;
-      --accent:#7ea3cf; --accent2:#d9a860; --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35); }
+    :root {
+      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+      --grid: #262b36; --axis: #4a5164;
+      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+    }
   }
-  :root[data-theme="dark"] { --page:#0f1218; --surface:#171b24; --text:#f1f3f6; --text2:#b8c0cc; --muted:#8b93a3;
-    --accent:#7ea3cf; --accent2:#d9a860; --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35); }
-  :root[data-theme="light"] { --page:#f4f5f7; --surface:#ffffff; --text:#161a23; --text2:#4a5568; --muted:#667085;
-    --accent:#1e3a5f; --accent2:#a6742a; --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04); }
+  :root[data-theme="dark"] {
+    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+    --grid: #262b36; --axis: #4a5164;
+    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+  }
+
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--page); color:var(--text); line-height:1.7;
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }
-  .wrap { max-width:880px; margin:0 auto; padding:60px 24px 70px; }
-  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:10px; }
+  body { margin:0; background:var(--page); color:var(--text-primary); line-height:1.6;
+    font-family:-apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; padding:60px 24px 70px; }
+  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:10px; }
   h1 { font-size:32px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }
-  .lede { color:var(--text2); max-width:64ch; margin:0 0 34px; }
+  .lede { color:var(--text-secondary); max-width:68ch; margin:0 0 34px; }
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
-  a.card { display:block; background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:24px 24px 20px; text-decoration:none; color:var(--text); box-shadow:var(--shadow);
+  a.card { display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
+    padding:24px 24px 20px; text-decoration:none; color:var(--text-primary); box-shadow:var(--shadow);
     transition:transform .15s ease, box-shadow .2s ease; }
   a.card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(22,26,35,0.10); }
-  .card .ck { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--accent); font-weight:700; }
+  .card .ck { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }
   .card h2 { font-size:18px; margin:6px 0 8px; }
-  .card p { font-size:13px; color:var(--text2); margin:0; }
-  .foot { font-size:12px; color:var(--muted); margin-top:34px; line-height:1.7; }
+  .card p { font-size:13px; color:var(--text-secondary); margin:0; }
+  .foot { font-size:12px; color:var(--text-muted); margin-top:34px; line-height:1.7; }
   .mono { font-family:ui-monospace,"SF Mono",Menlo,monospace; }
   
 .site-topnav {

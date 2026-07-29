@@ -2,34 +2,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子定義手冊 · 債券市場恐懼貪婪</title>
 <style>
+  
   :root {
-    --page:#f4f5f7; --surface-1:#ffffff; --surface-2:#f8f9fb;
-    --text-primary:#161a23; --text-secondary:#4a5568; --text-muted:#667085;
-    --grid:#e5e7eb; --axis:#a7adb9; --accent:#1e3a5f; --accent2:#a6742a;
-    --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
-    --input:#dbeafe; --result:#dcfce7;
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --page:#0f1218; --surface-1:#171b24; --surface-2:#1e232d;
-      --text-primary:#f1f3f6; --text-secondary:#b8c0cc; --text-muted:#8b93a3;
-      --grid:#262b36; --axis:#4a5164; --accent:#7ea3cf; --accent2:#d9a860;
-      --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35);
-      --input:#1e3a5f; --result:#1e3a2b; }
+    :root {
+      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+      --grid: #262b36; --axis: #4a5164;
+      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+    }
   }
-  :root[data-theme="dark"] { --page:#0f1218; --surface-1:#171b24; --surface-2:#1e232d;
-    --text-primary:#f1f3f6; --text-secondary:#b8c0cc; --text-muted:#8b93a3;
-    --grid:#262b36; --axis:#4a5164; --accent:#7ea3cf; --accent2:#d9a860;
-    --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35);
-    --input:#1e3a5f; --result:#1e3a2b; }
-  :root[data-theme="light"] { --page:#f4f5f7; --surface-1:#ffffff; --surface-2:#f8f9fb;
-    --text-primary:#161a23; --text-secondary:#4a5568; --text-muted:#667085;
-    --grid:#e5e7eb; --axis:#a7adb9; --accent:#1e3a5f; --accent2:#a6742a;
-    --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
-    --input:#dbeafe; --result:#dcfce7; }
+  :root[data-theme="dark"] {
+    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+    --grid: #262b36; --axis: #4a5164;
+    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+  }
+
+  /* --input/--result是手冊互動試算區塊專屬，不跟其他頁面共用 */
+  :root { --input:#dbeafe; --result:#dcfce7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --input:#1e3a5f; --result:#1e3a2b; }
+  }
+  :root[data-theme="dark"] { --input:#1e3a5f; --result:#1e3a2b; }
+  :root[data-theme="light"] { --input:#dbeafe; --result:#dcfce7; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--page); color:var(--text-primary); line-height:1.7;
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }
-  .wrap { max-width:1080px; margin:0 auto; padding:40px 24px 70px; }
+  body { margin:0; background:var(--page); color:var(--text-primary); line-height:1.6;
+    font-family:-apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; padding:40px 24px 70px; }
   
 .site-topnav {
   display: flex; gap: 2px; flex-wrap: wrap; align-items: center;
@@ -57,17 +72,17 @@
 :root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
 :root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
 
-  .kickertop { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:8px; }
-  h1 { font-size:30px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }
-  .lede { color:var(--text-secondary); max-width:70ch; margin:0 0 8px; }
+  .kickertop { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:8px; }
+  h1 { font-size:32px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }
+  .lede { color:var(--text-secondary); max-width:68ch; margin:0 0 8px; }
   .meta { font-size:12px; color:var(--text-muted); margin-bottom:24px; }
   .toc { display:flex; gap:10px 18px; flex-wrap:wrap; font-size:13px; background:var(--surface-1);
     border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:26px; }
-  .toc a { color:var(--accent); text-decoration:none; }
+  .toc a { color:var(--series-1); text-decoration:none; }
   .toc a:hover { text-decoration:underline; }
   .card { background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
     padding:26px 28px; margin-bottom:20px; box-shadow:var(--shadow); }
-  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.1em; color:var(--accent); font-weight:700; }
+  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }
   h2 { font-size:19px; font-weight:700; margin:4px 0 14px; }
   h3 { font-size:13px; font-weight:700; margin:16px 0 6px; color:var(--text-secondary); text-transform:none; }
   .grid2 { display:grid; grid-template-columns:minmax(260px,1fr) minmax(300px,1.4fr); gap:10px 28px; }
@@ -80,12 +95,12 @@
   .mono { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; }
   .num { font-variant-numeric:tabular-nums; }
   .muted { color:var(--text-muted); }
-  .tag { font-size:10px; background:var(--accent2); color:#fff; border-radius:999px; padding:2px 8px; font-weight:600; vertical-align:middle; }
+  .tag { font-size:10px; background:var(--series-2); color:#fff; border-radius:999px; padding:2px 8px; font-weight:600; vertical-align:middle; }
   .hint { font-size:12px; color:var(--text-muted); line-height:1.65; margin:4px 0; }
   .explain { font-size:13px; color:var(--text-secondary); line-height:1.8; }
   .explain b { color:var(--text-primary); }
   .crosslink { font-size:12.5px; margin:16px 0 0; padding-top:12px; border-top:1px solid var(--grid); }
-  .crosslink a { color:var(--accent); text-decoration:none; font-weight:600; }
+  .crosslink a { color:var(--series-1); text-decoration:none; font-weight:600; }
   .crosslink a:hover { text-decoration:underline; }
   .calc { display:grid; grid-template-columns:auto 130px; gap:6px 14px; align-items:center; max-width:560px; font-size:13px; }
   .calc label { color:var(--text-secondary); }
