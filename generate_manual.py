@@ -14,6 +14,8 @@ import json
 import re
 from datetime import date
 
+import nav_bar
+
 BASE = __file__.rsplit("/", 1)[0]
 
 with open(f"{BASE}/factor_definitions.json", encoding="utf-8") as f:
@@ -140,10 +142,7 @@ html = f"""<meta charset="utf-8">
   body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:1.7;
     font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }}
   .wrap {{ max-width:1080px; margin:0 auto; padding:40px 24px 70px; }}
-  .topnav {{ display:flex; gap:16px; flex-wrap:wrap; font-size:13px; margin-bottom:26px; }}
-  .topnav a {{ color:var(--accent); text-decoration:none; font-weight:600; border-bottom:1px solid transparent;
-    padding:10px 6px; margin:-10px -6px; border-radius:6px; }}
-  .topnav a:hover {{ border-bottom-color:currentColor; }}
+  {nav_bar.NAV_BAR_CSS}
   .kickertop {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:8px; }}
   h1 {{ font-size:30px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
   .lede {{ color:var(--text-secondary); max-width:70ch; margin:0 0 8px; }}
@@ -183,11 +182,7 @@ html = f"""<meta charset="utf-8">
   .calc .sep {{ grid-column:1/3; border-top:1px dashed var(--grid); margin:6px 0; }}
 </style>
 <div class="wrap">
-  <nav class="topnav">
-    <a href="{link_hub}">← 專案首頁</a>
-    <a href="{link_dashboard}">即時儀表板</a>
-    <a href="{link_report}">因子驗證報告</a>
-  </nav>
+  {nav_bar.render_nav_bar("manual")}
   <div class="kickertop">FACTOR DEFINITIONS MANUAL</div>
   <h1>因子定義手冊</h1>
   <p class="lede">債券市場恐懼貪婪指數的唯一定義來源。本頁由 <span class="mono">factor_definitions.json</span> 自動生成——想修改任何因子的參數或定義,改那個檔案後重跑 <span class="mono">python3 update_dashboard.py && python3 generate_manual.py</span>,儀表板、驗證報告與本頁會全部同步。</p>
@@ -357,8 +352,10 @@ hub_html = f"""<meta charset="utf-8">
   .card p {{ font-size:13px; color:var(--text2); margin:0; }}
   .foot {{ font-size:12px; color:var(--muted); margin-top:34px; line-height:1.7; }}
   .mono {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; }}
+  {nav_bar.NAV_BAR_CSS}
 </style>
 <div class="wrap">
+  {nav_bar.render_nav_bar("hub")}
   <div class="kicker">BOND MARKET FEAR &amp; GREED</div>
   <h1>債券市場恐懼貪婪 · 專案首頁</h1>
   <p class="lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套完整的統計驗證與定義文件。三個分類互相連結,同一份定義來源(factor_definitions.json)驅動。</p>

@@ -75,10 +75,7 @@
   }
   .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
   .viz-root { max-width: 1180px; margin: 0 auto; padding: 44px 24px 60px; color: var(--text-primary); }
-  .topnav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; margin-bottom: 22px; }
-  .topnav a { color: var(--series-1); text-decoration: none; font-weight: 600; border-bottom: 1px solid transparent;
-    padding: 10px 6px; margin: -10px -6px; border-radius: 6px; }
-  .topnav a:hover { border-bottom-color: currentColor; }
+  __NAV_BAR_CSS__
   h1 { font-size: 34px; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.15; }
   h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
   .subtitle { font-size: 16.5px; color: var(--text-secondary); margin: 0 0 9px; font-weight: 400; letter-spacing: -0.005em; }
@@ -194,6 +191,22 @@
     padding: 10px 6px; margin: -4px -6px -10px; border-radius: 6px; }
   .overlay-toggle input { accent-color: var(--series-2); cursor: pointer; width: 16px; height: 16px; }
 
+  .exp-tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--series-4);
+    background: color-mix(in srgb, var(--series-4) 14%, transparent); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: middle; }
+  .cw-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .cw-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+  .cw-row { display: grid; grid-template-columns: 150px 1fr 34px; align-items: center; gap: 12px; }
+  .cw-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-primary); cursor: pointer; user-select: none; }
+  .cw-check input { accent-color: var(--series-4); cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+  .cw-row.cw-excluded .cw-check { color: var(--text-muted); }
+  .cw-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--grid); outline: none; }
+  .cw-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--series-4); cursor: pointer; border: 2px solid var(--surface-1); }
+  .cw-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--series-4); cursor: pointer; border: 2px solid var(--surface-1); }
+  .cw-row.cw-excluded .cw-slider { opacity: 0.35; }
+  .cw-value { font-size: 12px; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .cw-readout { font-size: 12.5px; color: var(--text-secondary); margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; line-height: 1.7; }
+  .cw-readout b { font-variant-numeric: tabular-nums; }
+
   .logic-btn {
     display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
     padding: 2px 0; border: none; border-bottom: 1px solid transparent;
@@ -238,11 +251,7 @@
 </style>
 
 <div class="viz-root">
-  <nav class="topnav">
-    <a href="__LINK_HUB__">← 專案首頁</a>
-    <a href="__LINK_MANUAL__">因子定義手冊</a>
-    <a href="__LINK_REPORT__">因子驗證報告</a>
-  </nav>
+  __NAV_BAR_HTML__
   <h1>債券市場恐懼貪婪儀表板</h1>
   <p class="subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
   <p class="caption">動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
@@ -269,6 +278,26 @@
       每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
       <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。<br>
       <b>實驗性功能：</b>下方「綜合指數歷史時間軸」可以額外打開一條「情境加權分數」虛線——不是取代這裡的等權重分數，是用來觀察「依Fed利率循環動態調整因子權重」這個實驗性做法，跟現行做法差多少。詳情見該圖表下方的說明按鈕。
+    </div>
+  </div>
+
+  <!-- ===== 1.5 自訂權重（研究用，不影響上方官方分數） ===== -->
+  <div class="card chart-card">
+    <h2>自訂權重<span class="exp-tag">研究用</span></h2>
+    <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span>這是什麼</button>
+    <div class="logic-panel" id="logic-custom-weight">
+      給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
+      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是七項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
+      當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
+      純前端即時運算，重新整理頁面就恢復預設，不會儲存、不會回饋到儀表板或任何報告。
+    </div>
+    <label class="overlay-toggle" id="customModeToggleWrap">
+      <input type="checkbox" id="customModeToggle">
+      啟用自訂模式（在下方走勢圖疊加一條虛線）
+    </label>
+    <div class="cw-panel" id="customWeightPanel" style="display:none">
+      <div class="cw-rows" id="customWeightRows"></div>
+      <div class="cw-readout" id="customWeightReadout"></div>
     </div>
   </div>
 
@@ -886,15 +915,23 @@ function renderMainReadout(pt) {
 }
 
 const hasRegimeScore = DATA.some(d => d.regimeScore != null);
+const customSeriesIdx = hasRegimeScore ? 2 : 1;
+// 自訂權重疊圖線：預設值=官方分數（尚未動過任何滑桿時兩條線完全重疊），啟用自訂模式
+// 或調整權重後由 recomputeCustomScores() 就地改寫這個陣列，再呼叫 setView() 觸發重繪。
+const CUSTOM_SCORES = DATA.map(d => d.score);
 
 const mainChartHandle = buildChart({
   svgEl: mainChart, W: MW, H: MH, M: MM, dateAt,
   yMode: "fixed100",
   zones: ZONES,
-  series: hasRegimeScore ? [
+  series: (hasRegimeScore ? [
     { get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 },
     { get: i => DATA[i].regimeScore, color: "var(--series-3)", width: 1.4, dash: "5 4", visible: false },
-  ] : [{ get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 }],
+  ] : [
+    { get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 },
+  ]).concat([
+    { get: i => CUSTOM_SCORES[i], color: "var(--series-4)", width: 1.6, dash: "3 3", visible: false },
+  ]),
   secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
   resetBtnEl: document.getElementById("mainZoomReset"),
   onScrub: (idx) => setSelectedIndex(idx),
@@ -932,6 +969,87 @@ if (hasRegimeScore && REGIME_META) {
     <b>為什麼是虛線、預設關閉：</b>這是實驗性功能，用來讓你觀察兩種算法在同一段時間的分歧，不是取代現有指標。之後可以執行 <code>validate_regime_weights.py</code> 檢查樣本外表現。
   `;
 }
+
+// ---- 自訂權重（研究用）：純前端即時運算，不影響上方官方分數/gauge/比較列 ----
+const CUSTOM_WEIGHT_FACTORS = [
+  { key: "momentum", label: "動能" },
+  { key: "strength", label: "強度" },
+  { key: "duration", label: "存續期間避險" },
+  { key: "putcall", label: "Put/Call" },
+  { key: "move", label: "波動度" },
+  { key: "curve", label: "殖利率曲線形狀" },
+  { key: "inflation", label: "通膨意外" },
+];
+const customState = {};
+CUSTOM_WEIGHT_FACTORS.forEach(f => { customState[f.key] = { included: true, weight: 50 }; });
+
+function computeCustomScoreAt(i) {
+  let wsum = 0, vsum = 0;
+  for (const f of CUSTOM_WEIGHT_FACTORS) {
+    const st = customState[f.key];
+    if (!st.included || st.weight <= 0) continue;
+    const v = DATA[i][f.key];
+    if (v == null) continue;
+    wsum += st.weight;
+    vsum += st.weight * v;
+  }
+  return wsum > 0 ? vsum / wsum : null;
+}
+
+function recomputeCustomScores() {
+  for (let i = 0; i < n; i++) CUSTOM_SCORES[i] = computeCustomScoreAt(i);
+}
+
+const customWeightReadout = document.getElementById("customWeightReadout");
+function refreshCustomWeight() {
+  recomputeCustomScores();
+  const v = mainChartHandle.getView();
+  mainChartHandle.setView(v.lo, v.hi, true);
+  const latest = CUSTOM_SCORES[latestIdx];
+  if (latest == null) {
+    customWeightReadout.innerHTML = `<span class="na">目前設定下沒有可用資料（可能全部未勾選，或當天所有勾選的因子都缺資料）</span>`;
+  } else {
+    const officialScore = DATA[latestIdx].score;
+    customWeightReadout.innerHTML = `依你目前的設定，${DATA[latestIdx].date} 的自訂分數為 ` +
+      `<b style="color:${zoneColor(latest)}">${latest.toFixed(1)}</b>　<span style="color:${zoneColor(latest)}">${zoneLabel(latest)}</span>` +
+      `　（官方等權重分數：${officialScore == null ? "—" : officialScore.toFixed(1)}）`;
+  }
+}
+
+const customWeightRowsEl = document.getElementById("customWeightRows");
+customWeightRowsEl.innerHTML = CUSTOM_WEIGHT_FACTORS.map(f => `
+  <div class="cw-row" data-key="${f.key}">
+    <label class="cw-check">
+      <input type="checkbox" class="cw-include" data-key="${f.key}" checked>
+      ${f.label}
+    </label>
+    <input type="range" class="cw-slider" data-key="${f.key}" min="0" max="100" value="50">
+    <span class="cw-value" data-key="${f.key}">50</span>
+  </div>
+`).join("");
+customWeightRowsEl.querySelectorAll(".cw-include").forEach(el => {
+  el.addEventListener("change", () => {
+    customState[el.dataset.key].included = el.checked;
+    el.closest(".cw-row").classList.toggle("cw-excluded", !el.checked);
+    refreshCustomWeight();
+  });
+});
+customWeightRowsEl.querySelectorAll(".cw-slider").forEach(el => {
+  el.addEventListener("input", () => {
+    const val = parseInt(el.value, 10);
+    customState[el.dataset.key].weight = val;
+    customWeightRowsEl.querySelector(`.cw-value[data-key="${el.dataset.key}"]`).textContent = val;
+    refreshCustomWeight();
+  });
+});
+
+const customModeToggle = document.getElementById("customModeToggle");
+const customWeightPanel = document.getElementById("customWeightPanel");
+customModeToggle.addEventListener("change", () => {
+  customWeightPanel.style.display = customModeToggle.checked ? "" : "none";
+  mainChartHandle.setSeriesVisible(customSeriesIdx, customModeToggle.checked);
+  if (customModeToggle.checked) refreshCustomWeight();
+});
 
 // ============ 3. Component cards ============
 const COMPONENTS = [

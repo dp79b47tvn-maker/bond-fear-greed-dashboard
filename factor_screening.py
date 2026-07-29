@@ -42,6 +42,7 @@ import pandas as pd
 from scipy import stats
 
 import factor_validation_analysis as fva
+import nav_bar
 import regime_lib
 import update_dashboard as ud
 
@@ -951,15 +952,13 @@ def render_screening_report(result):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子篩選：{label}</title>
-<style>{fva.REPORT_CSS}</style>
+<style>{fva.REPORT_CSS}
+{nav_bar.NAV_BAR_CSS}</style>
 </head>
 <body>
 <div class="wrap">
+  {nav_bar.render_nav_bar("screening")}
   <header>
-    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
-      <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
-      <a href="screening_index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 因子篩選登記簿</a>
-    </nav>
     <div class="kicker">FACTOR SCREENING</div>
     <h1>因子篩選：{label}</h1>
     <p class="meta">key：{key}　·　轉換模式：{mode_label}　·　測試日期：{result["test_date"]}　·　關卡通過：{gp}</p>
@@ -1070,14 +1069,13 @@ def render_registry_index(registry):
   .combo-id {{ margin-left:auto; color:#a7adb9; font-size:11.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }}
   .combo-empty {{ padding:12px; font-size:12.5px; color:#a7adb9; font-style:italic; }}
   .manual-source-group {{ margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }}
+  {nav_bar.NAV_BAR_CSS}
 </style>
 </head>
 <body>
 <div class="wrap">
+  {nav_bar.render_nav_bar("screening")}
   <header>
-    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
-      <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
-    </nav>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1>因子開發與篩選平台</h1>
     <p class="meta">累計測試 {n_total} 個因子，各關卡全數通過 {n_passed} 個。</p>

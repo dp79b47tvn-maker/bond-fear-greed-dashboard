@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+五個對外頁面(首頁/儀表板/驗證報告/定義手冊/因子篩選平台)共用的頂部導覽列。
+
+背景：這五個頁面由四支各自獨立的腳本產生(update_dashboard.py、generate_manual.py、
+factor_validation_analysis.py、factor_screening.py)，先前各自手刻了一份不一致、也
+不完整的nav(儀表板漏了因子篩選平台的連結；驗證報告跟因子篩選頁都只有「回首頁」一個
+連結)，而且都不是sticky、捲動就不見了。這支模組讓五個頁面共用同一份HTML/CSS，不會
+再各自漂移。
+
+CSS故意不吃各頁面自己的CSS變數——儀表板/manual.html的變數命名不一致(--series-1 vs
+--accent)，factor_validation_analysis.py跟factor_screening.py甚至完全沒有CSS變數、
+沒有深色模式支援。這裡自己帶一份獨立的淺色/深色配色(取自儀表板既有色票)，不管插進
+哪個頁面都長一樣、都能正常運作，不需要先把五個頁面的變數系統統一。
+
+用法：
+    from nav_bar import render_nav_bar, NAV_BAR_CSS
+    html = f"<style>{NAV_BAR_CSS}</style>...{render_nav_bar('dashboard')}..."
+"""
+import json
+import os
+
+# (key, 顯示文字, 本機相對路徑預設值)——順序就是導覽列顯示順序
+PAGES = [
+    ("hub", "首頁", "index.html"),
+    ("dashboard", "儀表板", "dashboard.html"),
+    ("report", "驗證報告", "factor_validation_report.html"),
+    ("manual", "定義手冊", "manual.html"),
+    ("screening", "因子篩選平台", "screening_index.html"),
+]
+
+NAV_BAR_CSS = """
+.site-topnav {
+  position: sticky; top: 0; z-index: 500;
+  display: flex; gap: 2px; flex-wrap: wrap; align-items: center;
+  padding: 10px 18px; margin: 0 0 24px; border-radius: 0 0 14px 14px;
+  background: rgba(255,255,255,0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06);
+}
+.site-topnav a, .site-topnav span.active {
+  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
+  padding: 8px 12px; border-radius: 8px; white-space: nowrap;
+}
+.site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
+.site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
+@media (prefers-color-scheme: dark) {
+  .site-topnav { background: rgba(15,18,24,0.86); border-bottom-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+  .site-topnav a, .site-topnav span.active { color: #b8c0cc; }
+  .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
+  .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
+}
+:root[data-theme="dark"] .site-topnav { background: rgba(15,18,24,0.86); border-bottom-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+:root[data-theme="dark"] .site-topnav a, :root[data-theme="dark"] .site-topnav span.active { color: #b8c0cc; }
+:root[data-theme="dark"] .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
+:root[data-theme="dark"] .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
+:root[data-theme="light"] .site-topnav { background: rgba(255,255,255,0.86); border-bottom-color: #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06); }
+:root[data-theme="light"] .site-topnav a, :root[data-theme="light"] .site-topnav span.active { color: #4a5568; }
+:root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
+:root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
+"""
+
+
+def _load_link_overrides(base_dir="."):
+    """讀 artifact_urls.json 取得跨頁連結覆寫(目前全部留空、一律退回同資料夾相對路徑，
+    這是GitHub Pages正式站的運作方式；保留這個機制只是跟現有四支腳本的既有慣例一致)。"""
+    try:
+        with open(os.path.join(base_dir, "artifact_urls.json"), encoding="utf-8") as f:
+            urls = json.load(f)
+    except FileNotFoundError:
+        urls = {}
+    return {key: urls.get(key) or default_href for key, _, default_href in PAGES}
+
+
+def render_nav_bar(active_key, base_dir="."):
+    """active_key: 'hub' | 'dashboard' | 'report' | 'manual' | 'screening'"""
+    links = _load_link_overrides(base_dir)
+    items = []
+    for key, label, _ in PAGES:
+        if key == active_key:
+            items.append(f'<span class="active" aria-current="page">{label}</span>')
+        else:
+            items.append(f'<a href="{links[key]}">{label}</a>')
+    return f'<nav class="site-topnav">{"".join(items)}</nav>'

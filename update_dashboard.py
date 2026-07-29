@@ -49,6 +49,7 @@ import os
 import time
 from datetime import date
 
+import nav_bar
 import regime_lib
 
 import numpy as np
@@ -515,21 +516,19 @@ def main():
     except FileNotFoundError:
         urls = {}
     link_manual = urls.get("manual") or "manual.html"
-    link_report = urls.get("report") or "factor_validation_report.html"
-    link_hub = urls.get("hub") or "index.html"
 
     with open("chart/dashboard_template.html") as f:
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
-               "__LINK_MANUAL__", "__LINK_REPORT__", "__LINK_HUB__"]:
+               "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
     out_html = (template
                 .replace("__DATA_JSON__", data_json)
                 .replace("__REGIME_META_JSON__", regime_meta_json)
                 .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
                 .replace("__LINK_MANUAL__", link_manual)
-                .replace("__LINK_REPORT__", link_report)
-                .replace("__LINK_HUB__", link_hub))
+                .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
+                .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard")))
     with open("chart/dashboard.html", "w") as f:
         f.write(out_html)
 

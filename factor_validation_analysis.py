@@ -42,6 +42,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.font_manager as _fm
 import matplotlib.pyplot as plt
+import nav_bar
 import pandas as pd
 import seaborn as sns
 from scipy import stats
@@ -623,15 +624,6 @@ def main():
 
 # ---------------------------------------------------------------- HTML 模板
 def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html, decile_html_20):
-    # 跨頁連結(artifact_urls.json;缺檔或空值退回本機相對路徑)
-    try:
-        with open("artifact_urls.json", encoding="utf-8") as _f:
-            _urls = json.load(_f)
-    except FileNotFoundError:
-        _urls = {}
-    _hub_url = _urls.get("hub") or "index.html"
-    _dashboard_url = _urls.get("dashboard") or "dashboard.html"
-    _manual_url = _urls.get("manual") or "manual.html"
     all_labels = dict(FACTOR_COLS); all_labels[COMPOSITE_COL] = COMPOSITE_LABEL
 
     # ---- 摘要頁 ----
@@ -753,16 +745,13 @@ def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_htm
 <title>因子驗證分析報告</title>
 <style>
 {REPORT_CSS}
+{nav_bar.NAV_BAR_CSS}
 </style>
 </head>
 <body>
 <div class="wrap">
+  {nav_bar.render_nav_bar("report")}
   <header>
-    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
-      <a href="{_hub_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
-      <a href="{_dashboard_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">即時儀表板</a>
-      <a href="{_manual_url}" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">因子定義手冊</a>
-    </nav>
     <div class="kicker">FACTOR VALIDATION REPORT</div>
     <h1>因子驗證分析報告</h1>
     <p class="meta">
