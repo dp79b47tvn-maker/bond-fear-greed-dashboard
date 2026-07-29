@@ -43,6 +43,7 @@ matplotlib.use("Agg")
 import matplotlib.font_manager as _fm
 import matplotlib.pyplot as plt
 import nav_bar
+import page_style
 import pandas as pd
 import seaborn as sns
 from scipy import stats
@@ -885,13 +886,13 @@ def render_backtest_mini_table(bt):
 
 REPORT_CSS = """
   * { box-sizing: border-box; }
-  body { margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:1.6; }
-  .wrap { max-width:980px; margin:0 auto; padding:44px 24px 80px; }
+  body { margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:__BASE_LINE_HEIGHT__; }
+  .wrap { max-width:__CONTENT_MAX_WIDTH__; margin:0 auto; padding:44px 24px 80px; }
   header { margin-bottom:36px; }
   .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }
-  h1 { font-size:30px; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
+  h1 { font-size:__H1_SIZE__; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
   .meta { font-size:13px; color:#4a5568; margin:0 0 14px; }
-  .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; }
+  .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; max-width:__LEDE_MAX_WIDTH__; }
   .section-heading { font-size:20px; font-weight:700; margin:44px 0 18px; display:flex; align-items:center; gap:10px; }
   .card { background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:26px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }
   .card h2 { font-size:19px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:10px; }
@@ -924,6 +925,15 @@ REPORT_CSS = """
   .data-table tr.low-n td { color:#a6362f; }
   .warn-hint { color:#a6362f; }
 """
+# 統一間距/字級/行高數字(page_style.py)——這裡沒有CSS變數/深色模式(維持現狀，
+# 這次不補)，只是把.wrap寬度/h1字級/行高/說明段落可讀寬度這幾個純量值換成跟
+# 其他四頁一致的數字，用字串取代而不是f-string插值，避免整份CSS(41行、
+# 每行都有花括號)要逐一跳脫的風險。
+REPORT_CSS = (REPORT_CSS
+              .replace("__BASE_LINE_HEIGHT__", page_style.BASE_LINE_HEIGHT)
+              .replace("__CONTENT_MAX_WIDTH__", page_style.CONTENT_MAX_WIDTH)
+              .replace("__H1_SIZE__", page_style.H1_SIZE)
+              .replace("__LEDE_MAX_WIDTH__", page_style.LEDE_MAX_WIDTH))
 
 
 if __name__ == "__main__":

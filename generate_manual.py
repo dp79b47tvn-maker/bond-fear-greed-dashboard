@@ -15,6 +15,7 @@ import re
 from datetime import date
 
 import nav_bar
+import page_style
 
 BASE = __file__.rsplit("/", 1)[0]
 
@@ -114,46 +115,30 @@ html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子定義手冊 · 債券市場恐懼貪婪</title>
 <style>
-  :root {{
-    --page:#f4f5f7; --surface-1:#ffffff; --surface-2:#f8f9fb;
-    --text-primary:#161a23; --text-secondary:#4a5568; --text-muted:#667085;
-    --grid:#e5e7eb; --axis:#a7adb9; --accent:#1e3a5f; --accent2:#a6742a;
-    --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
-    --input:#dbeafe; --result:#dcfce7;
-  }}
+  {page_style.ROOT_COLORS_CSS}
+  /* --input/--result是手冊互動試算區塊專屬，不跟其他頁面共用 */
+  :root {{ --input:#dbeafe; --result:#dcfce7; }}
   @media (prefers-color-scheme: dark) {{
-    :root {{ --page:#0f1218; --surface-1:#171b24; --surface-2:#1e232d;
-      --text-primary:#f1f3f6; --text-secondary:#b8c0cc; --text-muted:#8b93a3;
-      --grid:#262b36; --axis:#4a5164; --accent:#7ea3cf; --accent2:#d9a860;
-      --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35);
-      --input:#1e3a5f; --result:#1e3a2b; }}
+    :root {{ --input:#1e3a5f; --result:#1e3a2b; }}
   }}
-  :root[data-theme="dark"] {{ --page:#0f1218; --surface-1:#171b24; --surface-2:#1e232d;
-    --text-primary:#f1f3f6; --text-secondary:#b8c0cc; --text-muted:#8b93a3;
-    --grid:#262b36; --axis:#4a5164; --accent:#7ea3cf; --accent2:#d9a860;
-    --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35);
-    --input:#1e3a5f; --result:#1e3a2b; }}
-  :root[data-theme="light"] {{ --page:#f4f5f7; --surface-1:#ffffff; --surface-2:#f8f9fb;
-    --text-primary:#161a23; --text-secondary:#4a5568; --text-muted:#667085;
-    --grid:#e5e7eb; --axis:#a7adb9; --accent:#1e3a5f; --accent2:#a6742a;
-    --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
-    --input:#dbeafe; --result:#dcfce7; }}
+  :root[data-theme="dark"] {{ --input:#1e3a5f; --result:#1e3a2b; }}
+  :root[data-theme="light"] {{ --input:#dbeafe; --result:#dcfce7; }}
   * {{ box-sizing:border-box; }}
-  body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:1.7;
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }}
-  .wrap {{ max-width:1080px; margin:0 auto; padding:40px 24px 70px; }}
+  body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:{page_style.BASE_LINE_HEIGHT};
+    font-family:{page_style.FONT_FAMILY}; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:40px 24px 70px; }}
   {nav_bar.NAV_BAR_CSS}
-  .kickertop {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:8px; }}
-  h1 {{ font-size:30px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
-  .lede {{ color:var(--text-secondary); max-width:70ch; margin:0 0 8px; }}
+  .kickertop {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:8px; }}
+  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
+  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 8px; }}
   .meta {{ font-size:12px; color:var(--text-muted); margin-bottom:24px; }}
   .toc {{ display:flex; gap:10px 18px; flex-wrap:wrap; font-size:13px; background:var(--surface-1);
     border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:26px; }}
-  .toc a {{ color:var(--accent); text-decoration:none; }}
+  .toc a {{ color:var(--series-1); text-decoration:none; }}
   .toc a:hover {{ text-decoration:underline; }}
   .card {{ background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
     padding:26px 28px; margin-bottom:20px; box-shadow:var(--shadow); }}
-  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.1em; color:var(--accent); font-weight:700; }}
+  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }}
   h2 {{ font-size:19px; font-weight:700; margin:4px 0 14px; }}
   h3 {{ font-size:13px; font-weight:700; margin:16px 0 6px; color:var(--text-secondary); text-transform:none; }}
   .grid2 {{ display:grid; grid-template-columns:minmax(260px,1fr) minmax(300px,1.4fr); gap:10px 28px; }}
@@ -166,12 +151,12 @@ html = f"""<meta charset="utf-8">
   .mono {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; }}
   .num {{ font-variant-numeric:tabular-nums; }}
   .muted {{ color:var(--text-muted); }}
-  .tag {{ font-size:10px; background:var(--accent2); color:#fff; border-radius:999px; padding:2px 8px; font-weight:600; vertical-align:middle; }}
+  .tag {{ font-size:10px; background:var(--series-2); color:#fff; border-radius:999px; padding:2px 8px; font-weight:600; vertical-align:middle; }}
   .hint {{ font-size:12px; color:var(--text-muted); line-height:1.65; margin:4px 0; }}
   .explain {{ font-size:13px; color:var(--text-secondary); line-height:1.8; }}
   .explain b {{ color:var(--text-primary); }}
   .crosslink {{ font-size:12.5px; margin:16px 0 0; padding-top:12px; border-top:1px solid var(--grid); }}
-  .crosslink a {{ color:var(--accent); text-decoration:none; font-weight:600; }}
+  .crosslink a {{ color:var(--series-1); text-decoration:none; font-weight:600; }}
   .crosslink a:hover {{ text-decoration:underline; }}
   .calc {{ display:grid; grid-template-columns:auto 130px; gap:6px 14px; align-items:center; max-width:560px; font-size:13px; }}
   .calc label {{ color:var(--text-secondary); }}
@@ -323,34 +308,23 @@ hub_html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>債券市場恐懼貪婪 · 專案首頁</title>
 <style>
-  :root {{
-    --page:#f4f5f7; --surface:#ffffff; --text:#161a23; --text2:#4a5568; --muted:#667085;
-    --accent:#1e3a5f; --accent2:#a6742a; --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04);
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{ --page:#0f1218; --surface:#171b24; --text:#f1f3f6; --text2:#b8c0cc; --muted:#8b93a3;
-      --accent:#7ea3cf; --accent2:#d9a860; --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35); }}
-  }}
-  :root[data-theme="dark"] {{ --page:#0f1218; --surface:#171b24; --text:#f1f3f6; --text2:#b8c0cc; --muted:#8b93a3;
-    --accent:#7ea3cf; --accent2:#d9a860; --border:#2c313d; --shadow:0 1px 2px rgba(0,0,0,0.35); }}
-  :root[data-theme="light"] {{ --page:#f4f5f7; --surface:#ffffff; --text:#161a23; --text2:#4a5568; --muted:#667085;
-    --accent:#1e3a5f; --accent2:#a6742a; --border:#dfe2e8; --shadow:0 1px 2px rgba(22,26,35,0.04); }}
+  {page_style.ROOT_COLORS_CSS}
   * {{ box-sizing:border-box; }}
-  body {{ margin:0; background:var(--page); color:var(--text); line-height:1.7;
-    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; }}
-  .wrap {{ max-width:880px; margin:0 auto; padding:60px 24px 70px; }}
-  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--accent2); font-weight:700; margin-bottom:10px; }}
-  h1 {{ font-size:32px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
-  .lede {{ color:var(--text2); max-width:64ch; margin:0 0 34px; }}
+  body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:{page_style.BASE_LINE_HEIGHT};
+    font-family:{page_style.FONT_FAMILY}; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:60px 24px 70px; }}
+  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:10px; }}
+  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
+  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 34px; }}
   .cards {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }}
-  a.card {{ display:block; background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:24px 24px 20px; text-decoration:none; color:var(--text); box-shadow:var(--shadow);
+  a.card {{ display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
+    padding:24px 24px 20px; text-decoration:none; color:var(--text-primary); box-shadow:var(--shadow);
     transition:transform .15s ease, box-shadow .2s ease; }}
   a.card:hover {{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(22,26,35,0.10); }}
-  .card .ck {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--accent); font-weight:700; }}
+  .card .ck {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }}
   .card h2 {{ font-size:18px; margin:6px 0 8px; }}
-  .card p {{ font-size:13px; color:var(--text2); margin:0; }}
-  .foot {{ font-size:12px; color:var(--muted); margin-top:34px; line-height:1.7; }}
+  .card p {{ font-size:13px; color:var(--text-secondary); margin:0; }}
+  .foot {{ font-size:12px; color:var(--text-muted); margin-top:34px; line-height:1.7; }}
   .mono {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; }}
   {nav_bar.NAV_BAR_CSS}
 </style>

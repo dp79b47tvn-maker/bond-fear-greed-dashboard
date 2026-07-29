@@ -50,6 +50,7 @@ import time
 from datetime import date
 
 import nav_bar
+import page_style
 import regime_lib
 from transform_modes import rolling_percentile_score, _resolve_source, build_candidate_score
 
@@ -659,7 +660,9 @@ def main():
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
                "__PROMOTED_FACTORS_JSON__", "__EVENT_CALENDAR_JSON__",
-               "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__"]:
+               "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__",
+               "__ROOT_COLORS_CSS__", "__CONTENT_MAX_WIDTH__", "__BASE_LINE_HEIGHT__",
+               "__H1_SIZE__", "__LEDE_MAX_WIDTH__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
     out_html = (template
                 .replace("__DATA_JSON__", data_json)
@@ -669,7 +672,12 @@ def main():
                 .replace("__EVENT_CALENDAR_JSON__", event_calendar_json)
                 .replace("__LINK_MANUAL__", link_manual)
                 .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
-                .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard")))
+                .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard"))
+                .replace("__ROOT_COLORS_CSS__", page_style.ROOT_COLORS_CSS)
+                .replace("__CONTENT_MAX_WIDTH__", page_style.CONTENT_MAX_WIDTH)
+                .replace("__BASE_LINE_HEIGHT__", page_style.BASE_LINE_HEIGHT)
+                .replace("__H1_SIZE__", page_style.H1_SIZE)
+                .replace("__LEDE_MAX_WIDTH__", page_style.LEDE_MAX_WIDTH))
     with open("chart/dashboard.html", "w") as f:
         f.write(out_html)
 

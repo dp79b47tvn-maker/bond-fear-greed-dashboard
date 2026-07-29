@@ -12,70 +12,44 @@
     averages) intentionally use --series-1..4 (brand/treasury/structural tones),
     NOT the tier colors, since they don't carry a Fear/Greed meaning on their own.
   */
+  __ROOT_COLORS_CSS__
+  /* 分數情緒分級色階(--tier-*)是儀表板專屬、不跟其他頁面共用的概念，
+     不放進共用的page_style.ROOT_COLORS_CSS，維持這裡自己定義。 */
   :root {
-    --page:               #f4f5f7;
-    --surface-1:          #ffffff;
-    --surface-2:          #f8f9fb;
-    --text-primary:       #161a23;
-    --text-secondary:     #4a5568;
-    --text-muted:         #667085;
-    --grid:               #e5e7eb;
-    --axis:               #a7adb9;
-    --series-1:           #1e3a5f;
-    --series-2:           #a6742a;
-    --series-3:           #5b4f8a;
-    --series-4:           #1f7a7a;
     --tier-extreme-fear:  #2f6b4f;
     --tier-fear:          #5c8a6e;
     --tier-neutral:       #6b7280;
     --tier-greed:         #b1592f;
     --tier-extreme-greed: #a6362f;
-    --border:             #dfe2e8;
-    --shadow:             0 1px 2px rgba(22,26,35,0.04);
     --gauge-inactive:     #e3e6e2;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
-      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
-      --grid: #262b36; --axis: #4a5164;
-      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
       --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
       --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
       --gauge-inactive: #262c29;
     }
   }
   :root[data-theme="dark"] {
-    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
-    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
-    --grid: #262b36; --axis: #4a5164;
-    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
     --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
     --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
     --gauge-inactive: #262c29;
   }
   :root[data-theme="light"] {
-    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
-    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
-    --grid: #e5e7eb; --axis: #a7adb9;
-    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
     --tier-extreme-fear: #2f6b4f; --tier-fear: #5c8a6e; --tier-neutral: #6b7280;
     --tier-greed: #b1592f; --tier-extreme-greed: #a6362f;
-    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
     --gauge-inactive: #e3e6e2;
   }
 
   * { box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   body {
-    margin: 0; background: var(--page); line-height: 1.5;
+    margin: 0; background: var(--page); line-height: __BASE_LINE_HEIGHT__;
     font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
-  .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1450px; margin: 0 auto; padding: 0 24px 60px; }
-  .viz-root { max-width: 1180px; margin: 0; padding: 44px 0 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
+  .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
+  .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 44px 0 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
   .event-rail {
     flex: 0 0 260px; position: sticky; top: 20px; margin-top: 44px;
     max-height: calc(100vh - 40px); overflow-y: auto;
@@ -102,10 +76,10 @@
     .event-rail { position: static; width: 100%; max-height: 320px; margin-top: 20px; flex: none; }
   }
   __NAV_BAR_CSS__
-  h1 { font-size: 34px; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.15; }
+  h1 { font-size: __H1_SIZE__; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.2; }
   h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
   .subtitle { font-size: 16.5px; color: var(--text-secondary); margin: 0 0 9px; font-weight: 400; letter-spacing: -0.005em; }
-  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 34px; line-height: 1.65; max-width: 860px; }
+  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 34px; line-height: 1.65; max-width: __LEDE_MAX_WIDTH__; }
   .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); transition: box-shadow 0.25s ease; }
   a, button, input, .logic-btn, .jump-today, .zoom-reset-btn { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.15s ease; }
   :focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
