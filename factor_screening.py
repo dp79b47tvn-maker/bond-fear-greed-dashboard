@@ -16,18 +16,20 @@
     chart/screening_index.html          所有測試過的因子登記簿（一覽表）
     factor_screening_registry.json      登記簿的資料來源（append-only）
 
-五道關卡（任一關沒過就停在那關、標示原因，不繼續往下跑）：
+五道關卡（不論成功失敗都會全部跑完，只提供建議、不硬性擋關，最終是否採用
+交由使用者自行判斷）：
     1. 資料健檢：歷史長度、look-ahead檢查、缺值比例、分數分佈鑑別力
-    2. 單獨效力：IC(5/10/20/60/120/250日，非重疊+重疊並列)、10年/20年分桶、
+    2. 單獨效力：IC(5/10/20/60/120/250日，重疊+非重疊並列)、10年/20年分桶、
        雙版本熱力圖(原始報酬 vs 超額報酬)、動能延續/長期反轉描述性標記
-    3. 穩定性：前後半段IC必須同號(硬性)；跨Fed循環同號檢查(僅供參考，不擋關)
+    3. 穩定性：前後半段IC是否同號；跨Fed循環同號檢查(僅供參考)
     4. 增量價值：跟現有七因子的相關係數上限0.6；加入後對綜合分數的LOO ΔIC方向
-       必須是「拿掉候選因子IC會變差」
-    5. 可實作性：換手率(成本門檻尚待使用者提供bps假設，目前只回報數字不擋關)
+       是否為「拿掉候選因子IC會變差」
+    5. 可實作性：換手率(成本門檻尚待使用者提供bps假設，目前只回報數字)
 
 方法論說明（跟現有驗證報告一致，不重複發明另一套規則）：
-    - 所有IC一律非重疊+重疊並列，判斷/門檻只看非重疊版本，重疊版本純供參考。
-    - 驗證標的維持ZN期貨，跟現有正式報告一致，不換成IEF等含息ETF。
+    - 所有IC一律重疊+非重疊並列，判斷/門檻以重疊取樣為主，非重疊版本純供對照。
+    - 統計驗證標的維持ZN期貨，跟現有正式報告一致；UST_10Yr殖利率只在報告圖1
+      當視覺參考疊圖，不參與任何IC/統計計算。
     - 每次測試都寫進 factor_screening_registry.json，防止「試了很多次、
       只記得成功那幾次」的自欺——這份登記簿本身就是防禦多重比較偏誤的機制。
 """
@@ -81,6 +83,57 @@ TIER_COLORS = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"]
 
 # fva.FACTOR_COLS 是 {score_col: 中文名} 例如 {"momentum_score": "動能", ...}，
 # 直接沿用它的順序與對照，不要另外重建一份、容易對錯 key/value。
+
+# ================================================================ 資料來源候選清單（給表單搜尋框用）
+# 使用者原本要自己記代號手打(Yahoo要記得加^、FRED代號一堆英文縮寫)，很容易打錯或
+# 不知道能填什麼——這份清單讓表單改成「打中文關鍵字或代號都能搜到、選了自動帶入
+# 正確type/id」，找不到的話表單上還有「手動輸入」的退路，不會限制彈性。
+# existing類的id必須是ext_df_20y實際會有的欄位名稱，跟build_candidate_score()
+# 的_resolve_source()字串比對邏輯要一致，故意用程式碼裡的名字，不憑印象手key。
+EXISTING_COLUMN_LABELS = {
+    "ZN_futures": "10年期公債期貨(ZN)原始價格",
+    "NQ_futures": "那斯達克100期貨(NQ)原始價格",
+    "TLT": "20年期以上公債ETF(TLT)",
+    "SHY": "1-3年期短債ETF(SHY)",
+    "MOVE_index": "公債波動率指數(MOVE)",
+    "UST_10Yr": "美國10年期公債殖利率",
+    "UST_2Yr": "美國2年期公債殖利率",
+    "CPI_index": "CPI消費者物價指數",
+    "Breakeven_10Y": "10年期損益平衡通膨率",
+    "put_call_ratio": "選擇權Put/Call比率",
+}
+SOURCE_CATALOG = (
+    [{"id": k, "type": "existing", "label": f"{v}（儀表板既有欄位）"}
+     for k, v in EXISTING_COLUMN_LABELS.items()]
+    + [{"id": k, "type": "existing", "label": f"{v}分數（儀表板既有因子）"}
+       for k, v in fva.FACTOR_COLS.items()]
+    + [{"id": fva.COMPOSITE_COL, "type": "existing", "label": f"{fva.COMPOSITE_LABEL}（儀表板既有欄位）"}]
+    + [
+        {"id": "^VIX", "type": "yahoo", "label": "VIX恐慌指數"},
+        {"id": "^MOVE", "type": "yahoo", "label": "MOVE公債波動率指數(Yahoo版)"},
+        {"id": "^TNX", "type": "yahoo", "label": "10年期公債殖利率×10(Yahoo版,注意單位)"},
+        {"id": "GLD", "type": "yahoo", "label": "黃金ETF(GLD)"},
+        {"id": "DX-Y.NYB", "type": "yahoo", "label": "美元指數(DXY)"},
+        {"id": "CL=F", "type": "yahoo", "label": "原油期貨(WTI)"},
+        {"id": "JPY=X", "type": "yahoo", "label": "美元兌日圓匯率"},
+        {"id": "IEF", "type": "yahoo", "label": "7-10年期公債ETF(IEF)"},
+        {"id": "HYG", "type": "yahoo", "label": "高收益債ETF(HYG)"},
+        {"id": "LQD", "type": "yahoo", "label": "投資級公司債ETF(LQD)"},
+        {"id": "^GSPC", "type": "yahoo", "label": "標普500指數"},
+        {"id": "^IXIC", "type": "yahoo", "label": "那斯達克綜合指數"},
+        {"id": "DGS10", "type": "fred", "label": "10年期公債殖利率(FRED)"},
+        {"id": "DGS2", "type": "fred", "label": "2年期公債殖利率(FRED)"},
+        {"id": "DGS3MO", "type": "fred", "label": "3個月期公債殖利率(FRED)"},
+        {"id": "DGS30", "type": "fred", "label": "30年期公債殖利率(FRED)"},
+        {"id": "T10YIE", "type": "fred", "label": "10年期損益平衡通膨率(FRED)"},
+        {"id": "T5YIE", "type": "fred", "label": "5年期損益平衡通膨率(FRED)"},
+        {"id": "BAMLH0A0HYM2", "type": "fred", "label": "高收益債利差(FRED)"},
+        {"id": "WALCL", "type": "fred", "label": "聯準會資產負債表規模(FRED)"},
+        {"id": "M2SL", "type": "fred", "label": "M2貨幣供給(FRED)"},
+        {"id": "UNRATE", "type": "fred", "label": "失業率(FRED)"},
+        {"id": "FEDFUNDS", "type": "fred", "label": "聯邦基金利率(FRED)"},
+    ]
+)
 
 
 # ================================================================ 六種轉換模式（原始指標，尚未轉百分位）
@@ -1000,6 +1053,23 @@ def render_registry_index(registry):
   iframe.report-frame {{ width:100%; height:1300px; border:none; display:block; }}
   .factor-link {{ color:#1e3a5f; text-decoration:none; font-weight:600; cursor:pointer; }}
   .factor-link:hover {{ text-decoration:underline; }}
+
+  .combo-wrap {{ position:relative; }}
+  .combo-list {{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
+    background:#fff; border:1px solid #dfe2e8; border-radius:10px; box-shadow:0 8px 24px rgba(22,26,35,0.12);
+    max-height:280px; overflow-y:auto;
+  }}
+  .combo-item {{ padding:9px 12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f0f1f3; }}
+  .combo-item:last-child {{ border-bottom:none; }}
+  .combo-item:hover {{ background:#f4f5f7; }}
+  .combo-tag {{
+    font-size:10.5px; font-weight:700; color:#a6742a; background:rgba(166,116,42,0.1);
+    border-radius:5px; padding:2px 6px; flex-shrink:0;
+  }}
+  .combo-id {{ margin-left:auto; color:#a7adb9; font-size:11.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }}
+  .combo-empty {{ padding:12px; font-size:12.5px; color:#a7adb9; font-style:italic; }}
+  .manual-source-group {{ margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }}
 </style>
 </head>
 <body>
@@ -1050,29 +1120,61 @@ def render_registry_index(registry):
             <option value="rolling_stat">滾動統計量百分位 (N-day Skew / StdDev)</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="sourceType">資料來源 A 類型</label>
-          <select id="sourceType" required>
-            <option value="yahoo">Yahoo Finance (代號如 ^VIX)</option>
-            <option value="fred">FRED 經濟數據 (代號如 DGS10)</option>
-            <option value="existing">儀表板既有欄位 (UST_10Yr 等)</option>
-          </select>
+        <div class="form-group full">
+          <label for="sourceSearch">資料來源 A（可輸入中文關鍵字或代號搜尋，例如「十年期公債」或「DGS10」）</label>
+          <div class="combo-wrap">
+            <input type="text" id="sourceSearch" class="combo-input" placeholder="打字搜尋，例如：十年期公債 / DGS10 / VIX" autocomplete="off"
+                   oninput="filterSourceCombo('')" onfocus="filterSourceCombo('')" onblur="hideComboLater('')">
+            <div class="combo-list" id="sourceComboList"></div>
+          </div>
+          <p class="hint">
+            <label style="font-weight:normal;cursor:pointer;">
+              <input type="checkbox" id="sourceManualToggle" onchange="toggleManualSource('')" style="width:auto;height:auto;vertical-align:middle;">
+              找不到？手動輸入類型與代號
+            </label>
+          </p>
+          <div class="manual-source-group form-grid" id="manualSourceGroup" style="display:none;">
+            <div class="form-group">
+              <label for="sourceType">資料來源類型</label>
+              <select id="sourceType">
+                <option value="yahoo">Yahoo Finance (代號如 ^VIX)</option>
+                <option value="fred">FRED 經濟數據 (代號如 DGS10)</option>
+                <option value="existing">儀表板既有欄位 (UST_10Yr 等)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sourceId">資料來源代號</label>
+              <input type="text" id="sourceId" placeholder="例: ^VIX / DGS10 / UST_10Yr">
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="sourceId">資料來源 A 識別碼</label>
-          <input type="text" id="sourceId" placeholder="例: ^VIX / DGS10 / UST_10Yr" required>
-        </div>
-        <div class="form-group source-b-group" style="display:none;">
-          <label for="sourceBType">資料來源 B 類型</label>
-          <select id="sourceBType">
-            <option value="yahoo">Yahoo Finance</option>
-            <option value="fred">FRED</option>
-            <option value="existing">儀表板既有欄位</option>
-          </select>
-        </div>
-        <div class="form-group source-b-group" style="display:none;">
-          <label for="sourceBId">資料來源 B 識別碼</label>
-          <input type="text" id="sourceBId" placeholder="例: SHY / DGS2">
+        <div class="form-group full source-b-group" style="display:none;">
+          <label for="sourceSearchB">資料來源 B（可輸入中文關鍵字或代號搜尋）</label>
+          <div class="combo-wrap">
+            <input type="text" id="sourceSearchB" class="combo-input" placeholder="打字搜尋，例如：短債 / SHY / DGS2" autocomplete="off"
+                   oninput="filterSourceCombo('B')" onfocus="filterSourceCombo('B')" onblur="hideComboLater('B')">
+            <div class="combo-list" id="sourceComboListB"></div>
+          </div>
+          <p class="hint">
+            <label style="font-weight:normal;cursor:pointer;">
+              <input type="checkbox" id="sourceManualToggleB" onchange="toggleManualSource('B')" style="width:auto;height:auto;vertical-align:middle;">
+              找不到？手動輸入類型與代號
+            </label>
+          </p>
+          <div class="manual-source-group form-grid" id="manualSourceGroupB" style="display:none;">
+            <div class="form-group">
+              <label for="sourceBType">資料來源類型</label>
+              <select id="sourceBType">
+                <option value="yahoo">Yahoo Finance</option>
+                <option value="fred">FRED</option>
+                <option value="existing">儀表板既有欄位</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sourceBId">資料來源代號</label>
+              <input type="text" id="sourceBId" placeholder="例: SHY / DGS2">
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label for="window">滾動視窗 (Window Days)</label>
@@ -1129,6 +1231,96 @@ def render_registry_index(registry):
 <script>
   const REPO_OWNER = "dp79b47tvn-maker";
   const REPO_NAME = "bond-fear-greed-dashboard";
+  const SOURCE_CATALOG = {json.dumps(SOURCE_CATALOG, ensure_ascii=False)};
+  const SOURCE_TYPE_LABEL = {{ yahoo: "Yahoo", fred: "FRED", existing: "既有" }};
+
+  function zhNumToArabic(str) {{
+    // 目錄裡的中文說明一律用阿拉伯數字(10年期、2年期...)，但使用者可能習慣打
+    // 中文數字(十年期、兩年期)——這裡把查詢字串裡的中文數字轉成阿拉伯數字再比對，
+    // 不然「十年期公債」這種很自然的搜法會因為字面對不上而完全找不到東西。
+    const d = {{"零":0,"一":1,"二":2,"兩":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9}};
+    return str.replace(/[一二兩三四五六七八九]?十[一二兩三四五六七八九]?|[零一二兩三四五六七八九]/g, (m) => {{
+      if (m.includes("十")) {{
+        const idx = m.indexOf("十");
+        const tensChar = m.slice(0, idx), onesChar = m.slice(idx + 1);
+        const tens = tensChar ? d[tensChar] : 1;
+        const ones = onesChar ? d[onesChar] : 0;
+        return String(tens * 10 + ones);
+      }}
+      return String(d[m]);
+    }});
+  }}
+
+  function filterSourceCombo(sfx) {{
+    const input = document.getElementById(`sourceSearch${{sfx}}`);
+    const listEl = document.getElementById(`sourceComboList${{sfx}}`);
+    const qRaw = input.value.trim().toLowerCase();
+    const qNorm = zhNumToArabic(input.value.trim()).toLowerCase();
+    let matches = qRaw
+      ? SOURCE_CATALOG.filter(item => {{
+          const hay = (item.id + " " + item.label).toLowerCase();
+          return hay.includes(qRaw) || (qNorm !== qRaw && hay.includes(qNorm));
+        }})
+      : SOURCE_CATALOG;
+    matches = matches.slice(0, 8);
+    if (!matches.length) {{
+      listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」</div>`;
+      listEl.style.display = "block";
+      return;
+    }}
+    listEl.innerHTML = matches.map((item, i) =>
+      `<div class="combo-item" data-idx="${{SOURCE_CATALOG.indexOf(item)}}">
+        <span class="combo-tag">${{SOURCE_TYPE_LABEL[item.type]}}</span>${{item.label}}
+        <span class="combo-id">${{item.id}}</span>
+      </div>`
+    ).join("");
+    listEl.querySelectorAll(".combo-item").forEach(el => {{
+      el.addEventListener("mousedown", (ev) => {{
+        ev.preventDefault();
+        const item = SOURCE_CATALOG[parseInt(el.dataset.idx, 10)];
+        selectSourceCombo(sfx, item);
+      }});
+    }});
+    listEl.style.display = "block";
+  }}
+
+  function selectSourceCombo(sfx, item) {{
+    const input = document.getElementById(`sourceSearch${{sfx}}`);
+    input.value = item.label;
+    input.dataset.type = item.type;
+    input.dataset.id = item.id;
+    document.getElementById(`sourceComboList${{sfx}}`).style.display = "none";
+  }}
+
+  function hideComboLater(sfx) {{
+    setTimeout(() => {{
+      const listEl = document.getElementById(`sourceComboList${{sfx}}`);
+      if (listEl) listEl.style.display = "none";
+    }}, 150);
+  }}
+
+  function toggleManualSource(sfx) {{
+    const manual = document.getElementById(`sourceManualToggle${{sfx}}`).checked;
+    document.getElementById(`manualSourceGroup${{sfx}}`).style.display = manual ? "grid" : "none";
+    const input = document.getElementById(`sourceSearch${{sfx}}`);
+    input.disabled = manual;
+    if (manual) {{
+      input.value = "";
+      delete input.dataset.type;
+      delete input.dataset.id;
+    }}
+  }}
+
+  function getSourceSpec(sfx) {{
+    const manual = document.getElementById(`sourceManualToggle${{sfx}}`).checked;
+    if (manual) {{
+      const type = document.getElementById(`sourceType${{sfx}}`).value;
+      const id = document.getElementById(`sourceId${{sfx}}`).value.trim();
+      return id ? {{ type, id }} : null;
+    }}
+    const input = document.getElementById(`sourceSearch${{sfx}}`);
+    return (input.dataset.type && input.dataset.id) ? {{ type: input.dataset.type, id: input.dataset.id }} : null;
+  }}
 
   const savedToken = localStorage.getItem("gh_pat_token");
   if (savedToken) {{
@@ -1174,10 +1366,22 @@ def render_registry_index(registry):
     const key = document.getElementById("key").value.trim();
     const label = document.getElementById("label").value.trim();
     const mode = document.getElementById("mode").value;
-    const sourceType = document.getElementById("sourceType").value;
-    const sourceId = document.getElementById("sourceId").value.trim();
-    const sourceBType = document.getElementById("sourceBType").value;
-    const sourceBId = document.getElementById("sourceBId").value.trim();
+    const isTwoSources = (mode === "return_spread" || mode === "value_spread");
+
+    const specA = getSourceSpec("");
+    if (!specA) {{
+      alert("請選擇資料來源 A（用搜尋框選一個，或勾選「手動輸入」自己填類型與代號）！");
+      return;
+    }}
+    const specB = isTwoSources ? getSourceSpec("B") : null;
+    if (isTwoSources && !specB) {{
+      alert("這個轉換模式需要資料來源 B，請選擇或手動輸入！");
+      return;
+    }}
+    const sourceType = specA.type;
+    const sourceId = specA.id;
+    const sourceBType = specB ? specB.type : "none";
+    const sourceBId = specB ? specB.id : "";
     const windowVal = document.getElementById("window").value;
     const invert = document.getElementById("invert").checked;
 
