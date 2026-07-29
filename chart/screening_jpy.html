@@ -44,15 +44,39 @@
   .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:#2d3440; }
   .data-table tr.low-n td { color:#a6362f; }
   .warn-hint { color:#a6362f; }
+  
+.site-topnav {
+  display: flex; justify-content: space-between; gap: 2px; flex-wrap: wrap; align-items: center;
+  max-width: 920px; margin: 0 auto 28px; padding: 10px 18px; border-radius: 14px;
+  background: #ffffff; border: 1px solid #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06);
+}
+.site-topnav a, .site-topnav span.active {
+  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
+  padding: 8px 12px; border-radius: 8px; white-space: nowrap;
+}
+.site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
+.site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
+@media (prefers-color-scheme: dark) {
+  .site-topnav { background: #171b24; border-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+  .site-topnav a, .site-topnav span.active { color: #b8c0cc; }
+  .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
+  .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
+}
+:root[data-theme="dark"] .site-topnav { background: #171b24; border-color: #2c313d; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+:root[data-theme="dark"] .site-topnav a, :root[data-theme="dark"] .site-topnav span.active { color: #b8c0cc; }
+:root[data-theme="dark"] .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; }
+:root[data-theme="dark"] .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.16); }
+:root[data-theme="light"] .site-topnav { background: #ffffff; border-color: #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06); }
+:root[data-theme="light"] .site-topnav a, :root[data-theme="light"] .site-topnav span.active { color: #4a5568; }
+:root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
+:root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }
+
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <nav style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin-bottom:18px;">
-      <a href="index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 專案首頁</a>
-      <a href="screening_index.html" style="color:#1e3a5f;text-decoration:none;font-weight:600;padding:10px 6px;margin:-10px -6px;border-radius:6px;display:inline-block;">← 因子篩選登記簿</a>
-    </nav>
+    <nav class="site-topnav"><a href="index.html">首頁</a><a href="dashboard.html">儀表板</a><a href="factor_validation_report.html">驗證報告</a><a href="manual.html">定義手冊</a><span class="active" aria-current="page">因子篩選平台</span></nav>
     <div class="kicker">FACTOR SCREENING</div>
     <h1>因子篩選：jpy</h1>
     <p class="meta">key：jpy　·　轉換模式：均線乖離百分位　·　測試日期：2026-07-28</p>
