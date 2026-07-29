@@ -74,7 +74,33 @@
     font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
-  .viz-root { max-width: 1180px; margin: 0 auto; padding: 44px 24px 60px; color: var(--text-primary); }
+  .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1450px; margin: 0 auto; padding: 0 24px 60px; }
+  .viz-root { max-width: 1180px; margin: 0; padding: 44px 0 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
+  .event-rail {
+    flex: 0 0 260px; position: sticky; top: 20px; margin-top: 44px;
+    max-height: calc(100vh - 40px); overflow-y: auto;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .event-rail h3 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
+  .event-rail-hint { font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.55; }
+  .event-rail-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .event-rail-legend .legend-item { display: flex; align-items: center; gap: 5px; }
+  .event-rail-legend .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .event-rail-list { display: flex; flex-direction: column; gap: 2px; }
+  .event-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
+  .event-item:hover { background: var(--surface-2); }
+  .event-item.active { background: var(--surface-2); border-left-color: var(--series-1); }
+  .event-item .event-date { font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .event-item .event-title { font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+  .event-item .event-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .event-item.future { opacity: 0.6; }
+  .event-item.future .event-title i { font-style: normal; color: var(--text-muted); font-size: 10.5px; }
+  @media (max-width: 900px) {
+    .page-shell { flex-direction: column; padding: 0 16px 40px; }
+    .viz-root { padding-top: 30px; max-width: 100%; }
+    .event-rail { position: static; width: 100%; max-height: 320px; margin-top: 20px; flex: none; }
+  }
   __NAV_BAR_CSS__
   h1 { font-size: 34px; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.15; }
   h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
@@ -269,6 +295,7 @@
   .section-heading .count { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
 </style>
 
+<div class="page-shell">
 <div class="viz-root">
   __NAV_BAR_HTML__
   <h1>債券市場恐懼貪婪儀表板</h1>
@@ -397,6 +424,18 @@
   </p>
 </div>
 
+<aside class="event-rail" id="eventRail">
+  <h3>總經事件行事曆</h3>
+  <p class="event-rail-hint">FOMC／CPI／NFP等重大經濟數據發布日。點事件可跳到當天的儀表板數值；點左邊圖表也會捲動到對應時間點附近的事件。</p>
+  <div class="event-rail-legend">
+    <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>FOMC</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>CPI</span>
+    <span class="legend-item"><span class="swatch" style="background:var(--series-4)"></span>NFP</span>
+  </div>
+  <div class="event-rail-list" id="eventRailList"></div>
+</aside>
+</div>
+
 <script>
 const DATA = __DATA_JSON__;
 const REGIME_META = __REGIME_META_JSON__;
@@ -405,10 +444,38 @@ const FACTOR_DEFS = __FACTOR_DEFS_JSON__;
 // 升等候選因子(因子篩選平台驗證後由使用者手動升等)：{key, label, chartSeries}，
 // 每個因子的每日分數/原始資料已經併進DATA[i][key]／DATA[i].raw[`${key}_${seriesKey}`]
 const PROMOTED_FACTORS = __PROMOTED_FACTORS_JSON__;
+// 總體經濟事件行事曆(FOMC/CPI/NFP，Phase 5)：[{date, type, title}]，date是ISO字串，
+// 對應資料索引的轉換在下面用跟dateJump一樣的「找第一個>=該日期的交易日」邏輯就地解析。
+const EVENT_CALENDAR = __EVENT_CALENDAR_JSON__;
 const MANUAL_URL = "__LINK_MANUAL__";
 const n = DATA.length;
 const latestIdx = n - 1;
 const dateAt = i => DATA[i].date;
+
+// ---- 事件行事曆：日期→資料索引解析(Phase 5) ----
+const EVENT_TYPE_META = {
+  fomc: { label: "FOMC", color: "var(--series-1)" },
+  cpi: { label: "CPI", color: "var(--series-2)" },
+  nfp: { label: "NFP", color: "var(--series-4)" },
+};
+function dateToIdx(dateStr) {
+  // 找第一個 >= 該日期的交易日；找不到代表這個日期比目前資料的最後一天還晚
+  // (例如還沒發生的下一次FOMC)，回傳null——事件欄仍然要顯示這種「未來事件」，
+  // 只是圖表上沒有對應的分數可以畫標記線，由呼叫端決定怎麼處理null。
+  const idx = DATA.findIndex(p => p.date >= dateStr);
+  return idx === -1 ? null : idx;
+}
+const EVENTS_RESOLVED = EVENT_CALENDAR
+  .map(e => {
+    const rawIdx = dateToIdx(e.date);
+    return {
+      ...e,
+      idx: rawIdx == null ? latestIdx : rawIdx,   // 未來事件點擊時退回跳到「今天」
+      isFuture: rawIdx == null,
+      meta: EVENT_TYPE_META[e.type] || { label: e.type, color: "var(--text-muted)" },
+    };
+  })
+  .sort((a, b) => a.idx - b.idx || a.date.localeCompare(b.date));
 
 function zoneColor(score) {
   if (score == null) return "var(--text-muted)";
@@ -453,6 +520,7 @@ function buildChart(cfg) {
     yMode,                 // "fixed100" | "auto"
     zones,                 // optional zone bands (fixed100 only)
     series,                 // [{ get(i), color, width }]
+    events,                  // optional [{ idx, color, title }] — vertical reference markers (Phase 5)
     secondary,               // optional { get(i), color, min, max, format }
     tooltipEl, tooltipRender, // optional hover tooltip
     onScrub,                 // (idx) => {}
@@ -531,11 +599,12 @@ function buildChart(cfg) {
   // ---- persistent layer groups ----
   const staticGroup = el("g", { "clip-path": `url(#${clipId})` });
   const axisGroup = el("g", {});
+  const eventsGroup = el("g", { "clip-path": `url(#${clipId})` });
   const secondaryGroup = el("g", { "clip-path": `url(#${clipId})` });
   const seriesGroup = el("g", { "clip-path": `url(#${clipId})` });
   const selGroup = el("g", {});
   const selectRectGroup = el("g", {});
-  [staticGroup, axisGroup, secondaryGroup, seriesGroup, selGroup].forEach(g => svgEl.appendChild(g));
+  [staticGroup, axisGroup, eventsGroup, secondaryGroup, seriesGroup, selGroup].forEach(g => svgEl.appendChild(g));
 
   if (yMode === "fixed100" && zones) {
     zones.forEach(z => {
@@ -572,6 +641,7 @@ function buildChart(cfg) {
       yMin = d.min; yMax = d.max;
     }
     axisGroup.innerHTML = "";
+    eventsGroup.innerHTML = "";
     seriesGroup.innerHTML = "";
     secondaryGroup.innerHTML = "";
 
@@ -605,6 +675,22 @@ function buildChart(cfg) {
 
     const iStart = Math.max(0, Math.floor(viewLo));
     const iEnd = Math.min(n - 1, Math.ceil(viewHi));
+
+    if (events) {
+      events.forEach(ev => {
+        if (ev.idx < iStart || ev.idx > iEnd) return;
+        const x = xScale(ev.idx);
+        const line = el("line", {
+          x1: x, x2: x, y1: M.top, y2: H - M.bottom,
+          stroke: ev.color, "stroke-width": 1.3, "stroke-dasharray": "2 3", opacity: 0.75,
+        });
+        const title = document.createElementNS(SVGNS, "title");
+        title.textContent = `${ev.title}（${dateAt(ev.idx)}）`;
+        line.appendChild(title);
+        eventsGroup.appendChild(line);
+      });
+    }
+
     series.forEach((s, si) => {
       if (!seriesVisible[si]) return;
       let d = "", started = false;
@@ -963,6 +1049,7 @@ const mainChartHandle = buildChart({
     { get: i => CUSTOM_SCORES[i], color: "var(--series-4)", width: 1.6, dash: "3 3", visible: false },
   ]),
   secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
+  events: EVENTS_RESOLVED.filter(e => !e.isFuture).map(e => ({ idx: e.idx, color: e.meta.color, title: `${e.meta.label} · ${e.title}` })),
   resetBtnEl: document.getElementById("mainZoomReset"),
   onScrub: (idx) => setSelectedIndex(idx),
   onViewChange: (lo, hi) => broadcastView(lo, hi),
@@ -1464,6 +1551,44 @@ dateJump.min = DATA[0].date;
 dateJump.max = DATA[latestIdx].date;
 dateJump.value = DATA[latestIdx].date;
 
+// ---- 事件行事曆側欄(Phase 5)：清單渲染 + 跟setSelectedIndex雙向同步 ----
+const eventRailListEl = document.getElementById("eventRailList");
+if (eventRailListEl) {
+  eventRailListEl.innerHTML = EVENTS_RESOLVED.map((e, pos) => `
+    <div class="event-item${e.isFuture ? " future" : ""}" data-idx="${e.idx}" data-pos="${pos}">
+      <span class="event-title"><span class="event-dot" style="background:${e.meta.color}"></span>${e.meta.label}：${escapeHtml(e.title)}${e.isFuture ? "　<i>尚未發生</i>" : ""}</span>
+      <span class="event-date">${e.date}</span>
+    </div>
+  `).join("") || `<p class="na" style="font-size:12px;">目前沒有可顯示的事件</p>`;
+  eventRailListEl.querySelectorAll(".event-item").forEach(el => {
+    el.addEventListener("click", () => setSelectedIndex(parseInt(el.dataset.idx, 10)));
+  });
+}
+
+function scrollEventRailTo(idx) {
+  if (!eventRailListEl || !EVENTS_RESOLVED.length) return;
+  let nearestPos = 0, best = Infinity;
+  EVENTS_RESOLVED.forEach((e, pos) => {
+    const d = Math.abs(e.idx - idx);
+    if (d < best) { best = d; nearestPos = pos; }
+  });
+  eventRailListEl.querySelectorAll(".event-item.active").forEach(el => el.classList.remove("active"));
+  const items = eventRailListEl.querySelectorAll(".event-item");
+  const target = items[nearestPos];
+  if (target) {
+    target.classList.add("active");
+    // 故意不用 scrollIntoView()：.event-rail 是 position:sticky 容器，
+    // 部分瀏覽器的 scrollIntoView 在 sticky 祖先底下不會真的捲動內部
+    // overflow，改成直接算座標用 scrollTo() 比較可靠。
+    // 故意不用 behavior:"smooth"：實測發現在部分瀏覽器/自動化環境下(可能是
+    // prefers-reduced-motion或類似設定)smooth捲動完全不會動、卡在原地，
+    // 直接跳(behavior:"auto")雖然沒有動畫但保證一定會捲到正確位置。
+    const rail = document.getElementById("eventRail");
+    const targetCenter = target.offsetTop + target.offsetHeight / 2;
+    rail.scrollTo({ top: targetCenter - rail.clientHeight / 2, behavior: "auto" });
+  }
+}
+
 function setSelectedIndex(idx) {
   idx = Math.max(0, Math.min(n - 1, idx));
   const pt = DATA[idx];
@@ -1472,6 +1597,7 @@ function setSelectedIndex(idx) {
   timelineSlider.value = idx;
   dateJump.value = pt.date;
   compUpdaters.forEach(u => u(idx));
+  scrollEventRailTo(idx);
 }
 setSelectedIndex(latestIdx);
 

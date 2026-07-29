@@ -413,6 +413,27 @@ def compute_promoted_factors(df, out):
     return out, promoted_defs
 
 
+# ---------------------------------------------------------------- 事件行事曆(Phase 5)
+EVENT_CALENDAR_PATH = "event_calendar.json"
+
+
+def load_event_calendar(out):
+    """讀event_calendar.json(FOMC/CPI/NFP等總經事件的靜態清單)，只丟掉早於out資料範圍
+    起點的古老事件；未來事件(超過最新一天，例如還沒發生的下一次FOMC)刻意保留——
+    右側事件欄要能看到「現在之後」的事件，只是圖表沒有對應的分數可以畫線，
+    前端會用idx=null標示、只在圖表端過濾掉，不影響事件欄顯示。
+    日期→資料索引的轉換刻意不在這裡做，直接把ISO日期字串傳給前端，用跟dateJump
+    現有邏輯一樣的方式(找第一個>=該日期的交易日)在JS端就地解析，避免兩邊各自維護
+    一套交易日對齊邏輯。檔案不存在就回傳空清單，不報錯(比照regime_weights_v1.json
+    的容錯慣例)。"""
+    if not os.path.exists(EVENT_CALENDAR_PATH):
+        return []
+    with open(EVENT_CALENDAR_PATH, encoding="utf-8") as f:
+        raw_events = json.load(f).get("events", [])
+    start = out.index.min().strftime("%Y-%m-%d")
+    return [e for e in raw_events if e["date"] >= start]
+
+
 def main():
     ensure_input_template()
 
@@ -508,6 +529,10 @@ def main():
     # ---- 【Phase 4】升等候選因子：因子篩選平台驗證過、使用者選擇升等的候選因子 ----
     print("檢查升等候選因子 ...")
     out, promoted_defs = compute_promoted_factors(df, out)
+
+    # ---- 【Phase 5】事件行事曆：FOMC/CPI/NFP等總經事件標註 ----
+    event_calendar = load_event_calendar(out)
+    print(f"事件行事曆：{len(event_calendar)} 筆事件落在輸出範圍內")
 
     # ---- 輸出 CSV / 審閱 Excel ----
     out.sort_index(ascending=False).to_csv("bond_fear_greed_v2.csv")
@@ -619,6 +644,9 @@ def main():
         ensure_ascii=False,
     )
 
+    # ---- 事件行事曆注入 ----
+    event_calendar_json = json.dumps(event_calendar, ensure_ascii=False)
+
     # ---- 跨頁連結(artifact_urls.json;空值退回本機相對路徑) ----
     try:
         with open("artifact_urls.json", encoding="utf-8") as f:
@@ -630,7 +658,7 @@ def main():
     with open("chart/dashboard_template.html") as f:
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
-               "__PROMOTED_FACTORS_JSON__",
+               "__PROMOTED_FACTORS_JSON__", "__EVENT_CALENDAR_JSON__",
                "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
     out_html = (template
@@ -638,6 +666,7 @@ def main():
                 .replace("__REGIME_META_JSON__", regime_meta_json)
                 .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
                 .replace("__PROMOTED_FACTORS_JSON__", promoted_factors_json)
+                .replace("__EVENT_CALENDAR_JSON__", event_calendar_json)
                 .replace("__LINK_MANUAL__", link_manual)
                 .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
                 .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard")))
