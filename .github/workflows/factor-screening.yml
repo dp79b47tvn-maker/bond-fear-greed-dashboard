@@ -17,6 +17,7 @@ on:
         type: choice
         options:
           - ma_deviation
+          - ma_spread
           - range_position
           - return_spread
           - value_spread
