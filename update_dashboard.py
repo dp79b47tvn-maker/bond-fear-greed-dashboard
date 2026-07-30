@@ -633,6 +633,11 @@ def main():
             "kicker": fx["kicker"],
             "name": _sub_tokens(fx["name_tpl"], fx["params"]),
             "explain": _sub_tokens(fx["explain_tpl"], fx["params"]),
+            # 2026-07-30起補上這三項——原本只有定義手冊(已移除)才顯示，內容折回
+            # 儀表板「計算邏輯與資料來源」說明面板，見dashboard_template.html。
+            "formula": _sub_tokens(fx["formula_tpl"], fx["params"]),
+            "tuningNote": _sub_tokens(fx.get("tuning_note", ""), fx["params"]),
+            "codeLocation": fx["code_location"],
         }
         for fx in DEFS["factors"]
     }
@@ -648,19 +653,11 @@ def main():
     # ---- 事件行事曆注入 ----
     event_calendar_json = json.dumps(event_calendar, ensure_ascii=False)
 
-    # ---- 跨頁連結(artifact_urls.json;空值退回本機相對路徑) ----
-    try:
-        with open("artifact_urls.json", encoding="utf-8") as f:
-            urls = json.load(f)
-    except FileNotFoundError:
-        urls = {}
-    link_manual = urls.get("manual") or "manual.html"
-
     with open("chart/dashboard_template.html") as f:
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
                "__PROMOTED_FACTORS_JSON__", "__EVENT_CALENDAR_JSON__",
-               "__LINK_MANUAL__", "__NAV_BAR_CSS__", "__NAV_BAR_HTML__",
+               "__NAV_BAR_CSS__", "__NAV_BAR_HTML__",
                "__ROOT_COLORS_CSS__", "__CONTENT_MAX_WIDTH__", "__BASE_LINE_HEIGHT__",
                "__H1_SIZE__", "__LEDE_MAX_WIDTH__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
@@ -670,7 +667,6 @@ def main():
                 .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
                 .replace("__PROMOTED_FACTORS_JSON__", promoted_factors_json)
                 .replace("__EVENT_CALENDAR_JSON__", event_calendar_json)
-                .replace("__LINK_MANUAL__", link_manual)
                 .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
                 .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard"))
                 .replace("__ROOT_COLORS_CSS__", page_style.ROOT_COLORS_CSS)

@@ -1,11 +1,15 @@
-name: 升等候選因子 (手動觸發)
+name: 升等/退回候選因子 (手動觸發)
 
 on:
   workflow_dispatch:
     inputs:
       config_json:
-        description: '候選因子完整設定 JSON（key/label/mode/sources/params/invert）'
-        required: true
+        description: '升等：候選因子完整設定 JSON（key/label/mode/sources/params/invert）。與remove_key擇一填寫。'
+        required: false
+        type: string
+      remove_key:
+        description: '退回：要移除的候選因子key。與config_json擇一填寫。'
+        required: false
         type: string
 
 permissions:
@@ -24,6 +28,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: 檢查輸入參數
+        run: |
+          if [ -z "${{ inputs.remove_key }}" ] && [ -z "${{ inputs.config_json }}" ]; then
+            echo "::error::config_json 跟 remove_key 至少要填一個（升等填config_json，退回填remove_key）"
+            exit 1
+          fi
+
       - name: 安裝中文字型 (圖表用)
         run: |
           sudo apt-get update
@@ -37,23 +48,38 @@ jobs:
       - name: 安裝套件
         run: pip install -r requirements.txt
 
-      - name: 寫入升等候選因子暫存清單
+      - name: 升等：寫入候選因子設定
+        if: ${{ inputs.remove_key == '' }}
         env:
           CONFIG_JSON: ${{ inputs.config_json }}
         run: python3 scripts/promote_factor.py --config-json "$CONFIG_JSON"
 
-      - name: 重新產生儀表板 (納入新升等因子)
+      - name: 退回：從候選因子清單移除
+        if: ${{ inputs.remove_key != '' }}
+        env:
+          REMOVE_KEY: ${{ inputs.remove_key }}
+        run: python3 scripts/promote_factor.py --remove "$REMOVE_KEY"
+
+      - name: 重新產生儀表板 (納入升等/退回後的候選因子清單)
         run: python3 update_dashboard.py
 
       - name: 驗證儀表板
         run: python3 scripts/verify_dashboard.py
+
+      - name: 重新產生因子篩選登記簿頁 (刷新已升等徽章狀態)
+        run: python3 factor_screening.py --rebuild-index
 
       - name: Commit 並 Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add promoted_candidate_factors.json chart/
-          git diff --staged --quiet || (git commit -m "feat(promote): 升等候選因子為儀表板可選因子" && git pull --rebase origin main && git push)
+          if [ -n "${{ inputs.remove_key }}" ]; then
+            COMMIT_MSG="feat(demote): 退回候選因子（${{ inputs.remove_key }}）"
+          else
+            COMMIT_MSG="feat(promote): 升等候選因子為儀表板可選因子"
+          fi
+          git diff --staged --quiet || (git commit -m "$COMMIT_MSG" && git pull --rebase origin main && git push)
 
       - name: 上傳 Pages 產物
         uses: actions/upload-pages-artifact@v3

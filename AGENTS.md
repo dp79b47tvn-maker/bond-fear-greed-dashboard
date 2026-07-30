@@ -41,15 +41,16 @@
   C. 重構整合（重新組織、乾淨合併兩邊意圖）。
 - 衝突牽涉產品邏輯或商業取捨時，先問使用者怎麼決定，再合併。
 - **這個專案的已知衝突模式**：GitHub Actions每天會自動commit重新產生的資料（見Part 2），
-  如果你push時遇到`chart/dashboard.html`、`chart/factor_validation_report.html`、
-  `chart/index.html`、`chart/manual.html`衝突，這是預期中的——用 `git checkout --theirs <file>`
-  （rebase情境下"theirs"＝你正在重放的本機commit）保留本機剛重新產生的版本，
-  用`git diff <你的原始commit> -- <file>`確認兩者內容一致再push。
-  因子篩選平台跟升等功能也會被獨立的workflow自動commit（見上方兩個workflow說明），
-  `chart/screening_*.html`、`factor_screening_registry.json`、`promoted_candidate_factors.json`
-  也可能遇到同樣狀況，處理方式一樣。**這個repo常常有多個agent/session並行改動**，
-  push前務必先`git fetch`確認落後狀態，落後就先`git stash push -u` → `git pull --rebase` →
-  `git stash pop`，不要直接硬push。
+  如果你push時遇到`chart/dashboard.html`、`chart/index.html`衝突，這是預期中的——用
+  `git checkout --theirs <file>`（rebase情境下"theirs"＝你正在重放的本機commit）保留本機
+  剛重新產生的版本，用`git diff <你的原始commit> -- <file>`確認兩者內容一致再push。
+  因子篩選平台、升等/退回功能、相關係數矩陣也會被各自獨立的workflow自動commit（見上方
+  workflow說明），`chart/screening_*.html`、`chart/correlation_matrix.html`、
+  `factor_screening_registry.json`、`promoted_candidate_factors.json`也可能遇到同樣狀況，
+  處理方式一樣。（`chart/factor_validation_report.html`、`chart/manual.html`2026-07-30起
+  已經不再自動重新產生，是凍結在移除當下那一刻的靜態備份，不會再衝突。）**這個repo常常有
+  多個agent/session並行改動**，push前務必先`git fetch`確認落後狀態，落後就先
+  `git stash push -u` → `git pull --rebase` → `git stash pop`，不要直接硬push。
 
 ### 7. 災難復原協議（Restore vs. Revert）
 - **未 commit 的壞程式碼**：`git restore .` 立刻回到上一個乾淨的 commit。
@@ -62,26 +63,37 @@
 ## Part 2｜這個專案的具體操作方式
 
 ### 這是什麼
-債券市場恐懼貪婪儀表板：7項美債市場指標彙整成每日恐懼貪婪分數。五個對外頁面——首頁、
-即時儀表板、因子驗證分析報告、因子定義手冊、因子開發與篩選平台——全部由
-`factor_definitions.json` 這份單一定義檔驅動，共用同一份頂部導覽列（`nav_bar.py`）跟
-同一套排版基準數值（`page_style.py`，2026-07-29統一，見下方「共用模組」）。
+債券市場恐懼貪婪儀表板：7項美債市場指標彙整成每日恐懼貪婪分數。**三個對外頁面**——首頁、
+即時儀表板、因子開發與篩選平台——全部由`factor_definitions.json`這份單一定義檔驅動，
+共用同一份頂部導覽列（`nav_bar.py`）跟同一套排版基準數值（`page_style.py`）。
+
+**2026-07-30起**：原本的「因子驗證報告」「因子定義手冊」兩頁從導覽列拿掉，內容遷移
+（不是單純刪除，見下方「驗證報告與定義手冊的遷移」）——`factor_validation_analysis.py`
+繼續當函式庫用（`factor_screening.py`依賴它），`chart/factor_validation_report.html`跟
+`chart/manual.html`都還在`chart/`裡，只是凍結在移除當下、不再自動重新產生。
 
 ### 正式發布管道（目前唯一的正式管道，不是Claude Artifact）
 專案已經上架在GitHub Pages公開發布，跟任何特定AI工具無關：
 - 正式網址：`https://dp79b47tvn-maker.github.io/bond-fear-greed-dashboard/`
 - GitHub repo：`git@github.com:dp79b47tvn-maker/bond-fear-greed-dashboard.git`
 - `.github/workflows/update-and-deploy.yml`：GitHub Actions排程，每個交易日美股收盤後
-  （22:00 UTC）自動重跑`update_dashboard.py`/`generate_manual.py`/`factor_validation_analysis.py`
-  三支腳本、驗證、commit回repo、部署——**不需要任何AI agent介入**，純粹是GitHub自己的排程
-  機器人在跑。也可以手動觸發（repo的Actions頁面 → workflow_dispatch）。
+  （22:00 UTC）自動重跑`update_dashboard.py`/`generate_hub.py`兩支腳本、驗證、commit回repo、
+  部署——**不需要任何AI agent介入**，純粹是GitHub自己的排程機器人在跑。也可以手動觸發
+  （repo的Actions頁面 → workflow_dispatch）。**不再**跑`factor_validation_analysis.py`
+  （驗證報告頁已從導覽列移除，見下方）。
 - `.github/workflows/factor-screening.yml`：手動觸發（`workflow_dispatch`），因子篩選平台
   網頁表單（`chart/screening_index.html`）提交新候選因子時打這個——跑`scripts/run_workflow_screening.py`
   → `factor_screening.screen_and_save()` → 產生`chart/screening_<key>.html`跟更新登記簿 → commit+push。
-- `.github/workflows/promote-factor.yml`：手動觸發，因子篩選報告頁的「升等為可選因子」按鈕打這個——
-  跑`scripts/promote_factor.py`寫入`promoted_candidate_factors.json` → 重跑`update_dashboard.py`
-  （納入新升等因子的分數） → 驗證 → commit+push。**這兩個表單觸發的workflow都是用GitHub PAT
-  存在瀏覽器localStorage、直接呼叫GitHub API dispatch**，不是走一般的push流程，PAT不會進git。
+- `.github/workflows/promote-factor.yml`：手動觸發，登記簿頁的「升等」/「退回」按鈕都打這個
+  （依`config_json`或`remove_key`哪個有值分流）——跑`scripts/promote_factor.py`寫入/移除
+  `promoted_candidate_factors.json`裡的條目 → 重跑`update_dashboard.py` → 驗證 →
+  `factor_screening.py --rebuild-index`重新產生登記簿頁（刷新「已升等」徽章狀態）→ commit+push。
+- `.github/workflows/correlation-matrix.yml`：手動觸發，因子篩選平台頁裡「產生相關係數矩陣」
+  按鈕打這個——跑`scripts/generate_correlation_matrix.py`（吃勾選的因子清單，直接重用
+  `factor_validation_analysis.correlation_heatmap_base64()`）→ 產生`chart/correlation_matrix.html`
+  → commit+push。取代原本驗證報告裡固定範圍、每天自動產生的相關矩陣。
+- 以上三個手動觸發的workflow都是用GitHub PAT存在瀏覽器localStorage、直接呼叫GitHub API
+  dispatch，不是走一般的push流程，PAT不會進git。
 - Claude Artifact發布（`chart/dashboard.html`等）是**次要/預覽用途**，不是正式管道，
   現在也不是每次修改都需要同步做。
 
@@ -89,9 +101,12 @@
 1. 改 `chart/dashboard_template.html`、`factor_definitions.json`、或任何一支 `*.py` 之後：
    ```
    python3 update_dashboard.py          # 重新產生 chart/dashboard.html
-   python3 generate_manual.py           # 重新產生 chart/manual.html、chart/index.html
-   python3 factor_validation_analysis.py  # 重新產生 chart/factor_validation_report.html（較慢，~4分鐘，會重抓20年歷史資料）
+   python3 generate_hub.py              # 重新產生 chart/index.html（首頁）
    ```
+   `factor_validation_analysis.py`現在只是函式庫（給`factor_screening.py`用）+本機工具，
+   不是自動pipeline的一部分；真的想重新產生`chart/factor_validation_report.html`參考用
+   （較慢，~4分鐘，會重抓20年歷史資料），本機可以直接`python3 factor_validation_analysis.py`
+   手動跑，但不會自動commit進daily workflow。
    本機用 `venv/bin/python3`（repo內有現成的venv，裝好所有套件），不要用系統python3，
    否則會缺套件（例如`seaborn`）。
 2. 檢查：
@@ -120,18 +135,38 @@ GitHub Actions用的是全新的Ubuntu runner，跟本機Mac環境不一樣，�
   但Linux CI沒有這層安全網）。見`factor_validation_analysis.py`頂部的CJK字型註冊區塊。
 
 ### 單一事實來源架構
-`factor_definitions.json` 放所有計算參數、因子名稱/說明文字（含`{token}`佔位符）、
-分級門檻、驗證參數。`update_dashboard.py`、`factor_validation_analysis.py`從這裡讀參數；
-`generate_manual.py`從這裡產生`chart/manual.html`（定義手冊，含互動試算器）跟`chart/index.html`
-（專案首頁）。要改因子：編輯這份JSON，重跑上面三支腳本，儀表板/報告/手冊會自動同步更新，
-不用分別去改三個地方的文字。
+`factor_definitions.json` 放所有計算參數、因子名稱/說明文字（含`{token}`佔位符）、公式、
+可調參數筆記、程式位置、分級門檻、驗證參數。`update_dashboard.py`、`factor_validation_analysis.py`
+從這裡讀參數；`generate_hub.py`從這裡產生`chart/index.html`（專案首頁）。要改因子：編輯這份
+JSON，重跑`update_dashboard.py`，儀表板會自動同步更新（含各分項卡片「計算邏輯與資料來源」
+面板裡的公式/參數/程式位置，2026-07-30起這幾項也注入到儀表板了，見下方遷移說明）。
 
-`artifact_urls.json`：跨頁連結設定（`nav_bar.py`也讀這份）。目前留空，五個頁面（chart/底下）
+`artifact_urls.json`：跨頁連結設定（`nav_bar.py`也讀這份）。目前留空，三個頁面（chart/底下）
 互為同資料夾的相對路徑連結（GitHub Pages同站託管的緣故）。只有想改回發布到Claude Artifact
 （各頁各自獨立網址）時才需要填值。
 
-### 第四個功能：因子篩選框架（factor_screening.py）
-跟儀表板/驗證報告/定義手冊並列的第四個功能（首頁是入口，不算功能本身），2026-07-28新增。
+### 驗證報告與定義手冊的遷移（2026-07-30）
+使用者要求把「驗證報告」「定義手冊」兩頁從導覽列拿掉，但不是單純刪除內容，而是各自遷移：
+- **驗證報告**：`factor_validation_analysis.py`本身沒刪、沒搬——`factor_screening.py`對它有
+  ~20處`import factor_validation_analysis as fva`的依賴（`FACTOR_COLS`/`correlation_heatmap_base64`/
+  `non_overlapping_ic`等），這支檔案繼續當函式庫用，只是`main()`(產生report網頁)不再被
+  `update-and-deploy.yml`呼叫。裡面的「因子相關係數矩陣」改造成因子篩選平台的隨選功能
+  （見上方`correlation-matrix.yml`說明）——直接重用`correlation_heatmap_base64()`這個通用函式
+  （吃任意DataFrame + `{欄位名:label}`字典），不用重寫。已產生好的`chart/factor_validation_report.html`
+  保留在原地，只是不再進導覽列、不再每日自動重新產生（使用者決定：檔案本身當備份留著即可）。
+- **定義手冊**：`generate_manual.py`改名`generate_hub.py`，manual.html的產生邏輯整段刪掉，
+  只留首頁(index.html)產生邏輯。手冊裡跟儀表板重複的內容（`explain`文字）本來就跟儀表板
+  同一個JSON來源，不用搬；手冊獨有的公式(`formula_tpl`)/參數調校筆記(`tuning_note`)/程式
+  位置(`code_location`)這三項，2026-07-30起補進`update_dashboard.py`的`FACTOR_DEFS`注入
+  （原本只有手冊會讀這三個欄位），折進儀表板每張分項卡片既有的「計算邏輯與資料來源」
+  說明面板；跨因子的「資料來源明細」「為何用百分位」內容折進gauge卡片既有的「綜合分數的
+  計算邏輯與可信度」說明面板。**手冊裡的互動試算器直接移除、沒有搬到別的地方**（使用者
+  明確決定）。`chart/manual.html`檔案本身也保留在原地，只是不再進導覽列、不再自動重新產生。
+
+### 因子篩選框架（factor_screening.py）
+跟儀表板並列的獨立功能（首頁是入口，不算功能本身），2026-07-28新增。除了測試新候選因子，
+2026-07-30起也承接了原本驗證報告頁「因子相關係數矩陣」的隨選版本（見上方
+`correlation-matrix.yml`說明）。
 目的：之後想到新的候選因子，
 填一張設定表餵進去，自動跑五道關卡判定該不該加入正式的七因子綜合分數，不用每次重新手動分析。
 
@@ -194,19 +229,20 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
   不是短代號——不要誤用成`{短代號: score_col}`去查表，兩個方向搞反會讓相關係數關卡整個失效
   卻不會報錯（比對到不存在的欄位名，迴圈直接空跑過去）。
 
-### 共用模組（避免五個頁面各自維護一份、互相漂移）
-- `nav_bar.py`：五個頁面共用的頂部導覽列（`render_nav_bar(active_key)` + `NAV_BAR_CSS`）。
+### 共用模組（避免各頁面各自維護一份、互相漂移）
+- `nav_bar.py`：三個頁面共用的頂部導覽列（`render_nav_bar(active_key)` + `NAV_BAR_CSS`）。
   **非sticky**——原本做成sticky+吸附頂端，使用者實際用過後反而要求拿掉、改成跟著頁面內容
   一起捲動，四角全圓角、固定寬度置中——改動前先確認這個決定沒有被推翻。CSS自己帶一份
-  獨立淺色/深色配色，不依賴各頁面自己的CSS變數系統。
-- `page_style.py`：五個頁面共用的排版基準數值（2026-07-29統一）——內容欄寬度`1120px`、
-  body行高`1.6`、h1字級`32px`、說明段落可讀寬度`68ch`，加上儀表板/手冊/首頁三個有深色模式
-  頁面共用的`:root`色彩變數(`ROOT_COLORS_CSS`)。**這不是要五頁共用同一份CSS選擇器**——
-  各頁DOM結構本來就不同，選擇器名稱不用強求一致，這支模組解決的是「同一個概念要用同一個
-  數字」。`factor_validation_analysis.py`的`REPORT_CSS`跟`factor_screening.py`的
+  獨立淺色/深色配色，不依賴各頁面自己的CSS變數系統。`PAGES`清單2026-07-30從5筆縮成3筆
+  （拿掉report/manual），改動時注意這是全站唯一的nav來源，改一次全站生效。
+- `page_style.py`：各頁面共用的排版基準數值（2026-07-29統一）——內容欄寬度`1120px`、
+  body行高`1.6`、h1字級`32px`、說明段落可讀寬度`68ch`，加上儀表板/首頁有深色模式頁面共用
+  的`:root`色彩變數(`ROOT_COLORS_CSS`)。**這不是要各頁共用同一份CSS選擇器**——各頁DOM結構
+  本來就不同，選擇器名稱不用強求一致，這支模組解決的是「同一個概念要用同一個數字」。
+  `factor_validation_analysis.py`的`REPORT_CSS`跟`factor_screening.py`的
   `render_registry_index()`各自有獨立的`<style>`區塊（後者**沒有**共用`REPORT_CSS`，
   是這次踩到的一個坑：一開始以為改`REPORT_CSS`會連動過去，實測才發現沒有，兩處都要記得改）。
-  驗證報告/篩選平台目前沒有深色模式，這是刻意的，還沒補（使用者2026-07-29明確說先不補）。
+  因子篩選平台目前沒有深色模式，這是刻意的，還沒補（使用者2026-07-29明確說先不補）。
 - `transform_modes.py`：六種因子轉換模式、資料來源解析(`_resolve_source`)、候選分數計算
   (`build_candidate_score`)——原本定義在`factor_screening.py`裡，2026-07-29抽出來獨立成模組。
   **原因**：`update_dashboard.py`要用同一套邏輯重算「升等候選因子」的分數（見下方），但
@@ -215,19 +251,29 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
   邏輯，兩邊都能安全import。抓新資料(yahoo/fred)的能力故意用依賴注入(`fetch_yahoo`/`fetch_fred`
   參數)而不是直接import`update_dashboard`裡的抓取函式，避免二次循環依賴。
 
-### 因子升等路徑：從篩選平台到儀表板（2026-07-29新增）
+### 因子升等/退回路徑：篩選平台 ↔ 儀表板（2026-07-29新增升等，2026-07-30補上退回）
 因子篩選平台驗證過的候選因子，可以在報告頁點「升等為可選因子」按鈕，讓它同時出現在
 (a) 儀表板一張獨立分項卡片（標示「候選因子」，**不計入官方七因子綜合分數**）跟
-(b) 儀表板「自訂權重」區塊的可選清單裡。
+(b) 儀表板「自訂權重」區塊的可選清單裡。登記簿頁（`screening_index.html`）已升等的因子
+那一列會顯示「已升等」徽章＋「退回」按鈕，可以把因子從儀表板整個移除（雙向、不是單向）。
 - `promoted_candidate_factors.json`：升等暫存清單，跟`factor_definitions.json`（官方七因子
   唯一事實來源）**刻意分開存放**，不會污染到官方定義。格式(`key`/`label`/`mode`/`sources`/
   `params`/`invert`)跟因子篩選平台的candidate config一致。
-- `scripts/promote_factor.py`：寫入/更新這份清單裡對應`key`的條目，由`promote-factor.yml`
-  呼叫，也可以本機手動測試。
+- `scripts/promote_factor.py`：`--config-json`寫入/更新這份清單裡對應`key`的條目（升等），
+  `--remove KEY`移除對應條目（退回，Phase 6新增，跟`--config-json`互斥、擇一必填）。由
+  `promote-factor.yml`依`workflow_dispatch`傳入`config_json`或`remove_key`哪個有值分流呼叫，
+  也可以本機手動測試。
+- `factor_screening.py`的`--rebuild-index`模式（Phase 6新增）：只重新產生`screening_index.html`、
+  不重跑任何因子測試，用來刷新「已升等」徽章狀態。`promote-factor.yml`的升等跟退回兩條路徑
+  跑完`update_dashboard.py`之後都會呼叫這個——**這是補上的一個既有缺口**：原本升等流程完全
+  不會刷新登記簿頁，導致這頁的nav bar/樣式修正沒跟上過好幾次，2026-07-30起兩條路徑都會
+  自動刷新，不會再脫節。
 - `update_dashboard.py`的`compute_promoted_factors(df, out)`：讀這份清單，對每個因子用
   **完整歷史**(含5年百分位暖身期，理由同因子篩選平台的坑——不能用裁切過的`out`去算)重算
   分數與原始資料序列，注入前端`DATA`。單一因子算失敗只跳過那個因子、印警告，不會讓整個
-  儀表板產生失敗（`try/except`包住每個因子）。
+  儀表板產生失敗（`try/except`包住每個因子）。刪除清單裡的條目、重新產生一次，該因子就會
+  乾淨地從儀表板整個消失，不會有殘留狀態（`factor_definitions.json`、
+  `factor_screening_registry.json`都不受影響，見上方遷移說明的驗證方式）。
 
 ### 儀表板進階互動功能（`chart/dashboard_template.html`）
 - **自訂權重**（Phase 2/3，2026-07-29）：七個官方因子（加上任何已升等的候選因子）各自
@@ -236,6 +282,18 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
   gauge/比較列（這是刻意的設計決策——避免使用者以為多了一組「官方」數字）。可以用
   localStorage命名儲存/套用/刪除自己的權重組合（`bond_fg_custom_weight_presets_v1`），
   固定顯示「僅存於本裝置瀏覽器」提示。
+- **情境動態權重併入自訂權重**（Phase 6，2026-07-30）：原本「情境加權分數」是主圖上獨立
+  的紫色虛線+自己的checkbox，跟自訂權重是兩套互不相干的東西。使用者要求合併：自訂權重
+  面板新增「套用目前情境動態權重」按鈕，點下去把`REGIME_META.weight_by_regime[今天所屬
+  的Fed循環階段]`的權重值當作**起始值**帶入滑桿（候選因子跟Put/Call不在情境權重表裡，
+  給該情境當下最低權重同等的保守值），套用後使用者仍可自行拖曳任何滑桿繼續微調——這不是
+  再做一條獨立的動態線，是把情境權重表當成自訂權重的一個「智慧預設」。主圖現在只剩一條
+  自訂/情境共用的疊加線，原本寫死`series[1]`的`#regimeToggle`已移除。
+- **全面線條開關**（Phase 6，2026-07-30）：`buildChart()`新增`setEventsVisible(v)`方法，
+  主圖新增「顯示事件標記線」整體開關；每張分項卡片的分數線本身、以及多線原始數據圖（例如
+  強度卡的NQ期貨/252日高點/252日低點三條線）都補上各自的checkbox（沿用既有的
+  `.overlay-toggle`樣式），維持預設全部可見。已經有開關的線（UST10Y疊加線、自訂/情境
+  疊加線）維持原樣沒動。
 - **事件行事曆**（Phase 5，2026-07-29）：`event_calendar.json`（FOMC/CPI/NFP等總經事件，
   手動維護的靜態清單，欄位跟資料來源無關，方便以後換成串接外部API）。主圖表疊加事件垂直
   標記線；頁面右側新增可獨立捲動的事件時間軸side rail（`.page-shell`兩欄式版面）。
@@ -249,8 +307,12 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
 
 ### 其他檔案說明
 - `regime_lib.py`：情境（Fed利率循環）分類共用邏輯。
-- `regime_weights_v1.json`：情境加權分數（實驗性）的凍結權重快照，只在手動執行
+- `regime_weights_v1.json`：情境動態權重的凍結權重快照，只在手動執行
   `derive_regime_weights.py` 時才會重新產生——不是每天自動算，不會被daily workflow動到。
+  2026-07-30起這份權重表用途改成「套用進自訂權重面板的滑桿起始值」，不再是獨立的一條線
+  （見上方「儀表板進階互動功能」）。
+- `scripts/generate_correlation_matrix.py`：因子相關係數矩陣的隨選產生腳本（Phase 7新增），
+  由`correlation-matrix.yml`呼叫，直接重用`factor_validation_analysis.correlation_heatmap_base64()`。
 - `data_input.xlsx`：使用者手動輸入/覆蓋的原始資料（例如Put/Call），填的值優先於自動抓取。
 
 ### 不是正式pipeline的一部分、但保留在repo裡的探索性工具

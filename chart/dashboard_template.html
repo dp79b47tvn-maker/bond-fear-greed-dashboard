@@ -196,6 +196,11 @@
   .exp-tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--series-4);
     background: color-mix(in srgb, var(--series-4) 14%, transparent); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: middle; }
   .cw-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .cw-regime-preset { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cw-regime-preset-btn { padding: 8px 14px; border: 1px solid var(--series-3); border-radius: 8px; background: transparent;
+    color: var(--series-3); font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .cw-regime-preset-btn:hover { background: color-mix(in srgb, var(--series-3) 12%, transparent); }
+  .cw-regime-preset-hint { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
   .cw-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
   .cw-row { display: grid; grid-template-columns: 150px 1fr 34px; align-items: center; gap: 12px; }
   .cw-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-primary); cursor: pointer; user-select: none; }
@@ -292,14 +297,27 @@
     <div class="logic-panel">
       <b>怎麼算：</b>綜合分數 = 七個分項（動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外）各自0–100分的<b>等權重算術平均</b>；
       某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。<br>
-      <b>各分項為何是0–100：</b>除「強度」本身就是區間位置比例外，其餘分項都是把當天原始數值放進<b>過去5年的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
-      百分位法的好處是不受單位與量級影響，任何指標都能公平地放在同一把尺上平均。<br>
-      <b>資料來源與更新：</b>Yahoo Finance（ZN=F、NQ=F、TLT、SHY、^MOVE 每日收盤價）、Treasury.gov（每日殖利率曲線官方數據）、FRED聖路易斯聯邦準備銀行（CPI、10年期損益兩平通膨率）、使用者Excel輸入（put/call等自備數據，來源可自行驗證）。
+      <b>各分項為何是0–100（核心機制：滾動百分位）：</b>除「強度」本身就是區間位置比例外，其餘分項都是把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
+      公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。<br>
+      <b>資料來源明細：</b>
+      <table class="method-table">
+        <tr><th>欄位</th><th>代號</th><th>來源</th><th>可回溯到</th><th>說明</th></tr>
+        <tr><td class="mono">ZN_futures</td><td class="mono">ZN=F</td><td>Yahoo Finance</td><td>2000-09</td><td>10年期美債期貨收盤價，可與CME官網核對。</td></tr>
+        <tr><td class="mono">NQ_futures</td><td class="mono">NQ=F</td><td>Yahoo Finance</td><td>2000-09</td><td>那斯達克100期貨。</td></tr>
+        <tr><td class="mono">TLT</td><td class="mono">TLT</td><td>Yahoo Finance</td><td>2002-07</td><td>20年期以上美債ETF（長天期）。</td></tr>
+        <tr><td class="mono">SHY</td><td class="mono">SHY</td><td>Yahoo Finance</td><td>2002-07</td><td>1-3年期美債ETF（短天期）。</td></tr>
+        <tr><td class="mono">MOVE_index</td><td class="mono">^MOVE</td><td>Yahoo Finance</td><td>2002-11</td><td>債券市場波動度指數（債市的VIX）。</td></tr>
+        <tr><td class="mono">UST_10Yr</td><td class="mono">10 Yr</td><td>Treasury.gov</td><td>更早</td><td>10年期公債殖利率，美國財政部官方資料。</td></tr>
+        <tr><td class="mono">UST_2Yr</td><td class="mono">2 Yr</td><td>Treasury.gov</td><td>更早</td><td>2年期公債殖利率，官方資料。</td></tr>
+        <tr><td class="mono">CPI_index</td><td class="mono">CPIAUCSL</td><td>FRED</td><td>1947</td><td>消費者物價指數，聯準會體系官方資料。</td></tr>
+        <tr><td class="mono">Breakeven_10Y</td><td class="mono">T10YIE</td><td>FRED</td><td>2003</td><td>10年期損益兩平通膨率，市場對未來通膨的定價，官方資料。</td></tr>
+        <tr><td class="mono">put_call_ratio</td><td>（無）</td><td>使用者Excel輸入</td><td>無資料</td><td>選擇權賣權/買權比率，無免費歷史來源，全程顯示無資料、不填假值。</td></tr>
+      </table>
       每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
       <b>禁止引用未來資料：</b>所有滾動計算（125日均線、252日高低、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
       每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
       <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。<br>
-      <b>實驗性功能：</b>下方「綜合指數歷史時間軸」可以額外打開一條「情境加權分數」虛線——不是取代這裡的等權重分數，是用來觀察「依Fed利率循環動態調整因子權重」這個實驗性做法，跟現行做法差多少。詳情見該圖表下方的說明按鈕。
+      <b>實驗性功能：</b>下方「自訂權重」卡片裡的「套用目前情境動態權重」按鈕，可以把依Fed利率循環動態校準的權重帶入自訂權重滑桿——不是取代這裡的等權重分數，是用來觀察這個實驗性做法跟現行做法差多少。詳情見該卡片的說明按鈕。
     </div>
   </div>
 
@@ -312,12 +330,17 @@
       <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是七項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
       當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
       純前端即時運算，不會回饋到儀表板或任何報告；設定可以選擇性存到瀏覽器本機（見下方「儲存目前設定」），不存的話重新整理頁面就恢復預設。
+      <div id="regimePresetExplain"></div>
     </div>
     <label class="overlay-toggle" id="customModeToggleWrap">
       <input type="checkbox" id="customModeToggle">
       啟用自訂模式（在下方走勢圖疊加一條虛線）
     </label>
     <div class="cw-panel" id="customWeightPanel" style="display:none">
+      <div class="cw-regime-preset" id="cwRegimePresetWrap" style="display:none">
+        <button class="cw-regime-preset-btn" type="button" id="applyRegimeBtn">套用目前情境動態權重</button>
+        <span class="cw-regime-preset-hint">依目前所處的Fed利率循環階段，把歷史校準過的權重帶入下方滑桿當作起點，套用後仍可自行拖曳微調。</span>
+      </div>
       <div class="cw-rows" id="customWeightRows"></div>
       <div class="cw-readout" id="customWeightReadout"></div>
       <div class="cw-presets">
@@ -342,10 +365,6 @@
       <b>互動：</b>直接在圖上點擊或拖下方滑桿、用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
       <b>縮放與平移（所有圖表聯動）：</b>滑鼠滾輪可縮放，按住 Shift 拖曳可框選放大，縮放後直接拖曳可左右平移瀏覽；也可使用上方 1M/3M/6M/1Y/2Y/ALL 快速切換。所有圖表的時間範圍會同步連動。雙擊或按「回到全部時間範圍」可重置。
     </div>
-    <div id="regimeScoreExplainWrap" style="display:none">
-      <button class="logic-btn" type="button" data-target="logic-regime-explain"><span class="i-dot">i</span>紫色虛線是什麼（實驗性）</button>
-      <div class="logic-panel" id="logic-regime-explain"></div>
-    </div>
     <div class="legend">
       <div class="legend-item"><span class="swatch-line" style="background:var(--series-1)"></span>綜合恐懼貪婪分數（左軸）</div>
       <div class="legend-item"><span class="swatch-line" style="background:var(--series-2)"></span>美國10年期公債殖利率（右軸，%）</div>
@@ -355,9 +374,9 @@
       <div class="legend-item"><span class="swatch" style="background:var(--tier-greed); opacity:0.55"></span>貪婪 56–75</div>
       <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-greed); opacity:0.55"></span>極度貪婪 76–100</div>
     </div>
-    <label class="overlay-toggle" id="regimeToggleWrap" style="display:none">
-      <input type="checkbox" id="regimeToggle">
-      <span class="swatch-line" style="background:var(--series-3)"></span>顯示情境加權分數（實驗性，虛線）
+    <label class="overlay-toggle" id="mainEventsToggleWrap" style="display:none">
+      <input type="checkbox" id="mainEventsToggle" checked>
+      顯示事件標記線（FOMC／CPI／NFP）
     </label>
     <div class="chart-wrap">
       <svg id="mainChart" class="main-chart-svg" viewBox="0 0 1140 440" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -425,7 +444,6 @@ const PROMOTED_FACTORS = __PROMOTED_FACTORS_JSON__;
 // 總體經濟事件行事曆(FOMC/CPI/NFP，Phase 5)：[{date, type, title}]，date是ISO字串，
 // 對應資料索引的轉換在下面用跟dateJump一樣的「找第一個>=該日期的交易日」邏輯就地解析。
 const EVENT_CALENDAR = __EVENT_CALENDAR_JSON__;
-const MANUAL_URL = "__LINK_MANUAL__";
 const n = DATA.length;
 const latestIdx = n - 1;
 const dateAt = i => DATA[i].date;
@@ -513,6 +531,7 @@ function buildChart(cfg) {
 
   let viewLo = 0, viewHi = n - 1;
   let secondaryVisible = true;
+  let eventsVisible = true;
   const seriesVisible = series.map(s => s.visible !== false);
   let yMin = 0, yMax = 100;
   let secMin = secondary ? secondary.min : 0, secMax = secondary ? secondary.max : 1;
@@ -654,7 +673,7 @@ function buildChart(cfg) {
     const iStart = Math.max(0, Math.floor(viewLo));
     const iEnd = Math.min(n - 1, Math.ceil(viewHi));
 
-    if (events) {
+    if (events && eventsVisible) {
       events.forEach(ev => {
         if (ev.idx < iStart || ev.idx > iEnd) return;
         const x = xScale(ev.idx);
@@ -845,9 +864,10 @@ function buildChart(cfg) {
 
   function setSecondaryVisible(v) { secondaryVisible = v; secondaryGroup.style.display = v ? "" : "none"; }
   function setSeriesVisible(idx, v) { seriesVisible[idx] = v; redraw(); }
+  function setEventsVisible(v) { eventsVisible = v; redraw(); }
 
   redraw();
-  return { setMarker, setSecondaryVisible, setSeriesVisible, resetView, setView, getView: () => ({ lo: viewLo, hi: viewHi }) };
+  return { setMarker, setSecondaryVisible, setSeriesVisible, setEventsVisible, resetView, setView, getView: () => ({ lo: viewLo, hi: viewHi }) };
 }
 
 // ============ 1. Gauge ============
@@ -1008,8 +1028,7 @@ function renderMainReadout(pt) {
   `;
 }
 
-const hasRegimeScore = DATA.some(d => d.regimeScore != null);
-const customSeriesIdx = hasRegimeScore ? 2 : 1;
+const customSeriesIdx = 1;
 // 自訂權重疊圖線：預設值=官方分數（尚未動過任何滑桿時兩條線完全重疊），啟用自訂模式
 // 或調整權重後由 recomputeCustomScores() 就地改寫這個陣列，再呼叫 setView() 觸發重繪。
 const CUSTOM_SCORES = DATA.map(d => d.score);
@@ -1018,14 +1037,10 @@ const mainChartHandle = buildChart({
   svgEl: mainChart, W: MW, H: MH, M: MM, dateAt,
   yMode: "fixed100",
   zones: ZONES,
-  series: (hasRegimeScore ? [
+  series: [
     { get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 },
-    { get: i => DATA[i].regimeScore, color: "var(--series-3)", width: 1.4, dash: "5 4", visible: false },
-  ] : [
-    { get: i => DATA[i].score, color: "var(--series-1)", width: 1.6 },
-  ]).concat([
     { get: i => CUSTOM_SCORES[i], color: "var(--series-4)", width: 1.6, dash: "3 3", visible: false },
-  ]),
+  ],
   secondary: { get: i => DATA[i].ust10yr, color: "var(--series-2)", min: ustMin, max: ustMax, format: v => v.toFixed(1) + "%" },
   events: EVENTS_RESOLVED.filter(e => !e.isFuture).map(e => ({ idx: e.idx, color: e.meta.color, title: `${e.meta.label} · ${e.title}` })),
   resetBtnEl: document.getElementById("mainZoomReset"),
@@ -1034,36 +1049,23 @@ const mainChartHandle = buildChart({
 });
 allChartHandles.push(mainChartHandle);
 
-// ---- 情境加權分數（實驗性）toggle + 說明 ----
+if (EVENTS_RESOLVED.some(e => !e.isFuture)) {
+  document.getElementById("mainEventsToggleWrap").style.display = "";
+  document.getElementById("mainEventsToggle").addEventListener("change", (e) => mainChartHandle.setEventsVisible(e.target.checked));
+}
+
 function escapeHtml(s) {
   const d = document.createElement("div");
   d.textContent = s;
   return d.innerHTML;
 }
 
-if (hasRegimeScore && REGIME_META) {
-  document.getElementById("regimeToggleWrap").style.display = "";
-  document.getElementById("regimeScoreExplainWrap").style.display = "";
-  const regimeToggle = document.getElementById("regimeToggle");
-  regimeToggle.addEventListener("change", () => mainChartHandle.setSeriesVisible(1, regimeToggle.checked));
-
-  const oosCount = DATA.filter(d => d.date > REGIME_META.freeze_date).length;
-  const factorCount = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).length;
-  const factorNames = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).join("、");
-  const weightRows = Object.entries(REGIME_META.weight_by_regime).map(([regime, w]) =>
-    `<tr><td class="mt-name">${escapeHtml(regime)}</td>` + Object.entries(w).map(([k, v]) => `<td>${escapeHtml(k)} ${(v * 100).toFixed(0)}%</td>`).join("") + `</tr>`
-  ).join("");
-  document.getElementById("logic-regime-explain").innerHTML = `
-    <b>這是什麼：</b>紫色虛線是「情境加權分數」——不是用固定的等權重平均，而是依照目前所處的Fed利率循環階段（升息／暫停／降息），動態調整${escapeHtml(factorNames)}等${factorCount}項因子各自的權重（Put/Call因無歷史資料，暫不納入）。方向邏輯：不同市場情境下，各因子對未來報酬的實際相關性不一樣，讓權重跟著情境調整，理論上應該比固定等權重更準。<br>
-    <b>權重是怎麼決定的：</b>${escapeHtml(REGIME_META.method_description)}<br>
-    <b>權重表（依Fed循環階段）：</b>
-    <table class="method-table"><tr><th>階段</th><th colspan="${factorCount}">各因子權重</th></tr>${weightRows}</table>
-    <b>權重快照凍結日期：</b>${REGIME_META.freeze_date}（用${REGIME_META.derived_from_data_range[0]} ~ ${REGIME_META.derived_from_data_range[1]}的資料推導出來，凍結後不會每天重新校準）。<br>
-    <b>目前樣本外驗證天數：</b>${oosCount}天（凍結日期之後累積的、還沒被權重看過的新資料）。這個天數必須累積到至少幾十天以上，才有一點點參考價值；現在如果天數還很少，代表這條線的可信度還在累積中，<b>請不要單獨依賴這條線做決策</b>，目前正式的判斷依據仍然是等權重的藍線。<br>
-    <b>回測相關性偏高的原因（請務必留意）：</b>回測顯示這條線跟未來報酬的相關性比等權重版本更高，但這主要是因為權重本身就是用「哪個因子在哪個階段跟未來報酬最相關」這件事反推出來的——用同一份資料去測驗證它，本來就會比較好看，這不是獨立驗證的證據。真正有意義的檢驗，要看上面的樣本外天數累積後、<code>validate_regime_weights.py</code> 的結果。<br>
-    <b>為什麼是虛線、預設關閉：</b>這是實驗性功能，用來讓你觀察兩種算法在同一段時間的分歧，不是取代現有指標。之後可以執行 <code>validate_regime_weights.py</code> 檢查樣本外表現。
-  `;
-}
+// ---- 情境動態權重（實驗性）：併入自訂權重面板，見下方 applyRegimePreset() ----
+// 中文權重表label -> 自訂權重面板的因子key，對照 regime_lib.FACTOR_SCORE_COLS
+const REGIME_LABEL_TO_KEY = {
+  "動能": "momentum", "強度": "strength", "存續期間避險": "duration",
+  "波動度": "move", "殖利率曲線形狀": "curve", "通膨意外": "inflation",
+};
 
 // ---- 自訂權重（研究用）：純前端即時運算，不影響上方官方分數/gauge/比較列 ----
 const CUSTOM_WEIGHT_FACTORS = [
@@ -1143,6 +1145,60 @@ customWeightRowsEl.querySelectorAll(".cw-slider").forEach(el => {
 
 const customModeToggle = document.getElementById("customModeToggle");
 const customWeightPanel = document.getElementById("customWeightPanel");
+
+// ---- 套用目前情境動態權重：把regime_weights_v1.json的權重表帶入自訂權重滑桿當起點 ----
+function applyRegimePreset() {
+  if (!REGIME_META) return;
+  const regime = DATA[latestIdx].regimeFed;
+  const table = regime ? REGIME_META.weight_by_regime[regime] : null;
+  if (!table) { alert("目前日期沒有對應的情境權重資料，無法套用。"); return; }
+  const officialFractions = Object.values(table);
+  const floorFraction = Math.min(...officialFractions);
+  CUSTOM_WEIGHT_FACTORS.forEach(f => {
+    const chineseLabel = Object.keys(REGIME_LABEL_TO_KEY).find(label => REGIME_LABEL_TO_KEY[label] === f.key);
+    // Put/Call跟候選因子都不在情境權重表裡(沒有經過同樣的歷史校準)，給該情境當下
+    // 最低權重同等的保守值，而不是編造一個數字。
+    const fraction = chineseLabel ? table[chineseLabel] : floorFraction;
+    customState[f.key] = { included: true, weight: Math.max(1, Math.round(fraction * 100)) };
+  });
+  customWeightRowsEl.querySelectorAll(".cw-include").forEach(el => {
+    el.checked = true;
+    el.closest(".cw-row").classList.remove("cw-excluded");
+  });
+  customWeightRowsEl.querySelectorAll(".cw-slider").forEach(el => {
+    const w = customState[el.dataset.key].weight;
+    el.value = w;
+    customWeightRowsEl.querySelector(`.cw-value[data-key="${el.dataset.key}"]`).textContent = w;
+  });
+  if (!customModeToggle.checked) {
+    customModeToggle.checked = true;
+    customWeightPanel.style.display = "";
+  }
+  mainChartHandle.setSeriesVisible(customSeriesIdx, true);
+  refreshCustomWeight();
+}
+
+if (REGIME_META) {
+  document.getElementById("cwRegimePresetWrap").style.display = "";
+  document.getElementById("applyRegimeBtn").addEventListener("click", applyRegimePreset);
+
+  const oosCount = DATA.filter(d => d.date > REGIME_META.freeze_date).length;
+  const factorCount = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).length;
+  const factorNames = Object.keys(Object.values(REGIME_META.weight_by_regime)[0] || {}).join("、");
+  const weightRows = Object.entries(REGIME_META.weight_by_regime).map(([regime, w]) =>
+    `<tr><td class="mt-name">${escapeHtml(regime)}</td>` + Object.entries(w).map(([k, v]) => `<td>${escapeHtml(k)} ${(v * 100).toFixed(0)}%</td>`).join("") + `</tr>`
+  ).join("");
+  document.getElementById("regimePresetExplain").innerHTML = `
+    <br><b>「套用目前情境動態權重」是什麼：</b>不是用固定的等權重平均，而是依照目前所處的Fed利率循環階段（升息／暫停／降息），把歷史校準過的${escapeHtml(factorNames)}等${factorCount}項因子權重帶入上面的滑桿當起點（Put/Call跟候選因子沒有同樣的歷史校準，套用時給予保守的最低權重）。方向邏輯：不同市場情境下，各因子對未來報酬的實際相關性不一樣，讓權重跟著情境調整，理論上應該比固定等權重更準。套用後你仍可以自行拖曳任何滑桿繼續微調，不會鎖住。<br>
+    <b>權重是怎麼決定的：</b>${escapeHtml(REGIME_META.method_description)}<br>
+    <b>權重表（依Fed循環階段）：</b>
+    <table class="method-table"><tr><th>階段</th><th colspan="${factorCount}">各因子權重</th></tr>${weightRows}</table>
+    <b>權重快照凍結日期：</b>${REGIME_META.freeze_date}（用${REGIME_META.derived_from_data_range[0]} ~ ${REGIME_META.derived_from_data_range[1]}的資料推導出來，凍結後不會每天重新校準）。<br>
+    <b>目前樣本外驗證天數：</b>${oosCount}天（凍結日期之後累積的、還沒被權重看過的新資料）。這個天數必須累積到至少幾十天以上，才有一點點參考價值；現在如果天數還很少，代表這組權重的可信度還在累積中，<b>請不要單獨依賴套用後的分數做決策</b>，正式的判斷依據仍然是上方等權重的官方分數。<br>
+    <b>回測相關性偏高的原因（請務必留意）：</b>回測顯示這組權重跟未來報酬的相關性比等權重版本更高，但這主要是因為權重本身就是用「哪個因子在哪個階段跟未來報酬最相關」這件事反推出來的——用同一份資料去測驗證它，本來就會比較好看，這不是獨立驗證的證據。真正有意義的檢驗，要看上面的樣本外天數累積後、<code>validate_regime_weights.py</code> 的結果。
+  `;
+}
+
 customModeToggle.addEventListener("change", () => {
   customWeightPanel.style.display = customModeToggle.checked ? "" : "none";
   mainChartHandle.setSeriesVisible(customSeriesIdx, customModeToggle.checked);
@@ -1367,6 +1423,7 @@ COMPONENTS.forEach(comp => {
       <div class="comp-title-block">
         <div class="comp-kicker">${def.kicker}</div>
         <h2>${def.name}</h2>
+        ${dataAvailable ? `<label class="overlay-toggle"><input type="checkbox" class="score-line-toggle" checked><span class="swatch-line" style="background:var(--series-1)"></span>顯示${def.name}分數線</label>` : ""}
         ${dataAvailable ? `<label class="overlay-toggle"><input type="checkbox" class="ust-toggle" checked>疊加美國10年期公債殖利率（右軸，%）</label>` : ""}
       </div>
       <div class="comp-score-block">
@@ -1396,9 +1453,13 @@ COMPONENTS.forEach(comp => {
     <div class="logic-btn-row">
       <button class="logic-btn" type="button" data-target="logic-explain-${comp.key}"><span class="i-dot">i</span>計算邏輯與資料來源</button>
       ${dataAvailable && comp.rawChart ? `<button class="logic-btn" type="button" data-target="logic-rawchart-${comp.key}"><span class="i-dot">i</span>查看原始走勢圖</button>` : ""}
-      <a class="logic-btn" href="${MANUAL_URL}#factor-${comp.key}" target="_blank"><span class="i-dot">→</span>完整定義手冊</a>
     </div>
-    <div class="logic-panel" id="logic-explain-${comp.key}">${def.explain}</div>
+    <div class="logic-panel" id="logic-explain-${comp.key}">
+      ${def.explain}
+      ${def.formula ? `<br><b>公式：</b><span class="mono">${def.formula}</span>` : ""}
+      ${def.tuningNote ? `<br><b>可調參數：</b>${def.tuningNote}` : ""}
+      ${def.codeLocation ? `<br><b>程式位置：</b><span class="mono">${def.codeLocation}</span>` : ""}
+    </div>
     ${dataAvailable && comp.rawChart ? `
     <div class="logic-panel" id="logic-rawchart-${comp.key}">
       <div class="raw-chart-legend"></div>
@@ -1457,6 +1518,9 @@ COMPONENTS.forEach(comp => {
   });
   allChartHandles.push(scoreChart);
 
+  const scoreLineToggle = card.querySelector(".score-line-toggle");
+  scoreLineToggle.addEventListener("change", () => scoreChart.setSeriesVisible(0, scoreLineToggle.checked));
+
   const ustToggle = card.querySelector(".ust-toggle");
   ustToggle.addEventListener("change", () => scoreChart.setSecondaryVisible(ustToggle.checked));
 
@@ -1494,8 +1558,8 @@ COMPONENTS.forEach(comp => {
     const rawTooltip = rawPanel.querySelector(".comp-tooltip");
     const legendEl = rawPanel.querySelector(".raw-chart-legend");
 
-    legendEl.innerHTML = rc.series.map(s =>
-      `<div class="legend-item"><span class="swatch-line" style="background:${s.color}"></span>${s.label}</div>`
+    legendEl.innerHTML = rc.series.map((s, idx) =>
+      `<label class="overlay-toggle raw-line-toggle" data-idx="${idx}"><input type="checkbox" checked><span class="swatch-line" style="background:${s.color}"></span>${s.label}</label>`
     ).join("");
 
     const rawChart = buildChart({
@@ -1517,6 +1581,11 @@ COMPONENTS.forEach(comp => {
     });
     allChartHandles.push(rawChart);
     compUpdaters.push((idx) => rawChart.setMarker(idx));
+
+    legendEl.querySelectorAll(".raw-line-toggle").forEach(lbl => {
+      const idx = parseInt(lbl.dataset.idx, 10);
+      lbl.querySelector("input").addEventListener("change", (e) => rawChart.setSeriesVisible(idx, e.target.checked));
+    });
   }
 });
 

@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-五個對外頁面(首頁/儀表板/驗證報告/定義手冊/因子篩選平台)共用的頂部導覽列。
+三個對外頁面(首頁/儀表板/因子篩選平台)共用的頂部導覽列。
 
-背景：這五個頁面由四支各自獨立的腳本產生(update_dashboard.py、generate_manual.py、
-factor_validation_analysis.py、factor_screening.py)，先前各自手刻了一份不一致、也
-不完整的nav(儀表板漏了因子篩選平台的連結；驗證報告跟因子篩選頁都只有「回首頁」一個
-連結)，而且都不是sticky、捲動就不見了。這支模組讓五個頁面共用同一份HTML/CSS，不會
-再各自漂移。
+背景：這三個頁面由兩支各自獨立的腳本產生(update_dashboard.py、factor_screening.py，
+首頁則由generate_hub.py產生)，先前各自手刻了一份不一致、也不完整的nav，而且都不是
+sticky、捲動就不見了。這支模組讓所有頁面共用同一份HTML/CSS，不會再各自漂移。
 
-CSS故意不吃各頁面自己的CSS變數——儀表板/manual.html的變數命名不一致(--series-1 vs
---accent)，factor_validation_analysis.py跟factor_screening.py甚至完全沒有CSS變數、
-沒有深色模式支援。這裡自己帶一份獨立的淺色/深色配色(取自儀表板既有色票)，不管插進
-哪個頁面都長一樣、都能正常運作，不需要先把五個頁面的變數系統統一。
+2026-07-30：原本的「驗證報告」「定義手冊」兩頁從導覽列拿掉(內容遷移，見AGENTS.md)——
+驗證報告的相關係數矩陣改成因子篩選平台裡的隨選功能；定義手冊裡跟儀表板重複/該屬於
+儀表板的內容折回儀表板各分項卡片的說明面板，互動試算器直接移除。
+factor_validation_analysis.py本身沒刪，繼續當factor_screening.py的函式庫用；
+factor_validation_report.html也還在chart/裡，只是不再進導覽列、不再每日自動重新產生。
+
+CSS故意不吃各頁面自己的CSS變數——儀表板的變數命名(--series-1)跟factor_screening.py
+完全沒有CSS變數、沒有深色模式支援。這裡自己帶一份獨立的淺色/深色配色(取自儀表板既有
+色票)，不管插進哪個頁面都長一樣、都能正常運作，不需要先把所有頁面的變數系統統一。
 
 nav本身固定own max-width、置中、四角全圓角、非sticky(跟著頁面內容捲動，不吸在頂端)——
-故意不吃各頁面`.wrap`/`.viz-root`自己的max-width(980/1080/880/1180px不等)，不然
-同一份nav在不同頁面上會看起來寬度不一致。
+故意不吃各頁面`.wrap`/`.viz-root`自己的max-width，不然同一份nav在不同頁面上會看起來
+寬度不一致。
 
 用法：
     from nav_bar import render_nav_bar, NAV_BAR_CSS
@@ -28,8 +31,6 @@ import os
 PAGES = [
     ("hub", "首頁", "index.html"),
     ("dashboard", "儀表板", "dashboard.html"),
-    ("report", "驗證報告", "factor_validation_report.html"),
-    ("manual", "定義手冊", "manual.html"),
     ("screening", "因子篩選平台", "screening_index.html"),
 ]
 

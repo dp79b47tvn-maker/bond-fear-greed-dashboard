@@ -1,7 +1,5 @@
 {
-  "_readme": "各產出頁面之間的跨頁連結設定。留空值時,程式會退回同資料夾的相對路徑連結(dashboard.html/manual.html/factor_validation_report.html/index.html皆為chart/底下的同層檔案)——這是GitHub Pages正式站的運作方式。若之後又想改回發布到Claude Artifact(各自獨立網址),把對應網址填回這裡即可。",
+  "_readme": "各產出頁面之間的跨頁連結設定。留空值時,程式會退回同資料夾的相對路徑連結(dashboard.html/screening_index.html/index.html皆為chart/底下的同層檔案)——這是GitHub Pages正式站的運作方式。若之後又想改回發布到Claude Artifact(各自獨立網址),把對應網址填回這裡即可。2026-07-30起驗證報告與定義手冊頁已從導覽列移除(內容遷移，見AGENTS.md)，故拿掉report/manual兩個key。",
   "dashboard": "",
-  "report": "",
-  "manual": "",
   "hub": ""
 }

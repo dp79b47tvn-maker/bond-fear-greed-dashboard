@@ -936,7 +936,47 @@ def render_screening_report(result):
 
 
 
+def _load_promoted_keys():
+    """讀promoted_candidate_factors.json，回傳目前已升等的因子key集合，供登記簿頁
+    標示「已升等」徽章＋退回按鈕。檔案不存在就回傳空集合，不報錯。"""
+    if not os.path.exists("promoted_candidate_factors.json"):
+        return set()
+    with open("promoted_candidate_factors.json", encoding="utf-8") as f:
+        staged = json.load(f)
+    return {f["key"] for f in staged.get("factors", [])}
+
+
+def _load_promoted_factors_list():
+    """讀promoted_candidate_factors.json，回傳完整的候選因子清單(key+label)，
+    供相關係數矩陣的勾選清單使用(不像_load_promoted_keys()只回傳key集合)。"""
+    if not os.path.exists("promoted_candidate_factors.json"):
+        return []
+    with open("promoted_candidate_factors.json", encoding="utf-8") as f:
+        staged = json.load(f)
+    return staged.get("factors", [])
+
+
+def _corr_factor_options():
+    """相關係數矩陣勾選清單的選項：官方七項(score_col對照factor_definitions.json，
+    跟factor_validation_analysis.FACTOR_COLS用同一套欄位命名) + 目前已升等的候選因子
+    (欄位命名固定是promoted_{key}_score，見update_dashboard.py的compute_promoted_factors())。"""
+    options = [
+        {"value": fx["score_col"], "label": fx["name_tpl"].split(" ")[0], "kind": "official"}
+        for fx in ud.DEFS["factors"]
+    ]
+    options += [
+        {"value": f"promoted_{pf['key']}_score", "label": f"{pf['label']}（候選）", "kind": "candidate"}
+        for pf in _load_promoted_factors_list()
+    ]
+    return options
+
+
 def render_registry_index(registry):
+    promoted_keys = _load_promoted_keys()
+    corr_factor_checkboxes = "".join(
+        f'<label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="{opt["value"]}" checked>{opt["label"]}</label>'
+        for opt in _corr_factor_options()
+    )
     rows = ""
     for e in reversed(registry):
         gp = e.get("gates_passed", "無法判斷")
@@ -944,6 +984,12 @@ def render_registry_index(registry):
         verdict_cls = ("verdict-keep" if n_j != "0" and int(n_p) == int(n_j)
                         else "verdict-watch" if n_j != "0" and int(n_p) >= int(n_j) / 2
                         else "verdict-cut")
+        is_promoted = e["key"] in promoted_keys
+        promote_cell = (
+            f'<span class="promoted-badge">已升等</span> '
+            f'<button class="demote-btn" type="button" onclick="demoteFactor(this, \'{e["key"]}\', \'{e["label"]}\')">退回</button>'
+            if is_promoted else '<span class="na">—</span>'
+        )
         rows += f"""<tr>
           <td>{e["test_date"]}</td>
           <td><a class="factor-link" href="screening_{e['key']}.html" onclick="loadReport('screening_{e['key']}.html', '{e['label']}'); return false;">{e['label']}</a></td>
@@ -952,6 +998,7 @@ def render_registry_index(registry):
           <td>{e.get('pattern_tag', '—')}</td>
           <td>{gp}</td>
           <td class="{verdict_cls}">{e['final_verdict']}</td>
+          <td>{promote_cell}</td>
         </tr>"""
 
     n_total = len(registry)
@@ -986,6 +1033,12 @@ def render_registry_index(registry):
   .verdict-watch {{ color:#a6742a; font-weight:700; }}
   .verdict-cut {{ color:#a6362f; font-weight:700; }}
   .na {{ color:#a7adb9; font-style:italic; }}
+  .promoted-badge {{ display:inline-block; font-size:11px; font-weight:700; color:#2f6b4f;
+    background:rgba(47,107,79,0.1); border-radius:999px; padding:3px 10px; white-space:nowrap; }}
+  .demote-btn {{ border:1px solid #dfe2e8; border-radius:6px; background:#fff; color:#a6362f;
+    font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; margin-left:4px; }}
+  .demote-btn:hover {{ border-color:#a6362f; background:rgba(166,54,47,0.06); }}
+  .demote-btn:disabled {{ opacity:.55; cursor:not-allowed; }}
 
   .form-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
   .form-group {{ display:flex; flex-direction:column; gap:6px; }}
@@ -998,6 +1051,8 @@ def render_registry_index(registry):
   input:focus, select:focus {{ border-color:#1e3a5f; }}
   .checkbox-group {{ display:flex; align-items:center; gap:8px; margin-top:4px; }}
   .checkbox-group input {{ width:16px; height:16px; cursor:pointer; }}
+  .corr-factor-grid {{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; }}
+  .corr-check {{ margin-top:0; font-size:13px; font-weight:normal; color:#161a23; cursor:pointer; }}
   .btn-submit {{
     display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer;
   }}
@@ -1159,6 +1214,23 @@ def render_registry_index(registry):
     </form>
   </section>
 
+  <!-- 因子相關係數矩陣（隨選，取代原本驗證報告裡固定範圍的相關矩陣） -->
+  <section class="card">
+    <h2><span class="bar"></span>🔗 產生因子相關係數矩陣</h2>
+    <p class="hint">
+      勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。運算完成後會直接顯示在下方，不用等每日自動報告。
+    </p>
+    <details class="token-box" id="corrTokenDetails">
+      <summary>🔑 GitHub Personal Access Token（跟上面表單共用同一組）</summary>
+      <input type="password" id="corrGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
+    </details>
+    <div class="corr-factor-grid">
+      {corr_factor_checkboxes}
+    </div>
+    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;">📊 產生相關係數矩陣</button>
+    <p class="hint" id="corrStatus" style="margin-top:10px;"></p>
+  </section>
+
   <!-- 運算進度狀態卡片 -->
   <div class="status-card" id="statusCard">
     <div class="spinner" id="statusSpinner"></div>
@@ -1185,8 +1257,8 @@ def render_registry_index(registry):
   <section class="card">
     <h2><span class="bar"></span>歷史測試紀錄登記簿 (點擊名稱可直接在下方展開報告圖表)</h2>
     <table class="data-table">
-      <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th></tr>
-      {rows if rows else "<tr><td colspan='7' class='na'>尚無測試記錄</td></tr>"}
+      <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th><th>儀表板狀態</th></tr>
+      {rows if rows else "<tr><td colspan='8' class='na'>尚無測試記錄</td></tr>"}
     </table>
   </section>
 </div>
@@ -1437,6 +1509,112 @@ def render_registry_index(registry):
       }}
     }}, 10000);
   }}
+
+  async function demoteFactor(btn, key, label) {{
+    if (!confirm(`確定要把「${{label}}」從儀表板退回嗎？\\n這會觸發GitHub Actions直接commit+push到正式站，把它從儀表板的分項卡片與自訂權重選項裡移除。`)) return;
+    let token = localStorage.getItem("gh_pat_token");
+    if (!token) {{
+      token = prompt("請輸入 GitHub Personal Access Token（跟升等按鈕共用同一組）：");
+      if (!token) return;
+      localStorage.setItem("gh_pat_token", token);
+    }}
+    btn.disabled = true;
+    btn.textContent = "退回中...";
+    try {{
+      const resp = await fetch(`https://api.github.com/repos/${{REPO_OWNER}}/${{REPO_NAME}}/actions/workflows/promote-factor.yml/dispatches`, {{
+        method: "POST",
+        headers: {{
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${{token}}`,
+          "Content-Type": "application/json"
+        }},
+        body: JSON.stringify({{ ref: "main", inputs: {{ remove_key: key }} }})
+      }});
+      if (!resp.ok) {{
+        const errText = await resp.text();
+        throw new Error(`GitHub API 錯誤 (${{resp.status}}): ${{errText}}`);
+      }}
+      btn.textContent = "已送出";
+      alert("已送出退回請求，幾分鐘後重新整理這頁即可看到狀態更新。");
+    }} catch (err) {{
+      alert("退回失敗：" + err.message);
+      btn.disabled = false;
+      btn.textContent = "退回";
+    }}
+  }}
+
+  const corrGhTokenInput = document.getElementById("corrGhToken");
+  const savedCorrToken = localStorage.getItem("gh_pat_token");
+  if (savedCorrToken) {{
+    corrGhTokenInput.value = savedCorrToken;
+  }} else {{
+    document.getElementById("corrTokenDetails").open = true;
+  }}
+
+  document.getElementById("corrSubmitBtn").addEventListener("click", async () => {{
+    const token = corrGhTokenInput.value.trim();
+    const statusEl = document.getElementById("corrStatus");
+    const btn = document.getElementById("corrSubmitBtn");
+    const keys = Array.from(document.querySelectorAll(".corr-factor:checked")).map(el => el.value);
+    if (keys.length < 2) {{
+      alert("至少要勾選兩個因子才能算相關係數矩陣！");
+      return;
+    }}
+    if (!token) {{
+      alert("請先填寫 GitHub Personal Access Token（PAT）！");
+      document.getElementById("corrTokenDetails").open = true;
+      corrGhTokenInput.focus();
+      return;
+    }}
+    localStorage.setItem("gh_pat_token", token);
+    btn.disabled = true;
+    statusEl.textContent = "已送出請求，GitHub Actions 正在計算相關係數矩陣並產生熱力圖...";
+    try {{
+      const resp = await fetch(`https://api.github.com/repos/${{REPO_OWNER}}/${{REPO_NAME}}/actions/workflows/correlation-matrix.yml/dispatches`, {{
+        method: "POST",
+        headers: {{
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${{token}}`,
+          "Content-Type": "application/json"
+        }},
+        body: JSON.stringify({{ ref: "main", inputs: {{ factor_keys: keys.join(",") }} }})
+      }});
+      if (!resp.ok) {{
+        const errText = await resp.text();
+        throw new Error(`GitHub API 錯誤 (${{resp.status}}): ${{errText}}`);
+      }}
+      statusEl.textContent = "已成功送出，正在等待報告產生（約1-2分鐘）...";
+      pollForCorrelationMatrix();
+    }} catch (err) {{
+      statusEl.textContent = "送出失敗：" + err.message;
+      btn.disabled = false;
+    }}
+  }});
+
+  function pollForCorrelationMatrix() {{
+    const reportUrl = `correlation_matrix.html?t=${{Date.now()}}`;
+    const statusEl = document.getElementById("corrStatus");
+    const btn = document.getElementById("corrSubmitBtn");
+    let attempts = 0;
+    const maxAttempts = 24;
+    const interval = setInterval(async () => {{
+      attempts++;
+      try {{
+        const resp = await fetch(reportUrl, {{ method: "HEAD", cache: "no-store" }});
+        if (resp.status === 200) {{
+          clearInterval(interval);
+          statusEl.textContent = "🎉 相關係數矩陣已產生，顯示於下方。";
+          btn.disabled = false;
+          loadReport(reportUrl, "因子相關係數矩陣");
+        }}
+      }} catch (e) {{}}
+      if (attempts >= maxAttempts) {{
+        clearInterval(interval);
+        statusEl.textContent = "等待逾時：請稍後重新整理頁面查看結果。";
+        btn.disabled = false;
+      }}
+    }}, 10000);
+  }}
 </script>
 </body>
 </html>"""
@@ -1451,20 +1629,33 @@ def screen_and_save(config):
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_html)
     registry = append_to_registry(result)
-    index_html = render_registry_index(registry)
-    with open(os.path.join(CHART_DIR, "screening_index.html"), "w", encoding="utf-8") as f:
-        f.write(index_html)
+    rebuild_index()
     print(f"\n完成！{result['final_verdict']}")
     print(f"報告：{report_path}")
     print(f"登記簿：{CHART_DIR}/screening_index.html")
     return result
 
 
+def rebuild_index():
+    """只重新產生screening_index.html，不重跑任何因子測試——升等/退回候選因子後
+    用這個刷新登記簿頁的「已升等」徽章跟按鈕狀態，不需要知道任何因子的原始config。"""
+    os.makedirs(CHART_DIR, exist_ok=True)
+    registry = _load_registry()
+    index_html = render_registry_index(registry)
+    with open(os.path.join(CHART_DIR, "screening_index.html"), "w", encoding="utf-8") as f:
+        f.write(index_html)
+    print(f"登記簿已重新產生：{CHART_DIR}/screening_index.html")
+
+
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2:
+    if len(sys.argv) >= 2 and sys.argv[1] == "--rebuild-index":
+        rebuild_index()
+    elif len(sys.argv) < 2:
         print("用法：python3 factor_screening.py <candidate_config.json>")
+        print("      python3 factor_screening.py --rebuild-index")
         sys.exit(1)
-    with open(sys.argv[1], encoding="utf-8") as f:
-        cfg = json.load(f)
-    screen_and_save(cfg)
+    else:
+        with open(sys.argv[1], encoding="utf-8") as f:
+            cfg = json.load(f)
+        screen_and_save(cfg)

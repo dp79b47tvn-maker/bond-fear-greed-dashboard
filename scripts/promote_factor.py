@@ -6,6 +6,7 @@ promoted_candidate_factors.json(跟factor_definitions.json官方七因子唯一�
 
 用法：
     python3 scripts/promote_factor.py --config-json '{"key":"...","label":"...","mode":"...","sources":{...},"params":{...},"invert":false}'
+    python3 scripts/promote_factor.py --remove KEY
 """
 import argparse
 import json
@@ -23,9 +24,30 @@ DEFAULT_README = (
 
 
 def main():
-    parser = argparse.ArgumentParser(description="升等因子篩選候選因子為儀表板可選因子")
-    parser.add_argument("--config-json", type=str, required=True)
+    parser = argparse.ArgumentParser(description="升等/退回因子篩選候選因子（儀表板可選因子）")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--config-json", type=str, help="升等：新增或覆蓋一筆候選因子設定")
+    group.add_argument("--remove", type=str, metavar="KEY", help="退回：依key移除一筆已升等的候選因子")
     args = parser.parse_args()
+
+    if os.path.exists(PROMOTED_PATH):
+        with open(PROMOTED_PATH, encoding="utf-8") as f:
+            staged = json.load(f)
+    else:
+        staged = {"_readme": DEFAULT_README, "factors": []}
+    factors = staged.get("factors", [])
+
+    if args.remove:
+        existing_idx = next((i for i, f in enumerate(factors) if f.get("key") == args.remove), None)
+        if existing_idx is None:
+            print(f"因子代號 '{args.remove}' 不在目前的候選因子清單裡，無需移除")
+            return
+        removed = factors.pop(existing_idx)
+        staged["factors"] = factors
+        with open(PROMOTED_PATH, "w", encoding="utf-8") as f:
+            json.dump(staged, f, ensure_ascii=False, indent=2)
+        print(f"已將「{removed.get('label', args.remove)}」({args.remove}) 從 {PROMOTED_PATH} 移除")
+        return
 
     config = json.loads(args.config_json)
     for required_key in ("key", "label", "mode", "sources"):
@@ -42,13 +64,6 @@ def main():
         "promoted_at": date.today().isoformat(),
     }
 
-    if os.path.exists(PROMOTED_PATH):
-        with open(PROMOTED_PATH, encoding="utf-8") as f:
-            staged = json.load(f)
-    else:
-        staged = {"_readme": DEFAULT_README, "factors": []}
-
-    factors = staged.get("factors", [])
     existing_idx = next((i for i, f in enumerate(factors) if f.get("key") == entry["key"]), None)
     if existing_idx is not None:
         print(f"因子代號 '{entry['key']}' 已存在於暫存清單，用最新設定覆蓋")
