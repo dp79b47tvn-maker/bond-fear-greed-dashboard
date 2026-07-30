@@ -37,6 +37,9 @@ jobs:
       - name: 安裝套件
         run: pip install -r requirements.txt
 
+      - name: 重新產生資料 (bond_fear_greed_v2.csv 未進版控，每次都要現抓)
+        run: python3 update_dashboard.py
+
       - name: 產生相關係數矩陣
         env:
           FACTOR_KEYS: ${{ inputs.factor_keys }}
