@@ -14,7 +14,6 @@
 import json
 from datetime import date
 
-import nav_bar
 import page_style
 
 BASE = __file__.rsplit("/", 1)[0]
@@ -35,10 +34,15 @@ hub_html = f"""<meta charset="utf-8">
   * {{ box-sizing:border-box; }}
   body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:{page_style.BASE_LINE_HEIGHT};
     font-family:{page_style.FONT_FAMILY}; }}
-  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:60px 24px 70px; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:44px 24px 70px; }}
   .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:10px; }}
   h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
-  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 34px; }}
+  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 30px; }}
+  .intro {{ margin-bottom:36px; padding-bottom:32px; border-bottom:1px solid var(--border); }}
+  .intro h2 {{ font-size:15px; font-weight:700; margin:0 0 12px; color:var(--text-primary); }}
+  .intro p {{ font-size:14px; color:var(--text-secondary); line-height:1.8; margin:0 0 12px; }}
+  .intro p:last-child {{ margin-bottom:0; }}
+  .intro b {{ color:var(--text-primary); }}
   .cards {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }}
   a.card {{ display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
     padding:24px 24px 20px; text-decoration:none; color:var(--text-primary); box-shadow:var(--shadow);
@@ -49,13 +53,17 @@ hub_html = f"""<meta charset="utf-8">
   .card p {{ font-size:13px; color:var(--text-secondary); margin:0; }}
   .foot {{ font-size:12px; color:var(--text-muted); margin-top:34px; line-height:1.7; }}
   .mono {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; }}
-  {nav_bar.NAV_BAR_CSS}
 </style>
 <div class="wrap">
-  {nav_bar.render_nav_bar("hub")}
   <div class="kicker">BOND MARKET FEAR &amp; GREED</div>
   <h1>債券市場恐懼貪婪 · 專案首頁</h1>
   <p class="lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。</p>
+  <section class="intro">
+    <h2>這是什麼</h2>
+    <p>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率曲線形狀、波動度（MOVE指數）、避險資金流向、通膨意外程度等{factor_count}項指標，每個交易日收盤後重新計算一次。</p>
+    <p>每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。</p>
+    <p><b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。</p>
+  </section>
   <div class="cards">
     <a class="card" href="{link_dashboard}">
       <div class="ck">LIVE DASHBOARD</div>

@@ -36,13 +36,13 @@ PAGES = [
 
 NAV_BAR_CSS = """
 .site-topnav {
-  display: flex; justify-content: space-between; gap: 2px; flex-wrap: wrap; align-items: center;
-  max-width: 920px; margin: 0 auto 28px; padding: 10px 18px; border-radius: 14px;
+  display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; align-items: center;
+  width: fit-content; margin: 0 auto 28px; padding: 10px 20px; border-radius: 999px;
   background: #ffffff; border: 1px solid #dfe2e8; box-shadow: 0 1px 2px rgba(22,26,35,0.06);
 }
 .site-topnav a, .site-topnav span.active {
   color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
-  padding: 8px 12px; border-radius: 8px; white-space: nowrap;
+  padding: 8px 16px; border-radius: 999px; white-space: nowrap;
 }
 .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; }
 .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.1); }

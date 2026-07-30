@@ -48,11 +48,12 @@
     font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
+  .nav-wrap { max-width: 1400px; margin: 0 auto; padding: 44px 24px 0; }
   .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
-  .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 44px 0 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
+  .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
   .event-rail {
-    flex: 0 0 260px; position: sticky; top: 20px; margin-top: 44px;
-    max-height: calc(100vh - 40px);
+    flex: 0 0 260px; position: sticky; top: 20px; margin-top: 0;
+    max-height: min(calc(100vh - 40px), 900px);
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
     padding: 16px; box-shadow: var(--shadow);
     display: flex; flex-direction: column; min-height: 0;
@@ -73,8 +74,9 @@
   .event-item.future { opacity: 0.6; }
   .event-item.future .event-title i { font-style: normal; color: var(--text-muted); font-size: 10.5px; }
   @media (max-width: 900px) {
+    .nav-wrap { padding: 30px 16px 0; }
     .page-shell { flex-direction: column; padding: 0 16px 40px; }
-    .viz-root { padding-top: 30px; max-width: 100%; }
+    .viz-root { max-width: 100%; }
     .event-rail { position: static; width: 100%; max-height: 320px; margin-top: 20px; flex: none; }
   }
   __NAV_BAR_CSS__
@@ -276,9 +278,11 @@
   .section-heading .count { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
 </style>
 
+<div class="nav-wrap">
+  __NAV_BAR_HTML__
+</div>
 <div class="page-shell">
 <div class="viz-root">
-  __NAV_BAR_HTML__
   <h1>債券市場恐懼貪婪儀表板</h1>
   <p class="subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
   <p class="caption">動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
