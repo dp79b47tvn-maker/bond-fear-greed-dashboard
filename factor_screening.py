@@ -623,6 +623,50 @@ def score_trend_chart_base64(main_df, key, label):
     return fva.fig_to_base64(fig)
 
 
+def fear_greed_overlay_chart_base64(main_df, key, label, fear_threshold=25, greed_threshold=75):
+    """圖1b：ZN期貨價格走勢 + 恐懼/貪婪散點疊圖。
+    在ZN期貨的時間軸上，用綠點標出因子分數<25（極度恐懼）的日子，
+    用紅點標出分數>75（極度貪婪）的日子，讓使用者直觀看到
+    「恐懼/貪婪分別發生在哪個價位、哪個時間點」。"""
+    target = fva.TARGET  # ZN_futures
+    if target not in main_df.columns or key not in main_df.columns:
+        return None
+    price = main_df[target].dropna()
+    score = main_df[key].reindex(price.index)
+    if price.empty or score.dropna().empty:
+        return None
+
+    fear_mask = score < fear_threshold
+    greed_mask = score > greed_threshold
+    n_fear = int(fear_mask.sum())
+    n_greed = int(greed_mask.sum())
+
+    fig, ax = plt.subplots(figsize=(7.6, 3.6), dpi=140)
+
+    # 底層：ZN期貨價格線
+    ax.plot(price.index, price.values, color="#888888", linewidth=0.9, alpha=0.6, zorder=1)
+
+    # 恐懼散點（綠色）
+    if n_fear > 0:
+        fear_dates = price.index[fear_mask.reindex(price.index, fill_value=False)]
+        ax.scatter(fear_dates, price.loc[fear_dates], color="#2f6b4f", s=12, alpha=0.7,
+                   edgecolors="none", zorder=3, label=f"分數<{fear_threshold} 極度恐懼（{n_fear}天）")
+
+    # 貪婪散點（紅色）
+    if n_greed > 0:
+        greed_dates = price.index[greed_mask.reindex(price.index, fill_value=False)]
+        ax.scatter(greed_dates, price.loc[greed_dates], color="#a6362f", s=12, alpha=0.7,
+                   edgecolors="none", zorder=3, label=f"分數>{greed_threshold} 極度貪婪（{n_greed}天）")
+
+    ax.set_ylabel("ZN期貨價格", fontsize=9)
+    ax.set_title(f"{label}：恐懼與貪婪在ZN期貨時間軸上的分布", fontsize=10)
+    ax.legend(fontsize=8, loc="upper left", frameon=False)
+    ax.tick_params(labelsize=8)
+    ax.spines["top"].set_visible(False)
+    fig.tight_layout()
+    return fva.fig_to_base64(fig)
+
+
 def raw_data_chart_base64(config, main_df, label):
     """圖2:原始資料走勢圖。依候選因子選的轉換模式，對應現有七個因子在儀表板上
     各自第二張圖的呈現邏輯(例如動能秀ZN期貨+125日均線、殖利率曲線形狀秀
@@ -699,14 +743,16 @@ def render_screening_report(result):
 
     sections = []
 
-    # 圖1+圖2固定放最前面,不管五道關卡跑得如何都會顯示(只要main_df算得出來)
+    # 圖1+圖1b+圖2固定放最前面,不管五道關卡跑得如何都會顯示(只要main_df算得出來)
     if main_df is not None:
         score_chart = score_trend_chart_base64(main_df, key, label)
+        fg_overlay_chart = fear_greed_overlay_chart_base64(main_df, key, label)
         raw_chart = raw_data_chart_base64(result["config"], main_df, label)
         sections.append(f"""
     <section class="card">
       <h2><span class="bar"></span>分數走勢與原始資料</h2>
       {"<img class='chart' src='data:image/png;base64," + score_chart + "'/>" if score_chart else "<p class='na'>分數走勢圖資料不足</p>"}
+      {"<img class='chart' src='data:image/png;base64," + fg_overlay_chart + "'/>" if fg_overlay_chart else ""}
       {"<img class='chart' src='data:image/png;base64," + raw_chart + "'/>" if raw_chart else "<p class='na'>原始資料走勢圖資料不足</p>"}
     </section>""")
 
