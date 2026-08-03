@@ -1029,7 +1029,8 @@ def render_registry_index(registry):
         for opt in _corr_factor_options()
     )
     rows = ""
-    for e in reversed(registry):
+    for idx, e in enumerate(reversed(registry)):
+        row_id = f"{e['key']}_{idx}"
         gp = e.get("gates_passed", "無法判斷")
         n_p, n_j = (gp.split("/") if "/" in gp else ("0", "0"))
         verdict_type = ("keep" if n_j != "0" and int(n_p) == int(n_j)
@@ -1043,10 +1044,10 @@ def render_registry_index(registry):
             if is_promoted else '<span class="na">—</span>'
         )
         report_url = f"screening_{e['key']}.html"
-        rows += f"""<tr class="registry-row" data-key="{e['key']}" data-verdict="{verdict_type}" data-promoted="{'true' if is_promoted else 'false'}" data-search="{e['label'].lower()} {e['key'].lower()}">
+        rows += f"""<tr class="registry-row" data-row-id="{row_id}" data-key="{e['key']}" data-verdict="{verdict_type}" data-promoted="{'true' if is_promoted else 'false'}" data-search="{e['label'].lower()} {e['key'].lower()}">
           <td>{e["test_date"]}</td>
           <td>
-            <button id="toggle-btn-{e['key']}" class="expand-toggle-btn" data-label="{e['label']}" onclick="toggleInlineReport('{e['key']}', '{report_url}', '{e['label']}')">
+            <button id="toggle-btn-{row_id}" class="expand-toggle-btn" data-label="{e['label']}" onclick="toggleInlineReport('{row_id}', '{report_url}', '{e['label']}')">
               <span class="arrow-icon">▶</span> {e['label']}
             </button>
           </td>
@@ -1057,17 +1058,17 @@ def render_registry_index(registry):
           <td class="{verdict_cls}">{e['final_verdict']}</td>
           <td>{promote_cell}</td>
         </tr>
-        <tr id="expand-row-{e['key']}" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-{row_id}" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：{e['label']} ({e['key']})</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="{report_url}" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('{e['key']}')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('{row_id}')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-{e['key']}" class="inline-iframe" data-src="{report_url}"></iframe>
+              <iframe id="iframe-{row_id}" class="inline-iframe" data-src="{report_url}"></iframe>
             </div>
           </td>
         </tr>"""
@@ -1352,15 +1353,6 @@ def render_registry_index(registry):
     </div>
   </div>
 
-  <!-- 報告圖表內嵌呈現區 (直接在登記簿頁面上展示) -->
-  <div class="report-viewer" id="reportViewer">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e5e7eb;">
-      <h3 style="margin:0;font-size:16px;" id="reportViewerTitle">📊 因子分析報告與視覺化圖表</h3>
-      <button onclick="closeReportViewer()" style="background:none;border:1px solid #dfe2e8;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">關閉報告</button>
-    </div>
-    <iframe class="report-frame" id="reportFrame"></iframe>
-  </div>
-
   <!-- 歷史紀錄表格卡片 -->
   <section class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
@@ -1585,8 +1577,8 @@ def render_registry_index(registry):
       const verdict = row.getAttribute('data-verdict');
       const isPromoted = row.getAttribute('data-promoted') === 'true';
       const searchText = row.getAttribute('data-search') || '';
-      const key = row.getAttribute('data-key');
-      const expandRow = document.getElementById('expand-row-' + key);
+      const rowId = row.getAttribute('data-row-id') || row.getAttribute('data-key');
+      const expandRow = document.getElementById('expand-row-' + rowId);
 
       let matchFilter = true;
       if (currentRegistryFilter === 'keep') matchFilter = (verdict === 'keep');
