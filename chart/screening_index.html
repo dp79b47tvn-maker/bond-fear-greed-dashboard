@@ -114,7 +114,7 @@
   <header>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1>因子開發與篩選平台</h1>
-    <p class="meta">累計測試 10 個因子，各關卡全數通過 0 個。</p>
+    <p class="meta">累計測試 16 個因子，各關卡全數通過 0 個。</p>
     <p class="disclaimer">本平台協助債券交易者判斷美債市場目前的整體氛圍，作為交易員的輔助判斷工具，非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，不產出即時部位建議或操作指令。</p>
     <p class="disclaimer">
       這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
@@ -276,6 +276,60 @@
     <table class="data-table">
       <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th><th>儀表板狀態</th></tr>
       <tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_inflation.html" onclick="loadReport('screening_dashboard_inflation.html', '【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率'); return false;">【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率</a></td>
+          <td>兩序列差值百分位</td>
+          <td>0.060</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>3/4</td>
+          <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_curve.html" onclick="loadReport('screening_dashboard_curve.html', '【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差'); return false;">【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差</a></td>
+          <td>兩序列差值百分位</td>
+          <td>-0.006</td>
+          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
+          <td>1/4</td>
+          <td class="verdict-cut">1/4項關卡通過，多項指標不理想，建議不採用——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_move.html" onclick="loadReport('screening_dashboard_move.html', '【儀表板驗證】波動度 — MOVE指數90日偏態係數'); return false;">【儀表板驗證】波動度 — MOVE指數90日偏態係數</a></td>
+          <td>滾動統計量百分位</td>
+          <td>0.055</td>
+          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
+          <td>2/4</td>
+          <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_duration.html" onclick="loadReport('screening_dashboard_duration.html', '【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差'); return false;">【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差</a></td>
+          <td>兩序列報酬差百分位</td>
+          <td>0.123</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>3/4</td>
+          <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_strength.html" onclick="loadReport('screening_dashboard_strength.html', '【儀表板驗證】強度 — NQ期貨52週高低區間位置'); return false;">【儀表板驗證】強度 — NQ期貨52週高低區間位置</a></td>
+          <td>區間位置</td>
+          <td>0.042</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>2/4</td>
+          <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
+          <td>2026-08-03</td>
+          <td><a class="factor-link" href="screening_dashboard_momentum.html" onclick="loadReport('screening_dashboard_momentum.html', '【儀表板驗證】動能 — US 10Y 125日均線價差'); return false;">【儀表板驗證】動能 — US 10Y 125日均線價差</a></td>
+          <td>均線價差百分位</td>
+          <td>0.056</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>2/4</td>
+          <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr><tr>
           <td>2026-07-31</td>
           <td><a class="factor-link" href="screening_NQ_F.html" onclick="loadReport('screening_NQ_F.html', 'NQ期貨52週高低區間位置'); return false;">NQ期貨52週高低區間位置</a></td>
           <td>區間位置</td>
