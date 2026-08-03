@@ -1508,12 +1508,6 @@ def render_registry_index(registry):
   const registryPageSize = 6;
   let currentExpandedKey = null;
 
-  let currentRegistryFilter = 'all';
-  let registrySearchQuery = '';
-  let currentRegistryPage = 1;
-  const registryPageSize = 6;
-  let currentExpandedKey = null;
-
   function toggleInlineReport(key, reportUrl, label) {{
     const expandRow = document.getElementById('expand-row-' + key);
     const iframe = document.getElementById('iframe-' + key);
