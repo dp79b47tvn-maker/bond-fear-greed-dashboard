@@ -1032,32 +1032,65 @@ def render_registry_index(registry):
     for e in reversed(registry):
         gp = e.get("gates_passed", "無法判斷")
         n_p, n_j = (gp.split("/") if "/" in gp else ("0", "0"))
-        verdict_cls = ("verdict-keep" if n_j != "0" and int(n_p) == int(n_j)
-                        else "verdict-watch" if n_j != "0" and int(n_p) >= int(n_j) / 2
-                        else "verdict-cut")
+        verdict_type = ("keep" if n_j != "0" and int(n_p) == int(n_j)
+                        else "watch" if n_j != "0" and int(n_p) >= int(n_j) / 2
+                        else "cut")
+        verdict_cls = f"verdict-{verdict_type}"
         is_promoted = e["key"] in promoted_keys
         promote_cell = (
             f'<span class="promoted-badge">已升等</span> '
             f'<button class="demote-btn" type="button" onclick="demoteFactor(this, \'{e["key"]}\', \'{e["label"]}\')">退回</button>'
             if is_promoted else '<span class="na">—</span>'
         )
-        rows += f"""<tr>
+        report_url = f"screening_{e['key']}.html"
+        rows += f"""<tr class="registry-row" data-key="{e['key']}" data-verdict="{verdict_type}" data-promoted="{'true' if is_promoted else 'false'}" data-search="{e['label'].lower()} {e['key'].lower()}">
           <td>{e["test_date"]}</td>
-          <td><a class="factor-link" href="screening_{e['key']}.html" onclick="loadReport('screening_{e['key']}.html', '{e['label']}'); return false;">{e['label']}</a></td>
+          <td>
+            <button id="toggle-btn-{e['key']}" class="expand-toggle-btn" data-label="{e['label']}" onclick="toggleInlineReport('{e['key']}', '{report_url}', '{e['label']}')">
+              <span class="arrow-icon">▶</span> {e['label']}
+            </button>
+          </td>
           <td>{TRANSFORM_MODES[e['mode']]['label']}</td>
           <td>{fva.fmt_num(e.get('main_ic'), 3) if e.get('main_ic') is not None else '—'}</td>
           <td>{e.get('pattern_tag', '—')}</td>
           <td>{gp}</td>
           <td class="{verdict_cls}">{e['final_verdict']}</td>
           <td>{promote_cell}</td>
+        </tr>
+        <tr id="expand-row-{e['key']}" class="inline-report-row" style="display:none;">
+          <td colspan="8" class="inline-report-cell">
+            <div class="inline-report-wrap">
+              <div class="inline-report-bar">
+                <span class="inline-report-title">📊 因子體檢報告：{e['label']} ({e['key']})</span>
+                <div class="inline-report-actions">
+                  <a class="inline-link" href="{report_url}" target="_blank">在新分頁開啟 ↗</a>
+                  <button class="inline-close-btn" onclick="closeInlineReport('{e['key']}')">✕ 關閉報告</button>
+                </div>
+              </div>
+              <iframe id="iframe-{e['key']}" class="inline-iframe" data-src="{report_url}"></iframe>
+            </div>
+          </td>
         </tr>"""
 
     n_total = len(registry)
-    n_passed = sum(
+    n_keep = sum(
         1 for e in registry
         if "/" in e.get("gates_passed", "") and e["gates_passed"].split("/")[1] != "0"
         and e["gates_passed"].split("/")[0] == e["gates_passed"].split("/")[1]
     )
+    n_watch = sum(
+        1 for e in registry
+        if "/" in e.get("gates_passed", "") and e["gates_passed"].split("/")[1] != "0"
+        and int(e["gates_passed"].split("/")[0]) >= int(e["gates_passed"].split("/")[1]) / 2
+        and e["gates_passed"].split("/")[0] != e["gates_passed"].split("/")[1]
+    )
+    n_cut = sum(
+        1 for e in registry
+        if "/" in e.get("gates_passed", "") and e["gates_passed"].split("/")[1] != "0"
+        and int(e["gates_passed"].split("/")[0]) < int(e["gates_passed"].split("/")[1]) / 2
+    )
+    n_promoted = sum(1 for e in registry if e["key"] in promoted_keys)
+    n_passed = n_keep
     return f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -1117,11 +1150,35 @@ def render_registry_index(registry):
   .status-desc {{ font-size:12.5px; color:#4a5568; margin-bottom:14px; }}
   .progress-steps {{ display:flex; justify-content:space-around; font-size:11.5px; color:#667085; border-top:1px solid #e5e7eb; padding-top:12px; }}
   .step.active {{ color:#1e3a5f; font-weight:700; }}
-  .step.done {{ color:#2f6b4f; font-weight:700; }}
-  .report-viewer {{ display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:16px; margin-bottom:22px; }}
-  iframe.report-frame {{ width:100%; height:1300px; border:none; display:block; }}
-  .factor-link {{ color:#1e3a5f; text-decoration:none; font-weight:600; cursor:pointer; }}
-  .factor-link:hover {{ text-decoration:underline; }}
+  .registry-controls {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; background:#f8fafc; padding:12px 16px; border-radius:10px; border:1px solid #dfe2e8; }}
+  .registry-filters {{ display:flex; gap:6px; flex-wrap:wrap; }}
+  .filter-tab-btn {{ background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s ease; }}
+  .filter-tab-btn:hover {{ background:#f1f5f9; border-color:#94a3b8; }}
+  .filter-tab-btn.active {{ background:#1e3a5f; color:#fff; border-color:#1e3a5f; }}
+  .registry-search-wrap {{ position:relative; width:220px; }}
+  .registry-search-wrap input {{ padding:6px 10px; font-size:12.5px; border-radius:6px; border:1px solid #cbd5e1; width:100%; background:#fff; outline:none; }}
+  .registry-search-wrap input:focus {{ border-color:#1e3a5f; }}
+
+  .expand-toggle-btn {{ background:none; border:none; padding:0; color:#1e3a5f; font-weight:700; font-size:13px; text-align:left; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }}
+  .expand-toggle-btn:hover {{ text-decoration:underline; color:#0f172a; }}
+  .expand-toggle-btn .arrow-icon {{ font-size:10px; color:#a6742a; transition:transform .15s ease; }}
+
+  .inline-report-row {{ background:#f8fafc; }}
+  .inline-report-cell {{ padding:12px 16px !important; border-bottom:2px solid #cbd5e1 !important; }}
+  .inline-report-wrap {{ background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }}
+  .inline-report-bar {{ display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid #e5e7eb; }}
+  .inline-report-title {{ font-size:14px; font-weight:700; color:#1e3a5f; }}
+  .inline-report-actions {{ display:flex; gap:10px; align-items:center; }}
+  .inline-link {{ font-size:12px; color:#2563eb; text-decoration:none; font-weight:600; }}
+  .inline-link:hover {{ text-decoration:underline; }}
+  .inline-close-btn {{ background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:11.5px; cursor:pointer; color:#475569; font-weight:600; }}
+  .inline-close-btn:hover {{ background:#e2e8f0; color:#0f172a; }}
+  .inline-iframe {{ width:100%; height:950px; border:none; border-radius:8px; background:#fff; }}
+
+  .pagination-bar {{ display:flex; justify-content:space-between; align-items:center; padding-top:14px; margin-top:10px; border-top:1px solid #e5e7eb; font-size:12.5px; color:#64748b; }}
+  .page-btn {{ background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer; color:#334155; font-weight:600; }}
+  .page-btn:hover:not(:disabled) {{ background:#f1f5f9; }}
+  .page-btn:disabled {{ opacity:.4; cursor:not-allowed; }}
 
   .combo-wrap {{ position:relative; }}
   .combo-list {{
@@ -1306,11 +1363,41 @@ def render_registry_index(registry):
 
   <!-- 歷史紀錄表格卡片 -->
   <section class="card">
-    <h2><span class="bar"></span>歷史測試紀錄登記簿 (點擊名稱可直接在下方展開報告圖表)</h2>
-    <table class="data-table">
-      <tr><th>測試日期</th><th>因子</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th><th>儀表板狀態</th></tr>
-      {rows if rows else "<tr><td colspan='8' class='na'>尚無測試記錄</td></tr>"}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+      <h2 style="margin:0;"><span class="bar"></span>歷史測試紀錄登記簿 <span style="font-size:12px;font-weight:normal;color:#667085;margin-left:6px;">(點擊因子名稱可直接在下方展開報告圖表)</span></h2>
+    </div>
+
+    <!-- 篩選控制與搜尋列 (防止列表越來越長) -->
+    <div class="registry-controls">
+      <div class="registry-filters">
+        <button class="filter-tab-btn active" data-filter="all" onclick="filterRegistry('all')">全部 ({n_total})</button>
+        <button class="filter-tab-btn" data-filter="keep" onclick="filterRegistry('keep')">通過 ({n_keep})</button>
+        <button class="filter-tab-btn" data-filter="watch" onclick="filterRegistry('watch')">觀察 ({n_watch})</button>
+        <button class="filter-tab-btn" data-filter="cut" onclick="filterRegistry('cut')">淘汰 ({n_cut})</button>
+        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')">已升等 ({n_promoted})</button>
+      </div>
+      <div class="registry-search-wrap">
+        <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." oninput="onRegistrySearchInput()">
+      </div>
+    </div>
+
+    <table class="data-table" id="registryTable">
+      <thead>
+        <tr><th>測試日期</th><th>因子 (點擊名稱展開報告)</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th><th>儀表板狀態</th></tr>
+      </thead>
+      <tbody id="registryTbody">
+        {rows if rows else "<tr><td colspan='8' class='na'>尚無測試記錄</td></tr>"}
+      </tbody>
     </table>
+
+    <!-- 分頁控制列 -->
+    <div class="pagination-bar" id="paginationBar">
+      <div id="pageInfo">顯示 1 - 6 / 共 {n_total} 筆</div>
+      <div style="display:flex;gap:6px;">
+        <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)">‹ 上一頁</button>
+        <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">下一頁 ›</button>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -1423,18 +1510,152 @@ def render_registry_index(registry):
     }});
   }}
 
+  let currentRegistryFilter = 'all';
+  let registrySearchQuery = '';
+  let currentRegistryPage = 1;
+  const registryPageSize = 6;
+  let currentExpandedKey = null;
+
+  let currentRegistryFilter = 'all';
+  let registrySearchQuery = '';
+  let currentRegistryPage = 1;
+  const registryPageSize = 6;
+  let currentExpandedKey = null;
+
+  function toggleInlineReport(key, reportUrl, label) {{
+    const expandRow = document.getElementById('expand-row-' + key);
+    const iframe = document.getElementById('iframe-' + key);
+    const toggleBtn = document.getElementById('toggle-btn-' + key);
+    
+    if (expandRow && expandRow.style.display === 'table-row') {{
+      closeInlineReport(key);
+    }} else {{
+      if (currentExpandedKey && currentExpandedKey !== key) {{
+        closeInlineReport(currentExpandedKey);
+      }}
+      if (iframe && (!iframe.src || iframe.src === '' || iframe.src.indexOf(reportUrl) === -1)) {{
+        iframe.src = reportUrl;
+      }}
+      if (expandRow) expandRow.style.display = 'table-row';
+      if (toggleBtn) {{
+        const arrow = toggleBtn.querySelector('.arrow-icon');
+        if (arrow) arrow.textContent = '▼';
+      }}
+      currentExpandedKey = key;
+      if (expandRow) expandRow.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+    }}
+  }}
+
+  function closeInlineReport(key) {{
+    const expandRow = document.getElementById('expand-row-' + key);
+    const toggleBtn = document.getElementById('toggle-btn-' + key);
+    if (expandRow) expandRow.style.display = 'none';
+    if (toggleBtn) {{
+      const arrow = toggleBtn.querySelector('.arrow-icon');
+      if (arrow) arrow.textContent = '▶';
+    }}
+    if (currentExpandedKey === key) currentExpandedKey = null;
+  }}
+
+  function filterRegistry(filterType) {{
+    currentRegistryFilter = filterType;
+    document.querySelectorAll('.filter-tab-btn').forEach(btn => {{
+      btn.classList.toggle('active', btn.getAttribute('data-filter') === filterType);
+    }});
+    currentRegistryPage = 1;
+    applyRegistryFilterAndPaging();
+  }}
+
+  function onRegistrySearchInput() {{
+    registrySearchQuery = document.getElementById('registrySearchInput').value.trim().toLowerCase();
+    currentRegistryPage = 1;
+    applyRegistryFilterAndPaging();
+  }}
+
+  function changePage(delta) {{
+    currentRegistryPage += delta;
+    applyRegistryFilterAndPaging();
+  }}
+
+  function applyRegistryFilterAndPaging() {{
+    const rows = Array.from(document.querySelectorAll('#registryTbody tr.registry-row'));
+    let visibleRows = [];
+
+    rows.forEach(row => {{
+      const verdict = row.getAttribute('data-verdict');
+      const isPromoted = row.getAttribute('data-promoted') === 'true';
+      const searchText = row.getAttribute('data-search') || '';
+      const key = row.getAttribute('data-key');
+      const expandRow = document.getElementById('expand-row-' + key);
+
+      let matchFilter = true;
+      if (currentRegistryFilter === 'keep') matchFilter = (verdict === 'keep');
+      else if (currentRegistryFilter === 'watch') matchFilter = (verdict === 'watch');
+      else if (currentRegistryFilter === 'cut') matchFilter = (verdict === 'cut');
+      else if (currentRegistryFilter === 'promoted') matchFilter = isPromoted;
+
+      let matchSearch = true;
+      if (registrySearchQuery) matchSearch = searchText.includes(registrySearchQuery);
+
+      if (matchFilter && matchSearch) {{
+        visibleRows.push({{ row, expandRow }});
+      }} else {{
+        row.style.display = 'none';
+        if (expandRow) expandRow.style.display = 'none';
+      }}
+    }});
+
+    const totalVisible = visibleRows.length;
+    const totalPages = Math.ceil(totalVisible / registryPageSize) || 1;
+    if (currentRegistryPage > totalPages) currentRegistryPage = totalPages;
+    if (currentRegistryPage < 1) currentRegistryPage = 1;
+
+    const startIdx = (currentRegistryPage - 1) * registryPageSize;
+    const endIdx = startIdx + registryPageSize;
+
+    visibleRows.forEach(({{ row, expandRow }}, idx) => {{
+      if (idx >= startIdx && idx < endIdx) {{
+        row.style.display = 'table-row';
+      }} else {{
+        row.style.display = 'none';
+        if (expandRow) expandRow.style.display = 'none';
+      }}
+    }});
+
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    if (totalVisible === 0) {{
+      if (pageInfo) pageInfo.textContent = '無符合條件的測試記錄';
+      if (prevBtn) prevBtn.disabled = true;
+      if (nextBtn) nextBtn.disabled = true;
+    }} else {{
+      if (pageInfo) pageInfo.textContent = `顯示 ${{startIdx + 1}} - ${{Math.min(endIdx, totalVisible)}} / 共 ${{totalVisible}} 筆 (第 ${{currentRegistryPage}} / ${{totalPages}} 頁)`;
+      if (prevBtn) prevBtn.disabled = (currentRegistryPage === 1);
+      if (nextBtn) nextBtn.disabled = (currentRegistryPage === totalPages);
+    }}
+  }}
+
+  document.addEventListener('DOMContentLoaded', () => {{
+    applyRegistryFilterAndPaging();
+  }});
+
   function loadReport(reportUrl, label) {{
     const viewer = document.getElementById("reportViewer");
     const frame = document.getElementById("reportFrame");
     const title = document.getElementById("reportViewerTitle");
-    title.innerText = "📊 因子分析報告與圖表：" + (label || "");
-    frame.src = reportUrl;
-    viewer.style.display = "block";
-    viewer.scrollIntoView({{ behavior: "smooth" }});
+    if (title) title.innerText = "📊 因子分析報告與圖表：" + (label || "");
+    if (frame) frame.src = reportUrl;
+    if (viewer) {{
+      viewer.style.display = "block";
+      viewer.scrollIntoView({{ behavior: "smooth" }});
+    }}
   }}
 
   function closeReportViewer() {{
-    document.getElementById("reportViewer").style.display = "none";
+    const viewer = document.getElementById("reportViewer");
+    if (viewer) viewer.style.display = "none";
   }}
 
   document.getElementById("screeningForm").addEventListener("submit", async (e) => {{
