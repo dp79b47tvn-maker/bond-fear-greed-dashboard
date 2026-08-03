@@ -1,7 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>債券市場恐懼貪婪儀表板</title>
-<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   /*
     ===== COLOR LOGIC NOTE =====
@@ -383,10 +382,6 @@
       <input type="checkbox" id="mainEventsToggle" checked>
       顯示事件標記線（FOMC／CPI／NFP）
     </label>
-    <!-- TradingView 互動式時間軸圖表 (TradingView Lightweight Charts Engine) -->
-    <div id="tvMainChartCard" style="margin:16px 0;">
-      <div id="tvMainChartContainer" style="width:100%;height:380px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--surface-1);"></div>
-    </div>
     <div class="chart-wrap">
       <svg id="mainChart" class="main-chart-svg" viewBox="0 0 1140 440" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
@@ -1057,105 +1052,6 @@ const mainChartHandle = buildChart({
   onViewChange: (lo, hi) => broadcastView(lo, hi),
 });
 allChartHandles.push(mainChartHandle);
-
-function initTradingViewMainChart() {
-  try {
-    if (typeof LightweightCharts === 'undefined') { console.warn('LightweightCharts not loaded'); return; }
-    const container = document.getElementById("tvMainChartContainer");
-    if (!container) return;
-
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark" || 
-                   (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-    const chart = LightweightCharts.createChart(container, {
-      width: container.clientWidth,
-      height: 380,
-      layout: {
-        background: { type: 'solid', color: isDark ? '#161a23' : '#ffffff' },
-        textColor: isDark ? '#a6adbc' : '#4a5568',
-        fontSize: 12,
-      },
-      grid: {
-        vertLines: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-        horzLines: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-      },
-      rightPriceScale: {
-        scaleMargins: { top: 0.15, bottom: 0.15 },
-        borderVisible: false,
-      },
-      leftPriceScale: {
-        visible: true,
-        scaleMargins: { top: 0.15, bottom: 0.15 },
-        borderVisible: false,
-      },
-      timeScale: {
-        borderVisible: false,
-        timeVisible: false,
-      },
-      crosshair: {
-        mode: 0,
-      },
-    });
-
-    const scoreSeries = chart.addAreaSeries({
-      priceScaleId: 'left',
-      topColor: isDark ? 'rgba(111, 160, 128, 0.35)' : 'rgba(47, 107, 79, 0.25)',
-      bottomColor: isDark ? 'rgba(210, 114, 106, 0.05)' : 'rgba(166, 54, 47, 0.05)',
-      lineColor: isDark ? '#6fa080' : '#1e3a5f',
-      lineWidth: 2,
-      title: '綜合情緒分數',
-    });
-
-    const yieldSeries = chart.addLineSeries({
-      priceScaleId: 'right',
-      color: '#a6742a',
-      lineWidth: 1.8,
-      title: '10年期美債殖利率 (%)',
-    });
-
-    const scoreData = DATA.filter(d => d.date && d.score != null).map(d => ({
-      time: d.date,
-      value: d.score,
-    }));
-
-    const yieldData = DATA.filter(d => d.date && d.ust10yr != null).map(d => ({
-      time: d.date,
-      value: d.ust10yr,
-    }));
-
-    scoreSeries.setData(scoreData);
-    yieldSeries.setData(yieldData);
-
-    chart.timeScale().fitContent();
-
-    window.addEventListener('resize', () => {
-      try { chart.applyOptions({ width: container.clientWidth }); } catch(e) {}
-    });
-
-    const themeObserver = new MutationObserver(() => {
-      try {
-        const darkNow = document.documentElement.getAttribute("data-theme") === "dark";
-        chart.applyOptions({
-          layout: {
-            background: { type: 'solid', color: darkNow ? '#161a23' : '#ffffff' },
-            textColor: darkNow ? '#a6adbc' : '#4a5568',
-          },
-          grid: {
-            vertLines: { color: darkNow ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-            horzLines: { color: darkNow ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-          },
-        });
-      } catch(e) {}
-    });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  } catch (err) {
-    console.warn('TradingView chart init failed (non-fatal):', err);
-    const container = document.getElementById("tvMainChartContainer");
-    if (container) container.style.display = 'none';
-  }
-}
-
-try { initTradingViewMainChart(); } catch(e) { console.warn('TV init error:', e); }
 
 if (EVENTS_RESOLVED.some(e => !e.isFuture)) {
   document.getElementById("mainEventsToggleWrap").style.display = "";

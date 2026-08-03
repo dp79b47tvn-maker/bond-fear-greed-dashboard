@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -24,46 +24,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---- 快取中文字型 deb 套件，避免每次重新下載 400MB+ ----
-      - name: 快取中文字型 deb
-        id: cache-fonts
-        uses: actions/cache@v4
-        with:
-          path: ~/font-debs
-          key: noto-cjk-fonts-v1
-
-      - name: 安裝中文字型(圖表用)
-        run: |
-          if [ -d ~/font-debs ] && ls ~/font-debs/*.deb 1>/dev/null 2>&1; then
-            echo "::group::從快取安裝字型"
-            sudo dpkg -i ~/font-debs/*.deb || sudo apt-get install -f -y
-            echo "::endgroup::"
-          else
-            echo "::group::首次下載字型"
-            sudo apt-get update -qq
-            sudo apt-get install -y --no-install-recommends -d fonts-noto-cjk
-            mkdir -p ~/font-debs
-            cp /var/cache/apt/archives/fonts-noto-cjk*.deb ~/font-debs/ 2>/dev/null || true
-            sudo apt-get install -y --no-install-recommends fonts-noto-cjk
-            echo "::endgroup::"
-          fi
-          fc-cache -f
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: "pip"
 
-      # ---- 快取 pip 套件 ----
-      - name: 快取 pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: pip-
-
-      - name: 安裝套件
-        run: pip install -r requirements.txt
+      - name: 安裝中文字型與 Python 套件
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-wqy-zenhei
+          pip install -r requirements.txt
 
       - name: 重新產生儀表板資料
         run: python3 update_dashboard.py
@@ -79,7 +50,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A chart/
-          git diff --staged --quiet || (git commit -m "自動更新: $(date -u +%Y-%m-%d)" && git pull --rebase origin main && git push)
+          git diff --staged --quiet || (git commit -m "自動更新: $(date -u +%Y-%m-%d) [skip ci]" && git pull --rebase origin main && git push)
 
       - name: 上傳Pages產物
         uses: actions/upload-pages-artifact@v3

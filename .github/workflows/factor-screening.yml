@@ -80,18 +80,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 安裝中文字型 (圖表用)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-cjk
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+          cache: "pip"
 
-      - name: 安裝套件
-        run: pip install -r requirements.txt
+      - name: 安裝中文字型與 Python 套件
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-wqy-zenhei
+          pip install -r requirements.txt
 
       - name: 執行因子篩選
         run: |
@@ -115,7 +114,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add chart/screening_*.html chart/screening_index.html factor_screening_registry.json
-          git diff --staged --quiet || (git commit -m "feat(screening): 測試新因子 [${{ inputs.key }}] ${{ inputs.label }}" && git pull --rebase origin main && git push)
+          git diff --staged --quiet || (git commit -m "feat(screening): 測試新因子 [${{ inputs.key }}] ${{ inputs.label }} [skip ci]" && git pull --rebase origin main && git push)
 
       - name: 上傳 Pages 產物
         uses: actions/upload-pages-artifact@v3
