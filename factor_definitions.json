@@ -126,8 +126,8 @@
     }
   ],
   "validation": {
-    "target": "ZN_futures",
-    "target_label": "ZN期貨(10年期美債期貨)",
+    "target": "UST_10Yr",
+    "target_label": "10年期美債殖利率變動 (bp)",
     "horizons": [5, 10, 20, 60],
     "loo_horizon": 20,
     "bucket_horizon": 20,

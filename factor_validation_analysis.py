@@ -122,8 +122,11 @@ def split_halves(df):
     return h1, h2, mid
 
 
-def forward_return(price, horizon):
-    return (price.shift(-horizon) / price - 1) * 100
+def forward_return(price_or_yield, horizon, target=TARGET):
+    # 若標的為 UST_10Yr 殖利率，計算單位為基點變動 (bp) = (t+h 殖利率 - t 殖利率) * 100
+    if target == "UST_10Yr" or getattr(price_or_yield, "name", "") == "UST_10Yr":
+        return (price_or_yield.shift(-horizon) - price_or_yield) * 100
+    return (price_or_yield.shift(-horizon) / price_or_yield - 1) * 100
 
 
 # ================================================================ 1+3. IC分析（非重疊取樣）
@@ -198,8 +201,8 @@ def bucket_chart_base64(bucket_result, title):
     fig, ax = plt.subplots(figsize=(5.2, 3.1), dpi=140)
     colors = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"][: len(grp)]
     bars = ax.bar(grp["label"], grp["mean_fwd_ret"], color=colors, width=0.62)
-    ax.axhline(0, color="#888", linewidth=0.8)
-    ax.set_ylabel(f"未來{BUCKET_HORIZON}日平均報酬 (%)", fontsize=9)
+    unit_label = "bp" if TARGET == "UST_10Yr" else "%"
+    ax.set_ylabel(f"未來{BUCKET_HORIZON}日平均變動 ({unit_label})", fontsize=9)
     ax.set_title(title, fontsize=10)
     ax.tick_params(axis="x", labelsize=8.5)
     ax.tick_params(axis="y", labelsize=8)
@@ -333,7 +336,8 @@ def decile_chart_base64(result, title, buckets, horizon, warn_n=DECILE_MIN_N_WAR
                     textcoords="offset points", xytext=(0, 4 if v >= 0 else -13), ha="center",
                     fontsize=6.5 if n_bars > 12 else 7, color="#a6362f" if low_n else "#444",
                     fontweight=("bold" if low_n else "normal"), rotation=90 if n_bars > 12 else 0)
-    ax.set_ylabel(f"Mean fwd {horizon}-day return (%)", fontsize=9)
+    unit_label = "bp" if TARGET == "UST_10Yr" else "%"
+    ax.set_ylabel(f"Mean fwd {horizon}-day change ({unit_label})", fontsize=9)
     ax.set_xlabel(f"D1 (Most Fear)  →  D{buckets} (Most Greed)", fontsize=8.5, color="#667085")
     ax.set_title(title, fontsize=10)
     ax.tick_params(labelsize=7.5 if n_bars > 12 else 8)

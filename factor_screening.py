@@ -290,7 +290,8 @@ def heatmap_chart_base64(heatmap_data, title, cmap="RdBu_r"):
         for j in range(grid.shape[1]):
             if np.isfinite(grid[i, j]):
                 ax.text(j, i, f"{grid[i, j]:.1f}", ha="center", va="center", fontsize=6, color="#1a1a1a")
-    fig.colorbar(im, ax=ax, shrink=0.8, label="報酬 (%)")
+    unit_str = "殖利率變動 (bp)" if fva.TARGET == "UST_10Yr" else "報酬 (%)"
+    fig.colorbar(im, ax=ax, shrink=0.8, label=unit_str)
     fig.tight_layout()
     return fva.fig_to_base64(fig)
 
@@ -658,8 +659,10 @@ def fear_greed_overlay_chart_base64(main_df, key, label, fear_threshold=25, gree
         ax.scatter(greed_dates, price.loc[greed_dates], color="#a6362f", s=12, alpha=0.7,
                    edgecolors="none", zorder=3, label=f"分數>{greed_threshold} 極度貪婪（{n_greed}天）")
 
-    ax.set_ylabel("ZN期貨價格", fontsize=9)
-    ax.set_title(f"{label}：恐懼與貪婪在ZN期貨時間軸上的分布", fontsize=10)
+    y_label = "10年期美債殖利率 (%)" if target == "UST_10Yr" else "ZN期貨價格"
+    chart_title = f"{label}：恐懼與貪婪在10年期美債殖利率時間軸上的分布" if target == "UST_10Yr" else f"{label}：恐懼與貪婪在ZN期貨時間軸上的分布"
+    ax.set_ylabel(y_label, fontsize=9)
+    ax.set_title(chart_title, fontsize=10)
     ax.legend(fontsize=8, loc="upper left", frameon=False)
     ax.tick_params(labelsize=8)
     ax.spines["top"].set_visible(False)
@@ -782,25 +785,27 @@ def render_screening_report(result):
             ov = fva.fmt_rho(g2["ic_by_horizon"][h]["overlap"])
             non_ov = fva.fmt_rho(g2["ic_by_horizon"][h]["non_overlap"])
             ic_rows += f"<tr><td>{h}日</td><td>{ov}</td><td>{non_ov}</td></tr>"
+        unit_name = "變動(bp)" if fva.TARGET == "UST_10Yr" else "報酬"
+        target_name = "10年期美債殖利率 (bp)" if fva.TARGET == "UST_10Yr" else "ZN報酬"
         decile10_chart = fva.decile_chart_base64(
-            g2["decile_10"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（10分組，重疊取樣）",
+            g2["decile_10"], f"{label}：未來{fva.DECILE_HORIZON}日平均{unit_name}（10分組，重疊取樣）",
             fva.DECILE_N_BUCKETS, fva.DECILE_HORIZON
         ) if g2["decile_10"] else None
         vigintile_buckets = fva._V["vigintile_n_buckets"]
         decile20_chart = fva.decile_chart_base64(
-            g2["decile_20"], f"{label}：未來{fva.DECILE_HORIZON}日平均報酬（{vigintile_buckets}分組，重疊取樣）",
+            g2["decile_20"], f"{label}：未來{fva.DECILE_HORIZON}日平均{unit_name}（{vigintile_buckets}分組，重疊取樣）",
             vigintile_buckets, fva.DECILE_HORIZON
         ) if g2["decile_20"] else None
-        heatmap_raw_chart = heatmap_chart_base64(g2["heatmap_raw"], f"{label}：原始報酬熱力圖（分桶×持有天數，重疊取樣）")
+        heatmap_raw_chart = heatmap_chart_base64(g2["heatmap_raw"], f"{label}：原始{unit_name}熱力圖（分桶×持有天數，重疊取樣）")
         heatmap_excess_chart = heatmap_chart_base64(
-            g2["heatmap_excess"], f"{label}：超額報酬熱力圖（扣除同期無條件平均買進持有，重疊取樣）"
+            g2["heatmap_excess"], f"{label}：超額{unit_name}熱力圖（扣除同期無條件平均買進持有，重疊取樣）"
         )
         sections.append(f"""
     <section class="card">
       <h2><span class="bar"></span>第二關：單獨效力 {_gate_badge(g2.get("passed"))}</h2>
       <p class="hint">型態標記：<b>{g2["pattern_tag"]}</b>（描述性標記，不當作及格條件——現有七因子裡多數呈現動能延續型，
         不是長期反轉型，這個標記純粹讓你知道候選因子屬於哪一種，不會因為不是反轉型就被判定不及格）</p>
-      <h3>IC（vs 未來N日ZN報酬，全平台一律以重疊取樣為主）</h3>
+      <h3>IC（vs 未來N日{target_name}，全平台一律以重疊取樣為主）</h3>
       <table class="data-table mini">
         <tr><th>持有天數</th><th>重疊</th><th>非重疊（對照參考）</th></tr>
         {ic_rows}
