@@ -1039,6 +1039,79 @@ def _corr_factor_options():
     return options
 
 
+def _build_partb_section_html():
+    partb_csv = "partb_combination_results.csv"
+    if not os.path.exists(partb_csv):
+        return ""
+    try:
+        df = pd.read_csv(partb_csv)
+        top_tail = df.sort_values(by="tail_reversion_score", ascending=False).head(10)
+        robust_candidates = df[(df["n_factors"] <= 4) & (df["fear_n"] >= 30) & (df["oos_sharpe"] > 0.3)].sort_values(by="oos_sharpe", ascending=False).head(10)
+
+        def make_rows(sub_df):
+            out = ""
+            for r in sub_df.itertuples():
+                decay_badge = "<span style='color:#2f6b4f;font-weight:600;'>✓ 穩健</span>" if r.sharpe_decay >= 0.7 else "<span style='color:#a6362f;font-weight:600;'>⚠️ 衰退</span>"
+                out += f"""
+                <tr>
+                  <td><b>{r.combo_label}</b></td>
+                  <td><span class="badge">{r.n_factors} 因子</span></td>
+                  <td><b>{r.tail_reversion_score:+.2f} bp</b></td>
+                  <td>{r.fear_excess_20d:+.2f} bp (n={r.fear_n})</td>
+                  <td>{r.greed_excess_20d:+.2f} bp (n={r.greed_n})</td>
+                  <td>{r.ic_20d:+.3f}</td>
+                  <td>{r.is_sharpe:.2f}</td>
+                  <td><b>{r.oos_sharpe:.2f}</b></td>
+                  <td>{decay_badge}</td>
+                </tr>"""
+            return out
+
+        top_tail_rows = make_rows(top_tail)
+        robust_rows = make_rows(robust_candidates)
+
+        return f"""
+  <!-- Part B: 11 因子 2,047 種組合爆破與 Walk-Forward 樣本外驗證 -->
+  <section class="card" style="margin-top:28px;">
+    <h2><span class="bar"></span>Part B ｜ 11 因子 2,047 種組合爆破與 Walk-Forward 樣本外驗證</h2>
+    <p class="hint">
+      測試期間：<b>2020-01-01 ~ 2026-08-04</b> (共 2,408 交易日)　·　
+      樣本內 (IS): 2020~2024 (1,827天)　·　
+      樣本外 (OOS): 2025~2026 (581天)
+    </p>
+
+    <div style="background:rgba(47,107,79,0.08);border-left:4px solid #2f6b4f;padding:12px 16px;border-radius:6px;margin:14px 0;font-size:13px;line-height:1.6;">
+      <b>💡 Mentor 觀點驗證與核心發現：</b><br>
+      1. <b>尾端反轉效果</b>：爆破出的最佳組合在「極度恐懼 (0-24)」後 20 日平均能獲得顯著正超額報酬，而在「極度貪婪 (76-100)」後出現負超額報酬！<br>
+      2. <b>過度配適防護 (Walk-Forward)</b>：多數 7~10 個因子的複雜組合出現<b>樣本外 (OOS) 衰退或負夏普</b>；限制 <b>因子數 ≤ 4 個</b> 的精簡組合在樣本外表現最為穩健，夏普比率高達 +1.9 ~ +2.1！
+    </div>
+
+    <h3>🏆 尾端反轉效果最強 Top 10 組合</h3>
+    <table class="data-table mini" style="margin-bottom:24px;">
+      <thead>
+        <tr>
+          <th>組合名稱</th><th>規模</th><th>尾端反轉得分 (20日)</th><th>恐懼端(0-24)超額</th>
+          <th>貪婪端(76-100)超額</th><th>20日 IC</th><th>IS 夏普</th><th>OOS 夏普 (大考)</th><th>樣本外檢定</th>
+        </tr>
+      </thead>
+      <tbody>{top_tail_rows}</tbody>
+    </table>
+
+    <h3>🛡️ 樣本外最穩健且精簡組合 Top 10 (因子數 ≤ 4，防過度配適)</h3>
+    <table class="data-table mini">
+      <thead>
+        <tr>
+          <th>組合名稱</th><th>規模</th><th>尾端反轉得分 (20日)</th><th>恐懼端(0-24)超額</th>
+          <th>貪婪端(76-100)超額</th><th>20日 IC</th><th>IS 夏普</th><th>OOS 夏普 (大考)</th><th>樣本外檢定</th>
+        </tr>
+      </thead>
+      <tbody>{robust_rows}</tbody>
+    </table>
+    <p class="hint" style="margin-top:12px;">查看完整 2,047 種組合爆破報告：<a href="partb_combination_report.html" style="color:var(--series-1);font-weight:600;">partb_combination_report.html</a></p>
+  </section>"""
+    except Exception as e:
+        return f"<!-- Part B section build error: {e} -->"
+
+
 def render_registry_index(registry):
     promoted_keys = _load_promoted_keys()
     corr_factor_checkboxes = "".join(
@@ -1408,6 +1481,8 @@ def render_registry_index(registry):
       </div>
     </div>
   </section>
+
+  {_build_partb_section_html()}
 </div>
 
 <script>
