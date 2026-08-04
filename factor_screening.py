@@ -759,6 +759,23 @@ def render_screening_report(result):
       {"<img class='chart' src='data:image/png;base64," + raw_chart + "'/>" if raw_chart else "<p class='na'>原始資料走勢圖資料不足</p>"}
     </section>""")
 
+        dist_chart_b64, dist_stats = fva.render_distribution_analysis_4panel_base64(main_df, key, label, horizon=20)
+        if dist_chart_b64 and dist_stats:
+            dist_rows = "".join(
+                f"<tr><td><b>{s['label']}</b></td><td>{s['n']}</td><td>{s['mean']:+.2f} bp</td><td>{s['median']:+.2f} bp</td><td>{s['win_rate']:.1f}%</td></tr>"
+                for s in dist_stats
+            )
+            sections.append(f"""
+    <section class="card">
+      <h2><span class="bar"></span>Part A 統計分布與極端兩端檢視 (未來20日持倉)</h2>
+      <p class="hint">包含箱型圖 (Boxplot/IQR)、勝率 %、小提琴密度形狀與全分數對報酬之非線性趨勢線。特別檢視極度恐懼 (0-24) 與極度貪婪 (76-100) 兩端是否有逆勢勾回/反轉跡象。</p>
+      <img class="chart" src="data:image/png;base64,{dist_chart_b64}"/>
+      <table class="data-table mini">
+        <tr><th>分桶 / 尾端區間</th><th>樣本天數 n</th><th>平均超額報酬 (bp)</th><th>中位數超額 (bp)</th><th>勝率 % (反轉或期望方向)</th></tr>
+        {dist_rows}
+      </table>
+    </section>""")
+
     g1 = result.get("gate1", {})
     if "history_days" in g1:
         sections.append(f"""

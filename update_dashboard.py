@@ -435,9 +435,8 @@ def load_event_calendar(out):
     return [e for e in raw_events if e["date"] >= start]
 
 
-def main():
-    ensure_input_template()
-
+def fetch_all_raw_data():
+    """下載並整合所有原始數據（包含 2014 起之暖身期）。"""
     print("下載 ZN=F ...")
     zn = fetch_yahoo_close("ZN=F", "ZN_futures")
     print("下載 NQ=F (那斯達克100期貨) ...")
@@ -455,23 +454,31 @@ def main():
     print("下載 FRED 10年期損益兩平通膨率 (T10YIE) ...")
     breakeven = fetch_fred_series("T10YIE", "Breakeven_10Y")
 
-    full_index = pd.date_range(FETCH_START_DATE, END_DATE, freq="D")
+    end_d = date.today().strftime("%Y-%m-%d")
+    full_index = pd.date_range(FETCH_START_DATE, end_d, freq="D")
     df = pd.concat([zn, nq, tlt, shy, move, ust10, ust2, cpi, breakeven], axis=1, sort=True).reindex(full_index)
     df.index.name = "Date"
     df["put_call_ratio"] = pd.NA
 
     # ---- 使用者 Excel 數據覆蓋/補充 ----
-    print(f"讀取 {INPUT_XLSX} ...")
-    user = load_user_input()
-    for col, s in user.items():
-        s = s[~s.index.duplicated(keep="last")].reindex(full_index)
-        df[col] = s.combine_first(pd.to_numeric(df[col], errors="coerce"))
+    if os.path.exists(INPUT_XLSX):
+        print(f"讀取 {INPUT_XLSX} ...")
+        user = load_user_input()
+        for col, s in user.items():
+            s = s[~s.index.duplicated(keep="last")].reindex(full_index)
+            df[col] = s.combine_first(pd.to_numeric(df[col], errors="coerce"))
 
     df = df.sort_index().ffill()
     df = df.dropna(how="all")
     first_valid = df.apply(lambda c: c.first_valid_index()).min()
     df = df.loc[first_valid:]
     df["put_call_ratio"] = pd.to_numeric(df["put_call_ratio"], errors="coerce")
+    return df
+
+
+def main():
+    ensure_input_template()
+    df = fetch_all_raw_data()
 
     # 禁止引用未來資料：資料只保留到今天為止，絕不含未來日期
     assert df.index.max() <= pd.Timestamp(date.today()), "偵測到未來日期的資料列，中止執行"

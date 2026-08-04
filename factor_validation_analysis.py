@@ -44,6 +44,7 @@ import matplotlib.font_manager as _fm
 import matplotlib.pyplot as plt
 import nav_bar
 import page_style
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy import stats
@@ -220,6 +221,138 @@ def fig_to_base64(fig):
     fig.savefig(buf, format="png", bbox_inches="tight")
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def render_distribution_analysis_4panel_base64(df, score_col, label, horizon=20, target=TARGET):
+    """
+    Part A: 為因子產出 4-panel 完整統計分布與極端兩端檢視圖 (Base64 PNG):
+    1. 箱型圖 (Boxplot) 按固定門檻與極端尾端分桶
+    2. 勝率 % 與平均超額 (bp) 長條圖
+    3. 小提琴分佈密度圖 (Violin Plot)
+    4. 全數據散佈圖 + 非線性平滑回歸線 (Scatter & Rolling Trend Line)
+    """
+    if score_col not in df.columns or target not in df.columns:
+        return None, None
+
+    sub = df[[score_col, target]].copy().dropna()
+    if len(sub) < 50:
+        return None, None
+
+    # 計算未來 N 日報酬 (bp)
+    if target == "UST_10Yr" or "UST_10Yr" in str(target):
+        sub["fwd_bp"] = (sub[target].shift(-horizon) - sub[target]) * 100
+    else:
+        sub["fwd_bp"] = (sub[target].shift(-horizon) / sub[target] - 1) * 100
+
+    sub = sub.dropna(subset=["fwd_bp"])
+    if len(sub) < 50:
+        return None, None
+
+    # 超額報酬 (減去全樣本平均)
+    mean_baseline = sub["fwd_bp"].mean()
+    sub["excess_bp"] = sub["fwd_bp"] - mean_baseline
+
+    # 分桶定義
+    buckets_def = [
+        ("0-5% 尾端", sub[score_col] <= 5),
+        ("0-24 極度恐懼", (sub[score_col] >= 0) & (sub[score_col] < 25)),
+        ("25-44 恐懼", (sub[score_col] >= 25) & (sub[score_col] < 45)),
+        ("45-55 中性", (sub[score_col] >= 45) & (sub[score_col] < 56)),
+        ("56-75 貪婪", (sub[score_col] >= 56) & (sub[score_col] < 76)),
+        ("76-100 極度貪婪", (sub[score_col] >= 76) & (sub[score_col] <= 100)),
+        ("95-100% 尾端", sub[score_col] >= 95),
+    ]
+
+    bucket_data = []
+    bucket_stats = []
+    colors = ["#1b4332", "#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f", "#661111"]
+
+    for b_label, mask in buckets_def:
+        vals = sub.loc[mask, "excess_bp"].values
+        n_cnt = len(vals)
+        if n_cnt > 0:
+            m_val = np.mean(vals)
+            med_val = np.median(vals)
+            # 勝率: 恐懼端期待殖利率下降(價格上漲, excess_bp < 0)，貪婪端期待殖利率上升(excess_bp > 0)
+            win_cnt = np.sum(vals < 0) if ("恐懼" in b_label or "0-5%" in b_label) else np.sum(vals > 0)
+            win_rate = (win_cnt / n_cnt) * 100
+        else:
+            m_val, med_val, win_rate = 0, 0, 0
+        bucket_data.append(vals if n_cnt > 0 else np.array([0]))
+        bucket_stats.append({
+            "label": b_label, "n": n_cnt, "mean": m_val, "median": med_val, "win_rate": win_rate
+        })
+
+    # 繪製 4-panel 圖
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9.5), dpi=140)
+    fig.suptitle(f"{label} · 未來{horizon}日報酬完整統計分布與極端檢視 (基準平均={mean_baseline:+.2f}bp)", fontsize=13, fontweight="bold", y=0.98)
+
+    labels = [b["label"] for b in bucket_stats]
+
+    # 1. 箱型圖 Boxplot
+    ax1 = axes[0, 0]
+    bp = ax1.boxplot(bucket_data, tick_labels=labels, patch_artist=True, showfliers=True,
+                     flierprops=dict(marker='o', markersize=3, alpha=0.4))
+    for patch, color in zip(bp['boxes'], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.6)
+    ax1.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax1.set_title("1. 各分桶超額報酬箱型圖 (中位數/IQR/離群值/樣本數n)", fontsize=10.5, fontweight="bold")
+    ax1.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+    ax1.tick_params(axis='x', rotation=25, labelsize=8)
+    # 標註 n 樣本數
+    for i, s in enumerate(bucket_stats):
+        ax1.text(i + 1, ax1.get_ylim()[1] * 0.88, f"n={s['n']}", ha="center", fontsize=7.5, fontweight="bold", color="#333")
+
+    # 2. 勝率 % 與平均超額 bp
+    ax2 = axes[0, 1]
+    bars = ax2.bar(labels, [s["mean"] for s in bucket_stats], color=colors, alpha=0.7, width=0.55)
+    ax2.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax2.set_title(f"2. 各分桶平均超額報酬 (bp) 與 勝率 (%)", fontsize=10.5, fontweight="bold")
+    ax2.set_ylabel(f"平均超額變動 (bp)", fontsize=9)
+    ax2.tick_params(axis='x', rotation=25, labelsize=8)
+    for bar, s in zip(bars, bucket_stats):
+        v = s["mean"]
+        ax2.annotate(f"{v:+.2f}bp\n(勝率{s['win_rate']:.0f}%)",
+                     (bar.get_x() + bar.get_width() / 2, v),
+                     textcoords="offset points", xytext=(0, 5 if v >= 0 else -18),
+                     ha="center", fontsize=7.5, fontweight="bold")
+
+    # 3. 小提琴圖 Violin Plot
+    ax3 = axes[1, 0]
+    try:
+        parts = ax3.violinplot(bucket_data, showmeans=True, showmedians=True)
+        for pc, color in zip(parts['bodies'], colors):
+            pc.set_facecolor(color)
+            pc.set_alpha(0.5)
+    except Exception:
+        pass
+    ax3.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax3.set_xticks(range(1, len(labels) + 1))
+    ax3.set_xticklabels(labels, rotation=25, fontsize=8)
+    ax3.set_title("3. 各分桶報酬小提琴密度圖 (檢視單峰/雙峰/偏態)", fontsize=10.5, fontweight="bold")
+    ax3.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+
+    # 4. 全數據散佈圖 + 滾動平滑趨勢線
+    ax4 = axes[1, 1]
+    ax4.scatter(sub[score_col], sub["excess_bp"], alpha=0.25, color="#1e3a5f", s=10, label="每日樣本點")
+    ax4.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax4.axvline(25, color="#2f6b4f", linestyle=":", alpha=0.7, label="恐懼門檻 25")
+    ax4.axvline(75, color="#a6362f", linestyle=":", alpha=0.7, label="貪婪門檻 75")
+
+    # 計算滾動中位數 trend
+    sub_sorted = sub.sort_values(score_col)
+    roll_trend = sub_sorted["excess_bp"].rolling(window=150, min_periods=30, center=True).mean()
+    ax4.plot(sub_sorted[score_col], roll_trend, color="#d97706", linewidth=2.5, label="非線性趨勢線 (Rolling Mean)")
+
+    ax4.set_title("4. 全分數對報酬散佈圖 (檢視極端兩端是否勾回反轉)", fontsize=10.5, fontweight="bold")
+    ax4.set_xlabel("當日因子分數 (0-100)", fontsize=9)
+    ax4.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+    ax4.legend(fontsize=7.5, loc="upper right")
+
+    fig.tight_layout()
+    b64_str = fig_to_base64(fig)
+    return b64_str, bucket_stats
 
 
 # ================================================================ 附加：10年期／10分組分位數分桶分析
@@ -505,11 +638,16 @@ def full_tearsheet_html(strat, bench, title):
 
 # ================================================================ HTML 組裝
 def fmt_rho(d):
-    if d is None or d.get("rho") is None:
+    if d is None:
+        return f'<span class="na">無資料</span>'
+    if isinstance(d, (int, float)):
+        cls = "neg" if d < 0 else "pos"
+        return f'<span class="{cls}">{d:+.3f}</span>'
+    if d.get("rho") is None:
         return f'<span class="na">無資料</span>'
     rho = d["rho"]
     cls = "neg" if rho < 0 else "pos"
-    return f'<span class="{cls}">{rho:+.3f}</span> <span class="n">(n={d["n"]})</span>'
+    return f'<span class="{cls}">{rho:+.3f}</span> <span class="n">(n={d.get("n", "")})</span>'
 
 
 def fmt_pct(v):
