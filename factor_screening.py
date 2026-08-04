@@ -1105,8 +1105,7 @@ def _build_partb_section_html():
         </tr>
       </thead>
       <tbody>{robust_rows}</tbody>
-    </table>
-    <p class="hint" style="margin-top:12px;">查看完整 2,047 種組合爆破報告：<a href="partb_combination_report.html" style="color:var(--series-1);font-weight:600;">partb_combination_report.html</a></p>
+    <p class="hint" style="margin-top:12px;">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
   </section>"""
     except Exception as e:
         return f"<!-- Part B section build error: {e} -->"

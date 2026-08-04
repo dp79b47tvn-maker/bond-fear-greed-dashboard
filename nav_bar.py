@@ -31,8 +31,7 @@ import os
 PAGES = [
     ("hub", "首頁", "index.html"),
     ("dashboard", "儀表板", "dashboard.html"),
-    ("screening", "歷史測試紀錄登記簿", "screening_index.html"),
-    ("partb", "11因子爆破與樣本外驗證", "partb_combination_report.html"),
+    ("screening", "因子開發與篩選平台", "screening_index.html"),
 ]
 
 NAV_BAR_CSS = """
