@@ -283,61 +283,72 @@ def render_distribution_analysis_4panel_base64(df, score_col, label, horizon=20,
             "label": b_label, "n": n_cnt, "mean": m_val, "median": med_val, "win_rate": win_rate
         })
 
-    # 繪製 1x3 全寬橫向分布圖 (Wide Horizontal Distribution Plot)
-    fig, axes = plt.subplots(1, 3, figsize=(14.2, 4.8), dpi=140)
-    fig.suptitle(f"{label} · 未來{horizon}日報酬統計分布與極端兩端檢視 (基準平均={mean_baseline:+.2f}bp)", fontsize=12, fontweight="bold", y=0.98)
+    # 繪製 4-panel 2x2 網格圖
+    fig, axes = plt.subplots(2, 2, figsize=(13, 9.5), dpi=140)
+    fig.suptitle(f"{label} · 未來{horizon}日報酬統計分布與極端檢視 (基準平均={mean_baseline:+.2f}bp)", fontsize=13, fontweight="bold", y=0.98)
 
     labels = [b["label"] for b in bucket_stats]
 
-    # 1. 橫向箱型圖 Horizontal Boxplot (左圖)
-    ax1 = axes[0]
-    bp = ax1.boxplot(bucket_data, tick_labels=labels, vert=False, patch_artist=True, showfliers=True,
-                     flierprops=dict(marker='o', markersize=2.5, alpha=0.3))
+    # 1. 箱型圖 Boxplot
+    ax1 = axes[0, 0]
+    bp = ax1.boxplot(bucket_data, tick_labels=labels, patch_artist=True, showfliers=True,
+                     flierprops=dict(marker='o', markersize=3, alpha=0.4))
     for patch, color in zip(bp['boxes'], colors):
         patch.set_facecolor(color)
         patch.set_alpha(0.6)
-    ax1.axvline(0, color="#888", linestyle="--", linewidth=0.8)
-    ax1.set_title("1. 各分桶超額報酬箱型圖 (IQR / 離群值 / n)", fontsize=10, fontweight="bold")
-    ax1.set_xlabel(f"未來{horizon}日超額變動 (bp)", fontsize=8.5)
-    ax1.tick_params(axis='y', labelsize=8)
-    ax1.tick_params(axis='x', labelsize=8)
-    # 右側標註 n 樣本數
+    ax1.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax1.set_title("1. 各分桶超額報酬箱型圖 (中位數/IQR/離群值/樣本數n)", fontsize=10.5, fontweight="bold")
+    ax1.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+    ax1.tick_params(axis='x', rotation=25, labelsize=8)
+    # 標註 n 樣本數
     for i, s in enumerate(bucket_stats):
-        ax1.text(ax1.get_xlim()[1] * 0.95, i + 1, f"n={s['n']}", ha="right", va="center", fontsize=7.5, fontweight="bold", color="#333")
+        ax1.text(i + 1, ax1.get_ylim()[1] * 0.88, f"n={s['n']}", ha="center", fontsize=7.5, fontweight="bold", color="#333")
 
-    # 2. 橫向勝率與超額報酬長條圖 Horizontal Bar Chart (中圖)
-    ax2 = axes[1]
-    y_pos = range(len(labels))
-    bars = ax2.barh(y_pos, [s["mean"] for s in bucket_stats], color=colors, alpha=0.75, height=0.55)
-    ax2.set_yticks(y_pos)
-    ax2.set_yticklabels(labels, fontsize=8)
-    ax2.axvline(0, color="#888", linestyle="--", linewidth=0.8)
-    ax2.set_title(f"2. 各分桶平均超額 (bp) 與 勝率 (%)", fontsize=10, fontweight="bold")
-    ax2.set_xlabel(f"平均超額變動 (bp)", fontsize=8.5)
-    ax2.tick_params(axis='x', labelsize=8)
+    # 2. 勝率 % 與平均超額 bp
+    ax2 = axes[0, 1]
+    bars = ax2.bar(labels, [s["mean"] for s in bucket_stats], color=colors, alpha=0.7, width=0.55)
+    ax2.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax2.set_title(f"2. 各分桶平均超額報酬 (bp) 與 勝率 (%)", fontsize=10.5, fontweight="bold")
+    ax2.set_ylabel(f"平均超額變動 (bp)", fontsize=9)
+    ax2.tick_params(axis='x', rotation=25, labelsize=8)
     for bar, s in zip(bars, bucket_stats):
         v = s["mean"]
-        ax2.annotate(f"{v:+.2f}bp ({s['win_rate']:.0f}%)",
-                     (v, bar.get_y() + bar.get_height() / 2),
-                     textcoords="offset points", xytext=(4 if v >= 0 else -4, 0),
-                     ha="left" if v >= 0 else "right", va="center", fontsize=7.5, fontweight="bold")
+        ax2.annotate(f"{v:+.2f}bp\n(勝率{s['win_rate']:.0f}%)",
+                     (bar.get_x() + bar.get_width() / 2, v),
+                     textcoords="offset points", xytext=(0, 5 if v >= 0 else -18),
+                     ha="center", fontsize=7.5, fontweight="bold")
 
-    # 3. 全數據散佈圖 + 滾動平滑趨勢線 (右圖)
-    ax3 = axes[2]
-    ax3.scatter(sub[score_col], sub["excess_bp"], alpha=0.25, color="#1e3a5f", s=9, label="每日數據點")
+    # 3. 小提琴圖 Violin Plot
+    ax3 = axes[1, 0]
+    try:
+        parts = ax3.violinplot(bucket_data, showmeans=True, showmedians=True)
+        for pc, color in zip(parts['bodies'], colors):
+            pc.set_facecolor(color)
+            pc.set_alpha(0.5)
+    except Exception:
+        pass
     ax3.axhline(0, color="#888", linestyle="--", linewidth=0.8)
-    ax3.axvline(25, color="#2f6b4f", linestyle=":", alpha=0.7, label="恐懼門檻 25")
-    ax3.axvline(75, color="#a6362f", linestyle=":", alpha=0.7, label="貪婪門檻 75")
+    ax3.set_xticks(range(1, len(labels) + 1))
+    ax3.set_xticklabels(labels, rotation=25, fontsize=8)
+    ax3.set_title("3. 各分桶報酬小提琴密度圖 (檢視單峰/雙峰/偏態)", fontsize=10.5, fontweight="bold")
+    ax3.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+
+    # 4. 全數據散佈圖 + 滾動平滑趨勢線
+    ax4 = axes[1, 1]
+    ax4.scatter(sub[score_col], sub["excess_bp"], alpha=0.25, color="#1e3a5f", s=10, label="每日樣本點")
+    ax4.axhline(0, color="#888", linestyle="--", linewidth=0.8)
+    ax4.axvline(25, color="#2f6b4f", linestyle=":", alpha=0.7, label="恐懼門檻 25")
+    ax4.axvline(75, color="#a6362f", linestyle=":", alpha=0.7, label="貪婪門檻 75")
 
     # 計算滾動中位數 trend
     sub_sorted = sub.sort_values(score_col)
     roll_trend = sub_sorted["excess_bp"].rolling(window=150, min_periods=30, center=True).mean()
-    ax3.plot(sub_sorted[score_col], roll_trend, color="#d97706", linewidth=2.3, label="非線性趨勢 (Rolling Mean)")
+    ax4.plot(sub_sorted[score_col], roll_trend, color="#d97706", linewidth=2.5, label="非線性趨勢線 (Rolling Mean)")
 
-    ax3.set_title("3. 分數對報酬散佈圖 (檢視極端反轉)", fontsize=10, fontweight="bold")
-    ax3.set_xlabel("當日因子分數 (0-100)", fontsize=8.5)
-    ax3.set_ylabel(f"未來{horizon}日超額 (bp)", fontsize=8.5)
-    ax3.legend(fontsize=7, loc="upper right")
+    ax4.set_title("4. 全分數對報酬散佈圖 (檢視極端兩端是否勾回反轉)", fontsize=10.5, fontweight="bold")
+    ax4.set_xlabel("當日因子分數 (0-100)", fontsize=9)
+    ax4.set_ylabel(f"未來{horizon}日超額變動 (bp)", fontsize=9)
+    ax4.legend(fontsize=7.5, loc="upper right")
 
     fig.tight_layout()
     b64_str = fig_to_base64(fig)
