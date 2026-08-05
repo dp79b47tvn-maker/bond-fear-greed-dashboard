@@ -285,7 +285,7 @@
 <div class="viz-root">
   <h1>債券市場恐懼貪婪儀表板</h1>
   <p class="subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
-  <p class="caption">動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
+  <p class="caption">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
   <div class="gauge-card">
@@ -299,29 +299,21 @@
     <div class="compare-row" id="compareRow"></div>
     <button class="logic-btn" type="button"><span class="i-dot">i</span>綜合分數的計算邏輯與可信度</button>
     <div class="logic-panel">
-      <b>怎麼算：</b>綜合分數 = 七個分項（動能、強度、存續期間避險、Put/Call、波動度、殖利率曲線形狀、通膨意外）各自0–100分的<b>等權重算術平均</b>；
+      <b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
       某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。<br>
-      <b>各分項為何是0–100（核心機制：滾動百分位）：</b>除「強度」本身就是區間位置比例外，其餘分項都是把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
+      <b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
       公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。<br>
       <b>資料來源明細：</b>
       <table class="method-table">
         <tr><th>欄位</th><th>代號</th><th>來源</th><th>可回溯到</th><th>說明</th></tr>
-        <tr><td class="mono">ZN_futures</td><td class="mono">ZN=F</td><td>Yahoo Finance</td><td>2000-09</td><td>10年期美債期貨收盤價，可與CME官網核對。</td></tr>
-        <tr><td class="mono">NQ_futures</td><td class="mono">NQ=F</td><td>Yahoo Finance</td><td>2000-09</td><td>那斯達克100期貨。</td></tr>
-        <tr><td class="mono">TLT</td><td class="mono">TLT</td><td>Yahoo Finance</td><td>2002-07</td><td>20年期以上美債ETF（長天期）。</td></tr>
-        <tr><td class="mono">SHY</td><td class="mono">SHY</td><td>Yahoo Finance</td><td>2002-07</td><td>1-3年期美債ETF（短天期）。</td></tr>
-        <tr><td class="mono">MOVE_index</td><td class="mono">^MOVE</td><td>Yahoo Finance</td><td>2002-11</td><td>債券市場波動度指數（債市的VIX）。</td></tr>
         <tr><td class="mono">UST_10Yr</td><td class="mono">10 Yr</td><td>Treasury.gov</td><td>更早</td><td>10年期公債殖利率，美國財政部官方資料。</td></tr>
-        <tr><td class="mono">UST_2Yr</td><td class="mono">2 Yr</td><td>Treasury.gov</td><td>更早</td><td>2年期公債殖利率，官方資料。</td></tr>
-        <tr><td class="mono">CPI_index</td><td class="mono">CPIAUCSL</td><td>FRED</td><td>1947</td><td>消費者物價指數，聯準會體系官方資料。</td></tr>
-        <tr><td class="mono">Breakeven_10Y</td><td class="mono">T10YIE</td><td>FRED</td><td>2003</td><td>10年期損益兩平通膨率，市場對未來通膨的定價，官方資料。</td></tr>
-        <tr><td class="mono">put_call_ratio</td><td>（無）</td><td>使用者Excel輸入</td><td>無資料</td><td>選擇權賣權/買權比率，無免費歷史來源，全程顯示無資料、不填假值。</td></tr>
+        <tr><td class="mono">HG_futures</td><td class="mono">HG=F</td><td>Yahoo Finance</td><td>2000-09</td><td>銅期貨收盤價，可與CME官網核對。</td></tr>
+        <tr><td class="mono">GC_futures</td><td class="mono">GC=F</td><td>Yahoo Finance</td><td>2000-09</td><td>金期貨收盤價，可與CME官網核對。</td></tr>
       </table>
       每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
-      <b>禁止引用未來資料：</b>所有滾動計算（125日均線、252日高低、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
+      <b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
       每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
-      <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。<br>
-      <b>實驗性功能：</b>下方「自訂權重」卡片裡的「套用目前情境動態權重」按鈕，可以把依Fed利率循環動態校準的權重帶入自訂權重滑桿——不是取代這裡的等權重分數，是用來觀察這個實驗性做法跟現行做法差多少。詳情見該卡片的說明按鈕。
+      <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。
     </div>
   </div>
 
@@ -331,7 +323,7 @@
     <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span>這是什麼</button>
     <div class="logic-panel" id="logic-custom-weight">
       給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
-      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是七項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
+      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
       當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
       純前端即時運算，不會回饋到儀表板或任何報告；設定可以選擇性存到瀏覽器本機（見下方「儲存目前設定」），不存的話重新整理頁面就恢復預設。
       <div id="regimePresetExplain"></div>
@@ -349,7 +341,7 @@
       <div class="cw-readout" id="customWeightReadout"></div>
       <div class="cw-presets">
         <div class="cw-preset-save">
-          <input type="text" id="cwPresetName" placeholder="幫這組設定取個名字，例如「重視波動度」" maxlength="40">
+          <input type="text" id="cwPresetName" placeholder="幫這組設定取個名字，例如「重視銅金比」" maxlength="40">
           <button class="cw-preset-save-btn" type="button" id="cwPresetSaveBtn">儲存目前設定</button>
         </div>
         <div class="cw-preset-list" id="cwPresetList"></div>
@@ -416,10 +408,11 @@
   <div class="card" id="componentCards"></div>
 
   <p class="foot-note">
-    資料來源：Yahoo Finance（ZN=F、NQ=F、TLT、SHY、^MOVE 每日收盤）、Treasury.gov（10年期、2年期殖利率）、FRED聖路易斯聯邦準備銀行（CPI、10年期損益兩平通膨率）。缺值以前一交易日／前一公布值補齊；
-    百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年（或滿252/125/90/40交易日）窗口，且所有計算僅使用當天以前的歷史資料，不引用未來資料。
-    Excel 資料輸入：把任何項目的歷史數據填入 <b>data_input.xlsx</b>（DataInput 分頁，欄位：Date、ZN_futures、NQ_futures、TLT、SHY、MOVE_index、UST_10Yr、UST_2Yr、put_call_ratio，
-    填哪欄導入哪欄，你填的值優先於自動抓取），執行 <b>python3 update_dashboard.py</b> 即自動重算並更新本頁。
+    資料來源：Yahoo Finance（ZN=F、HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；
+    百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年（或滿125/40交易日）窗口，且所有計算僅使用當天以前的歷史資料，不引用未來資料。
+    Excel 資料輸入：把 ZN_futures、UST_10Yr 的歷史數據填入 <b>data_input.xlsx</b>（DataInput 分頁，你填的值優先於自動抓取；
+    分頁裡另外還有 NQ_futures/TLT/SHY/MOVE_index/UST_2Yr/put_call_ratio 等舊版七項分數留下的欄位，目前計算不會讀取），
+    執行 <b>python3 update_dashboard.py</b> 即自動重算並更新本頁。
   </p>
 </div>
 
@@ -1074,14 +1067,9 @@ const REGIME_LABEL_TO_KEY = {
 // ---- 自訂權重（研究用）：純前端即時運算，不影響上方官方分數/gauge/比較列 ----
 const CUSTOM_WEIGHT_FACTORS = [
   { key: "momentum", label: "動能" },
-  { key: "strength", label: "強度" },
-  { key: "duration", label: "存續期間避險" },
-  { key: "putcall", label: "Put/Call" },
-  { key: "move", label: "波動度" },
-  { key: "curve", label: "殖利率曲線形狀" },
-  { key: "inflation", label: "通膨意外" },
+  { key: "copper_gold", label: "銅金比" },
 ];
-// 升等候選因子也能在自訂權重裡選用(標籤加註「候選」跟官方七項區分開)
+// 升等候選因子也能在自訂權重裡選用(標籤加註「候選」跟官方兩項區分開)
 PROMOTED_FACTORS.forEach(pf => { CUSTOM_WEIGHT_FACTORS.push({ key: pf.key, label: `${pf.label}（候選）` }); });
 
 const customState = {};
@@ -1319,78 +1307,26 @@ const COMPONENTS = [
     },
   },
   {
-    key: "strength",
-    rawText: r => r && r.nq != null && r.hi252 != null ? `NQ期貨 ${r.nq.toFixed(2)}，52週區間 ${r.lo252?.toFixed(2) ?? "—"} ~ ${r.hi252.toFixed(2)}` : "",
+    key: "copper_gold",
+    rawText: r => r && r.cg_spread != null ? `40日報酬差 ${r.cg_spread >= 0 ? "+" : ""}${r.cg_spread.toFixed(2)}%（銅 ${r.hg_ret40 >= 0 ? "+" : ""}${r.hg_ret40?.toFixed(2) ?? "—"}% vs 金 ${r.gc_ret40 >= 0 ? "+" : ""}${r.gc_ret40?.toFixed(2) ?? "—"}%）` : "",
     rawChart: {
       series: [
-        { key: "nq", label: "NQ期貨收盤價", color: "var(--series-1)" },
-        { key: "hi252", label: "252日（52週）滾動高點", color: "var(--series-2)" },
-        { key: "lo252", label: "252日（52週）滾動低點", color: "var(--series-4)" },
-      ],
-    },
-  },
-  {
-    key: "duration",
-    rawText: r => r && r.spread != null ? `40日利差 ${r.spread >= 0 ? "+" : ""}${r.spread.toFixed(2)}%（TLT ${r.tlt_ret40 >= 0 ? "+" : ""}${r.tlt_ret40?.toFixed(2) ?? "—"}% vs SHY ${r.shy_ret40 >= 0 ? "+" : ""}${r.shy_ret40?.toFixed(2) ?? "—"}%）` : "",
-    rawChart: {
-      series: [
-        { key: "tlt_idx", label: "TLT（指數化，起點=100）", color: "var(--series-1)" },
-        { key: "shy_idx", label: "SHY（指數化，起點=100）", color: "var(--series-2)" },
-      ],
-    },
-  },
-  {
-    key: "putcall",
-    rawText: r => r && r.pc5d != null ? `5日平均 P/C ${r.pc5d.toFixed(2)}` : "",
-    placeholder: true,
-    rawChart: {
-      series: [
-        { key: "pc_raw", label: "Put/Call 比率（原始值）", color: "var(--series-1)" },
-      ],
-    },
-  },
-  {
-    key: "move",
-    rawText: r => r && r.move_skew90 != null ? `90日偏態係數 ${r.move_skew90 >= 0 ? "+" : ""}${r.move_skew90.toFixed(2)}（MOVE ${r.move?.toFixed(1) ?? "—"}）` : "",
-    supplementary: r => r && r.move_dev_pct != null ? `50日中位數乖離率：${r.move_dev_pct >= 0 ? "+" : ""}${r.move_dev_pct.toFixed(1)}%（輔助參考，不計入分數）` : "50日中位數乖離率：— （輔助參考，不計入分數）",
-    rawChart: {
-      series: [
-        { key: "move", label: "MOVE指數", color: "var(--series-1)" },
-        { key: "move_median50", label: "50日滾動中位數", color: "var(--series-2)" },
-      ],
-    },
-  },
-  {
-    key: "curve",
-    rawText: r => r && r.curve_spread != null ? `2s10s利差 ${r.curve_spread >= 0 ? "+" : ""}${r.curve_spread.toFixed(2)}%（10年 ${r.ust10?.toFixed(2) ?? "—"}% vs 2年 ${r.ust2?.toFixed(2) ?? "—"}%）` : "",
-    rawChart: {
-      series: [
-        { key: "ust10", label: "10年期殖利率 (%)", color: "var(--series-1)" },
-        { key: "ust2", label: "2年期殖利率 (%)", color: "var(--series-2)" },
-      ],
-    },
-  },
-  {
-    key: "inflation",
-    rawText: r => r && r.inflation_surprise != null ? `通膨意外 ${r.inflation_surprise >= 0 ? "+" : ""}${r.inflation_surprise.toFixed(2)}%（CPI年增率 ${r.cpi_yoy?.toFixed(2) ?? "—"}% vs 市場隱含通膨預期 ${r.breakeven?.toFixed(2) ?? "—"}%）` : "",
-    rawChart: {
-      series: [
-        { key: "cpi_yoy", label: "CPI年增率 (%)", color: "var(--series-1)" },
-        { key: "breakeven", label: "10年期損益兩平通膨率 (%)", color: "var(--series-2)" },
+        { key: "hg_idx", label: "銅期貨HG=F（指數化，起點=100）", color: "var(--series-1)" },
+        { key: "gc_idx", label: "金期貨GC=F（指數化，起點=100）", color: "var(--series-2)" },
       ],
     },
   },
 ];
 
-// 升等候選因子也各自併一張分項卡片，沿用官方七項同一套卡片渲染邏輯——
-// FACTOR_DEFS補一筆給卡片標題/說明用；kicker特意標「候選因子」跟官方七項的
+// 升等候選因子也各自併一張分項卡片，沿用官方兩項同一套卡片渲染邏輯——
+// FACTOR_DEFS補一筆給卡片標題/說明用；kicker特意標「候選因子」跟官方兩項的
 // 英文kicker(MOMENTUM等)區分，不會讓人誤以為是官方方法論的一部分。
 PROMOTED_FACTORS.forEach(pf => {
   FACTOR_DEFS[pf.key] = {
     kicker: "候選因子 · CANDIDATE",
     name: pf.label,
     explain: "這是透過「因子開發與篩選平台」驗證後由使用者手動升等的候選因子，" +
-      "<b>不是官方七項因子之一，不計入上方官方綜合分數</b>——這裡只是讓你觀察它的歷史走勢，" +
+      "<b>不是官方兩項因子之一，不計入上方官方綜合分數</b>——這裡只是讓你觀察它的歷史走勢，" +
       "也可以在上方「自訂權重」區塊把它加進你自己的組合分數裡實驗看看。完整的驗證數據(IC、分桶、穩定性等)請到因子篩選平台查看對應報告。",
   };
   COMPONENTS.push({
