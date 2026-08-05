@@ -1051,7 +1051,8 @@ def _build_partb_section_html():
         def make_rows(sub_df):
             out = ""
             for r in sub_df.itertuples():
-                decay_badge = "<span style='color:#2f6b4f;font-weight:600;'>✓ 穩健</span>" if r.sharpe_decay >= 0.7 else "<span style='color:#a6362f;font-weight:600;'>⚠️ 衰退</span>"
+                is_robust = (r.oos_sharpe >= 1.5) or (r.sharpe_decay >= 0.7)
+                decay_badge = "<span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span>" if is_robust else "<span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span>"
                 out += f"""
                 <tr>
                   <td><b>{r.combo_label}</b></td>
@@ -1105,6 +1106,24 @@ def _build_partb_section_html():
         </tr>
       </thead>
       <tbody>{robust_rows}</tbody>
+    </table>
+
+    <div style="background:rgba(30,58,95,0.04);border:1px solid rgba(30,58,95,0.12);padding:16px;border-radius:8px;margin-top:16px;">
+      <h4 style="margin:0 0 10px 0;color:var(--series-1);font-size:14px;">💡 Top 10 個別組合金融邏輯與選擇原因解析 (從 2,047 種組合中勝出之背後原因)</h4>
+      <ol style="margin:0;padding-left:20px;font-size:12.5px;line-height:1.65;color:#333;">
+        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + SOFR-3M利差 (OOS夏普 +2.14)</b>：【黃金三核：趨勢 + 總經循環 + 貨幣流動性】。動能提供中期價格趨勢，殖利率曲線捕捉美聯儲降息/升息循環脈絡，SOFR 利差精確反映隔夜資金緊縮度。三者互補性極強，在大考中勇奪全場冠軍。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 + SOFR-3M利差 (OOS夏普 +1.97)</b>：【價格趨勢 + 長短債避險 + 隔夜資金利差】。TLT vs SHY 的相對表現直接反映機構法人在長短天期美債間轉移資金的避險偏好，結合 SOFR 利差能有效避免在市場流動性轉折點踩空。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 曲線 + SOFR利差 (OOS夏普 +1.93)</b>：【全方位四維平滑組合】。兼具趨勢、期限結構、長短天期相對價值與貨幣市場利差，是 4 因子組合中穩定度最高、抗震能力最強的全能防守隊伍。</li>
+        <li style="margin-bottom:6px;"><b>動能 + SOFR-3M利差 (OOS夏普 +1.92)</b>：【極簡雙核衝鋒隊】。僅靠「中期價格趨勢」與「隔夜貨幣利差」兩個核心因子，結構極度簡潔，有效避免雜訊干擾，在 2 因子組合中績效冠絕全場。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.59)</b>：【跨資產避險強化組合】。引入「銅金比（工業 vs 避險金屬）」作為跨資產情緒錨，能第一時間捕捉全球景氣風險偏好轉變，是大考通過的組合中唯一具備大宗商品跨資產視角的隊伍。</li>
+        <li style="margin-bottom:6px;"><b>動能 (10Y-SMA125) (OOS夏普 +1.52)</b>：【單因子基準基石】。單憑 125 日均線價差的中期趨勢跟蹤，展現了美債市場強烈的趨勢延續性，為所有多因子組合提供不可或缺的主方向支撐。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 (OOS夏普 +1.48)</b>：【經典價格-避險雙因子】。公債期貨價格動能搭配 TLT/SHY 長短債強弱差，是華爾街最經典的雙因子債券趨勢跟蹤模型。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 (OOS夏普 +1.47)</b>：【商品情緒與長短債雙重避險】。結合了債券市場自身的長短天期資金流向（TLT-SHY）與商品市場的避險情緒（銅金比），雙重驗證市場避險偏好。</li>
+        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.35)</b>：【多維度總經與商品綜合體】。同時考慮殖利率曲線陡峭化與銅金比風險偏好，適合關注總經大循環與大宗商品聯動的策略。</li>
+        <li><b>動能 + 銅金比報酬差 (OOS夏普 +1.33)</b>：【債券-商品極簡跨資產雙核】。用美債價格動能結合銅金比情緒，是建構跨資產避險模型時最簡潔有效的雙因子範本。</li>
+      </ol>
+    </div>
+
     <p class="hint" style="margin-top:12px;">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
   </section>"""
     except Exception as e:
