@@ -152,5 +152,118 @@
     "max_corr": 0.22,
     "max_corr_key": "strength",
     "loo_delta": -0.02
+  },
+  {
+    "key": "vix_test",
+    "label": "VIX 125日均線乖離",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第二關（單獨效力）未通過",
+    "stopped_at": 2,
+    "main_ic": -0.00600741377387188,
+    "monotonicity": -0.7,
+    "pattern_tag": "型態不明顯"
+  },
+  {
+    "key": "gold",
+    "label": "黃金",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "通過全部五關，建議納入正式綜合分數（可實作性門檻尚待補上成本假設，目前只供參考）",
+    "stopped_at": 5,
+    "main_ic": 0.13013471491971926,
+    "monotonicity": 0.7,
+    "pattern_tag": "動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）",
+    "max_corr": -0.2632440782044932,
+    "max_corr_key": "殖利率曲線形狀",
+    "loo_delta": -0.031529967358844335
+  },
+  {
+    "key": "jpy",
+    "label": "jpy",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第一關（資料健檢）未通過",
+    "stopped_at": 1
+  },
+  {
+    "key": "jpy",
+    "label": "jpy",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第一關（資料健檢）未通過",
+    "stopped_at": 1
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第一關（資料健檢）未通過",
+    "stopped_at": 1
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第三關（穩定性）未通過",
+    "stopped_at": 3,
+    "main_ic": -0.0561741373952812,
+    "monotonicity": -0.6,
+    "pattern_tag": "長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）"
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-28",
+    "mode": "ma_deviation",
+    "final_verdict": "第三關（穩定性）未通過",
+    "stopped_at": 3,
+    "main_ic": -0.0561741373952812,
+    "monotonicity": -0.6,
+    "pattern_tag": "長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）"
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-29",
+    "mode": "ma_deviation",
+    "final_verdict": "2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。",
+    "gates_passed": "2/4",
+    "main_ic": 0.058235624735027275,
+    "monotonicity": 0.7212121212121211,
+    "pattern_tag": "動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）",
+    "max_corr": 0.9813175299480728,
+    "max_corr_key": "動能",
+    "loo_delta": 0.004052468948980495
+  },
+  {
+    "key": "us10y",
+    "label": "us10y",
+    "test_date": "2026-07-29",
+    "mode": "ma_spread",
+    "final_verdict": "2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。",
+    "gates_passed": "2/4",
+    "main_ic": -0.05594961181645299,
+    "monotonicity": -0.9151515151515152,
+    "pattern_tag": "長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）",
+    "max_corr": -1.0,
+    "max_corr_key": "動能",
+    "loo_delta": 0.00039285618847419157
+  },
+  {
+    "key": "NQ_F",
+    "label": "NQ期貨52週高低區間位置",
+    "test_date": "2026-07-31",
+    "mode": "range_position",
+    "final_verdict": "2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。",
+    "gates_passed": "2/4",
+    "main_ic": 0.04212396020141587,
+    "monotonicity": 0.5,
+    "pattern_tag": "動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）",
+    "max_corr": 0.9999999999999999,
+    "max_corr_key": "強度",
+    "loo_delta": 0.0027879626004841535
   }
 ]
