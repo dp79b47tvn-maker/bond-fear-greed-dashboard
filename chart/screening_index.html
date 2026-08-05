@@ -266,7 +266,7 @@
       <input type="password" id="corrGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </details>
     <div class="corr-factor-grid">
-      <label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="momentum_score" checked>動能</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="strength_score" checked>強度</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="duration_score" checked>存續期間避險</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="putcall_score" checked>Put/Call</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="move_score" checked>波動度</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="curve_score" checked>殖利率曲線形狀</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="inflation_score" checked>通膨意外</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="promoted_us10y_score" checked>us10y（候選）</label>
+      <label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="momentum_score" checked>動能</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="strength_score" checked>強度</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="duration_score" checked>存續期間避險</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="putcall_score" checked>Put/Call</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="move_score" checked>波動度</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="curve_score" checked>殖利率曲線形狀</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="inflation_score" checked>通膨意外</label>
     </div>
     <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;">📊 產生相關係數矩陣</button>
     <p class="hint" id="corrStatus" style="margin-top:10px;"></p>
@@ -298,7 +298,7 @@
         <button class="filter-tab-btn" data-filter="keep" onclick="filterRegistry('keep')">通過 (11)</button>
         <button class="filter-tab-btn" data-filter="watch" onclick="filterRegistry('watch')">觀察 (3)</button>
         <button class="filter-tab-btn" data-filter="cut" onclick="filterRegistry('cut')">淘汰 (0)</button>
-        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')">已升等 (5)</button>
+        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')">已升等 (0)</button>
       </div>
       <div class="registry-search-wrap">
         <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." oninput="onRegistrySearchInput()">
@@ -337,7 +337,7 @@
               <iframe id="iframe-NQ_F_0" class="inline-iframe" data-src="screening_NQ_F.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_1" data-key="us10y" data-verdict="watch" data-promoted="true" data-search="us10y us10y">
+        </tr><tr class="registry-row" data-row-id="us10y_1" data-key="us10y" data-verdict="watch" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-29</td>
           <td>
             <button id="toggle-btn-us10y_1" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_1', 'screening_us10y.html', 'us10y')">
@@ -349,7 +349,7 @@
           <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
           <td>2/4</td>
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
-          <td><span class="promoted-badge">已升等</span> <button class="demote-btn" type="button" onclick="demoteFactor(this, 'us10y', 'us10y')">退回</button></td>
+          <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_1" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
@@ -364,7 +364,7 @@
               <iframe id="iframe-us10y_1" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_2" data-key="us10y" data-verdict="watch" data-promoted="true" data-search="us10y us10y">
+        </tr><tr class="registry-row" data-row-id="us10y_2" data-key="us10y" data-verdict="watch" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-29</td>
           <td>
             <button id="toggle-btn-us10y_2" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_2', 'screening_us10y.html', 'us10y')">
@@ -376,7 +376,7 @@
           <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
           <td>2/4</td>
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
-          <td><span class="promoted-badge">已升等</span> <button class="demote-btn" type="button" onclick="demoteFactor(this, 'us10y', 'us10y')">退回</button></td>
+          <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_2" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
@@ -391,7 +391,7 @@
               <iframe id="iframe-us10y_2" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_3" data-key="us10y" data-verdict="cut" data-promoted="true" data-search="us10y us10y">
+        </tr><tr class="registry-row" data-row-id="us10y_3" data-key="us10y" data-verdict="cut" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-28</td>
           <td>
             <button id="toggle-btn-us10y_3" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_3', 'screening_us10y.html', 'us10y')">
@@ -403,7 +403,7 @@
           <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
           <td>無法判斷</td>
           <td class="verdict-cut">第三關（穩定性）未通過</td>
-          <td><span class="promoted-badge">已升等</span> <button class="demote-btn" type="button" onclick="demoteFactor(this, 'us10y', 'us10y')">退回</button></td>
+          <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_3" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
@@ -418,7 +418,7 @@
               <iframe id="iframe-us10y_3" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_4" data-key="us10y" data-verdict="cut" data-promoted="true" data-search="us10y us10y">
+        </tr><tr class="registry-row" data-row-id="us10y_4" data-key="us10y" data-verdict="cut" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-28</td>
           <td>
             <button id="toggle-btn-us10y_4" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_4', 'screening_us10y.html', 'us10y')">
@@ -430,7 +430,7 @@
           <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
           <td>無法判斷</td>
           <td class="verdict-cut">第三關（穩定性）未通過</td>
-          <td><span class="promoted-badge">已升等</span> <button class="demote-btn" type="button" onclick="demoteFactor(this, 'us10y', 'us10y')">退回</button></td>
+          <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_4" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
@@ -445,7 +445,7 @@
               <iframe id="iframe-us10y_4" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_5" data-key="us10y" data-verdict="cut" data-promoted="true" data-search="us10y us10y">
+        </tr><tr class="registry-row" data-row-id="us10y_5" data-key="us10y" data-verdict="cut" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-28</td>
           <td>
             <button id="toggle-btn-us10y_5" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_5', 'screening_us10y.html', 'us10y')">
@@ -457,7 +457,7 @@
           <td>—</td>
           <td>無法判斷</td>
           <td class="verdict-cut">第一關（資料健檢）未通過</td>
-          <td><span class="promoted-badge">已升等</span> <button class="demote-btn" type="button" onclick="demoteFactor(this, 'us10y', 'us10y')">退回</button></td>
+          <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_5" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
