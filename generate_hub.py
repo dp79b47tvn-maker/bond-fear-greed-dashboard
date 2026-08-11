@@ -79,6 +79,11 @@ hub_html = f"""<meta charset="utf-8">
   <p class="foot">更新方式:<span class="mono">python3 update_dashboard.py</span>(儀表板) · <span class="mono">python3 generate_hub.py</span>(本頁)。<br>生成日期 {date.today().isoformat()}。</p>
 </div>
 """
-with open(f"{BASE}/chart/index.html", "w", encoding="utf-8") as f:
-    f.write(hub_html)
-print(f"已生成 chart/index.html（{len(hub_html)/1024:.0f} KB）")
+def main():
+    with open(f"{BASE}/chart/index.html", "w", encoding="utf-8") as f:
+        f.write(hub_html)
+    print(f"已生成 chart/index.html（{len(hub_html)/1024:.0f} KB）")
+
+
+if __name__ == "__main__":
+    main()
