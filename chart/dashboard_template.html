@@ -1308,7 +1308,9 @@ const COMPONENTS = [
   },
   {
     key: "copper_gold",
-    rawText: r => r && r.cg_spread != null ? `40日報酬差 ${r.cg_spread >= 0 ? "+" : ""}${r.cg_spread.toFixed(2)}%（銅 ${r.hg_ret40 >= 0 ? "+" : ""}${r.hg_ret40?.toFixed(2) ?? "—"}% vs 金 ${r.gc_ret40 >= 0 ? "+" : ""}${r.gc_ret40?.toFixed(2) ?? "—"}%）` : "",
+    // 天數取自 FACTOR_DEFS(來源是 factor_definitions.json)，不在這裡寫死——
+    // 之前寫死「40日」，2026-08-11參數改成60日時這行就變成錯的了。
+    rawText: r => r && r.cg_spread != null ? `${FACTOR_DEFS.copper_gold?.params?.window ?? ""}日報酬差 ${r.cg_spread >= 0 ? "+" : ""}${r.cg_spread.toFixed(2)}%（銅 ${r.hg_ret >= 0 ? "+" : ""}${r.hg_ret?.toFixed(2) ?? "—"}% vs 金 ${r.gc_ret >= 0 ? "+" : ""}${r.gc_ret?.toFixed(2) ?? "—"}%）` : "",
     rawChart: {
       series: [
         { key: "hg_idx", label: "銅期貨HG=F（指數化，起點=100）", color: "var(--series-1)" },

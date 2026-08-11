@@ -87,10 +87,10 @@ ALL_FACTORS_CONFIGS = [
     # 候選 5 因子
     {
         "key": "cand_copper_gold",
-        "label": "【候選】銅金比 40日報酬差 (HG=F vs GC=F)",
+        "label": "【候選】銅金比 60日報酬差 (HG=F vs GC=F)",
         "mode": "return_spread",
         "sources": {"a": {"yahoo": "HG=F", "name": "HG_futures"}, "b": {"yahoo": "GC=F", "name": "GC_futures"}},
-        "params": {"window": 40},
+        "params": {"window": 60},
         "invert": False
     },
     {

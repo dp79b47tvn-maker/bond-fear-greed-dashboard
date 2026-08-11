@@ -20,13 +20,13 @@ import factor_screening as fs
 NEW_5_FACTORS = [
     {
         "key": "cand_copper_gold",
-        "label": "【候選】銅金比 40日報酬差 (HG=F vs GC=F)",
+        "label": "【候選】銅金比 60日報酬差 (HG=F vs GC=F)",
         "mode": "return_spread",
         "sources": {
             "a": {"yahoo": "HG=F"},
             "b": {"yahoo": "GC=F"},
         },
-        "params": {"window": 40},
+        "params": {"window": 60},
         "invert": False,
     },
     {

@@ -17,8 +17,9 @@
      檔案不存在時會自動建立空白模板。
   3. 計算兩項分數（動能/銅金比）與綜合分數
        - 動能：ZN期貨對125日均線乖離率
-       - 銅金比：HG=F（銅期貨）對GC=F（金期貨）40日報酬差，銅相對金走強＝風險偏好回升
-  4. 【禁止引用未來資料】所有滾動計算（125日均線、40日報酬、5年百分位）都只用
+       - 銅金比：HG=F（銅期貨）對GC=F（金期貨）60日報酬差，銅相對金走強＝風險偏好回升
+         （天數見 factor_definitions.json 的 copper_gold.params.window，2026-08-11由40改為60）
+  4. 【禁止引用未來資料】所有滾動計算（125日均線、60日報酬、5年百分位）都只用
      「當天以前（含當天）」的資料，是嚴格的向後看窗口（trailing window），絕不使用未來才發生
      的價格。每次執行都會自動跑 assert_no_lookahead_bias() 驗證：用「只給到某一天為止」的
      截斷資料重算該天分數，比對跟正式輸出是否一致，不一致就直接報錯中止，不會悄悄產出有問題
@@ -203,11 +204,11 @@ def compute_scores(df):
     df["momentum_spread"] = df["UST_10Yr"] - df["UST10Y_SMA125"]
     df["momentum_score"] = 100 - rolling_percentile_score(df["momentum_spread"])
 
-    # ---- 2) 銅金比：HG=F（銅期貨）對GC=F（金期貨）40日報酬差 ----
+    # ---- 2) 銅金比：HG=F（銅期貨）對GC=F（金期貨）N日報酬差（N見factor_definitions.json）----
     _cg_w = _FP["copper_gold"]["window"]
-    df["HG_ret40"] = (df["HG_futures"] / df["HG_futures"].shift(_cg_w) - 1) * 100
-    df["GC_ret40"] = (df["GC_futures"] / df["GC_futures"].shift(_cg_w) - 1) * 100
-    df["copper_gold_spread"] = df["HG_ret40"] - df["GC_ret40"]
+    df["HG_ret"] = (df["HG_futures"] / df["HG_futures"].shift(_cg_w) - 1) * 100
+    df["GC_ret"] = (df["GC_futures"] / df["GC_futures"].shift(_cg_w) - 1) * 100
+    df["copper_gold_spread"] = df["HG_ret"] - df["GC_ret"]
     # 利差越高＝銅相對金走強＝景氣/風險偏好回升＝貪婪，不用反轉，直接用百分位
     df["copper_gold_score"] = rolling_percentile_score(df["copper_gold_spread"])
 
@@ -522,7 +523,7 @@ def main():
     out.sort_index(ascending=False).to_csv("bond_fear_greed_v2.csv")
     with pd.ExcelWriter("bond_dashboard_data_input.xlsx", engine="openpyxl") as writer:
         raw_cols = ["UST_10Yr", "UST10Y_SMA125", "momentum_spread",
-                    "HG_futures", "GC_futures", "HG_ret40", "GC_ret40", "copper_gold_spread"]
+                    "HG_futures", "GC_futures", "HG_ret", "GC_ret", "copper_gold_spread"]
         out[raw_cols].to_excel(writer, sheet_name="RawData")
         out[score_cols + ["composite_score", "label"]].to_excel(writer, sheet_name="Scores")
 
@@ -549,8 +550,8 @@ def main():
                 "spread": safe(row["momentum_spread"], 2),
                 "hg_idx": safe(row["HG_indexed"], 2),
                 "gc_idx": safe(row["GC_indexed"], 2),
-                "hg_ret40": safe(row["HG_ret40"], 2),
-                "gc_ret40": safe(row["GC_ret40"], 2),
+                "hg_ret": safe(row["HG_ret"], 2),
+                "gc_ret": safe(row["GC_ret"], 2),
                 "cg_spread": safe(row["copper_gold_spread"], 2),
             },
         }
@@ -596,6 +597,10 @@ def main():
             "formula": _sub_tokens(fx["formula_tpl"], fx["params"]),
             "tuningNote": _sub_tokens(fx.get("tuning_note", ""), fx["params"]),
             "codeLocation": fx["code_location"],
+            # 把參數本身也給前端——卡片上的即時數值文字(例如「60日報酬差 +7.4%」)才不用
+            # 在模板裡寫死天數。2026-08-11銅金比從40日改60日時，模板裡寫死的「40日報酬差」
+            # 就是這樣變成錯的；改成從這裡取值之後，改參數只需要動 factor_definitions.json。
+            "params": fx["params"],
         }
         for fx in DEFS["factors"]
     }

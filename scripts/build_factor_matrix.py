@@ -24,10 +24,10 @@ import transform_modes as tm
 CANDIDATE_CONFIGS = [
     {
         "key": "cand_copper_gold",
-        "label": "銅金比 40日報酬差 (HG=F vs GC=F)",
+        "label": "銅金比 60日報酬差 (HG=F vs GC=F)",
         "mode": "return_spread",
         "sources": {"a": {"yahoo": "HG=F", "name": "HG_futures"}, "b": {"yahoo": "GC=F", "name": "GC_futures"}},
-        "params": {"window": 40},
+        "params": {"window": 60},
         "invert": False
     },
     {
