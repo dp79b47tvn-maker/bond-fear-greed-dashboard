@@ -36,6 +36,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends fonts-wqy-zenhei
           pip install -r requirements.txt
 
+      # 純靜態檢查、不發網路請求，放在最前面：抓因子清單/資料管線互相脫鉤的問題。
+      # 這類 bug 以前都是上線之後才發現(見 scripts/check_consistency.py 開頭說明)，
+      # 現在改成部署前就擋下來，failed 就不會產出壞掉的頁面。
+      - name: 一致性檢查
+        run: python3 scripts/check_consistency.py
+
       - name: 重新產生儀表板資料
         run: python3 update_dashboard.py
 
