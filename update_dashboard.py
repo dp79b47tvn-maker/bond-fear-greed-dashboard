@@ -376,20 +376,58 @@ def load_event_calendar(out):
     return [e for e in raw_events if e["date"] >= start]
 
 
+def fetch_declared_sources(on_fetched=None):
+    """照 factor_definitions.json 的 data_sources 清單，把每個資料欄抓回來。
+
+    這是全專案唯一決定「要抓哪些原始資料」的地方——update_dashboard.fetch_all_raw_data()
+    跟 factor_validation_analysis.fetch_extended_history() 都呼叫它，兩條路徑不可能再
+    各抓各的而不同步（2026-08-11 因子從七項改兩項時，就是因為兩邊各自手列 ticker、
+    只改了一邊，導致整個因子篩選平台 KeyError: 'HG_futures' 跑不動）。
+
+    要新增/移除資料來源：只改 factor_definitions.json 的 data_sources，這裡不用動。
+
+    on_fetched(column, series) 是選用的回呼，讓呼叫端可以記錄每個來源的實際資料範圍
+    （factor_validation_analysis 會用它印出「各原始資料來源實際可回溯範圍」那張表）。
+    回傳 [Series, ...]，順序同 data_sources 宣告順序。
+    """
+    series_list = []
+    treasury_done = False
+    for src in DEFS["data_sources"]:
+        col, kind = src["column"], src.get("fetch")
+        if kind == "yahoo":
+            print(f"下載 {src['ticker']} ({col}) ...")
+            s = fetch_yahoo_close(src["ticker"], col)
+        elif kind == "fred":
+            print(f"下載 FRED {src['ticker']} ({col}) ...")
+            s = fetch_fred_series(src["ticker"], col)
+        elif kind == "treasury":
+            # 10年期與2年期由同一支 API 一次取得，只抓一次、兩欄都拿到
+            if not treasury_done:
+                print("下載 Treasury 殖利率曲線 ...")
+                _ust10, _ust2 = fetch_treasury_yield_curve()
+                treasury_done = True
+                _treasury = {"UST_10Yr": _ust10, "UST_2Yr": _ust2}
+                fetch_declared_sources._treasury = _treasury
+            s = fetch_declared_sources._treasury[col]
+        else:
+            raise ValueError(
+                f"factor_definitions.json 的 data_sources「{col}」缺少或看不懂 fetch 欄位：{kind!r}"
+                f"（可用值：yahoo / fred / treasury）"
+            )
+        series_list.append(s)
+        if on_fetched:
+            on_fetched(col, s)
+    return series_list
+
+
 def fetch_all_raw_data():
-    """下載並整合所有原始數據（包含 2014 起之暖身期）。"""
-    print("下載 ZN=F ...")
-    zn = fetch_yahoo_close("ZN=F", "ZN_futures")
-    print("下載 HG=F (銅期貨) ...")
-    hg = fetch_yahoo_close("HG=F", "HG_futures")
-    print("下載 GC=F (金期貨) ...")
-    gc = fetch_yahoo_close("GC=F", "GC_futures")
-    print("下載 Treasury 10年期殖利率 ...")
-    ust10, ust2 = fetch_treasury_yield_curve()
+    """下載並整合所有原始數據（包含 2014 起之暖身期）。抓什麼由 factor_definitions.json
+    的 data_sources 決定，見 fetch_declared_sources()。"""
+    series_list = fetch_declared_sources()
 
     end_d = date.today().strftime("%Y-%m-%d")
     full_index = pd.date_range(FETCH_START_DATE, end_d, freq="D")
-    df = pd.concat([zn, hg, gc, ust10, ust2], axis=1, sort=True).reindex(full_index)
+    df = pd.concat(series_list, axis=1, sort=True).reindex(full_index)
     df.index.name = "Date"
     # INPUT_COLS 裡有幾個舊分數版本用的欄位(NQ_futures/TLT/SHY/MOVE_index)已經不抓了，
     # 這裡先補成全NA，只是為了讓下面的使用者Excel覆蓋迴圈不會因為欄位不存在而 KeyError

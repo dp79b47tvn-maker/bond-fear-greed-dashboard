@@ -47,7 +47,7 @@
       "invert": false,
       "code_location": "update_dashboard.py compute_scores() 第2段",
       "tuning_note": "window 改短→更靈敏但雜訊多;改長→更平滑。",
-      "explain_tpl": "<b>怎麼算：</b>分別計算HG=F（銅期貨）與GC=F（金期貨）過去{window}個交易日的累積報酬率，用銅的{window}日報酬減去金的{window}日報酬得到利差，再把利差放進過去{percentile_years_label}的分佈裡取百分位（0–100，不需反轉——利差越高分數越高）。<b>為什麼：</b>銅是工業金屬，需求跟著全球製造業、營建業景氣走，市場暱稱「Dr. Copper」是因為它常被當成景氣循環的領先指標；金則是傳統避險資產，恐慌時資金會湧入。銅相對金走強，代表市場押注景氣擴張、風險偏好回升（貪婪）；金相對銅走強，代表資金轉向避險（恐懼）。<br><b>資料來源與可信度：</b>HG=F、GC=F每日收盤價都來自Yahoo Finance（CME原始行情），可與CME官網逐日核對；卡片上同時顯示{window}日利差與兩者各自的{window}日報酬率，套公式即可自行驗算分數。<br><b>回測發現：</b>因子開發與篩選平台驗證(測試日2026-08-04)：5/5關卡通過、main IC 0.12、monotonicity 0.85、型態標記單調遞增，跟原有強度因子(NQ期貨)的相關係數僅0.22，屬於低相關、增量價值高的因子，最終判定「採用(Keep)」。"
+      "explain_tpl": "<b>怎麼算：</b>分別計算HG=F（銅期貨）與GC=F（金期貨）過去{window}個交易日的累積報酬率，用銅的{window}日報酬減去金的{window}日報酬得到利差，再把利差放進過去{percentile_years_label}的分佈裡取百分位（0–100，不需反轉——利差越高分數越高）。<b>為什麼：</b>銅是工業金屬，需求跟著全球製造業、營建業景氣走，市場暱稱「Dr. Copper」是因為它常被當成景氣循環的領先指標；金則是傳統避險資產，恐慌時資金會湧入。銅相對金走強，代表市場押注景氣擴張、風險偏好回升（貪婪）；金相對銅走強，代表資金轉向避險（恐懼）。<br><b>資料來源與可信度：</b>HG=F、GC=F每日收盤價都來自Yahoo Finance（CME原始行情），可與CME官網逐日核對；卡片上同時顯示{window}日利差與兩者各自的{window}日報酬率，套公式即可自行驗算分數。<br><b>回測發現：</b>因子開發與篩選平台驗證(測試日2026-08-03，驗證標的為10年期美債殖利率變動bp)：4/4關卡通過、main IC +0.124(11個受測因子中最高)、monotonicity 0.49、型態標記「動能延續型」；與既有因子的最大相關係數僅−0.30(對動能因子)，Leave-One-Out ΔIC −0.040(拿掉它綜合分數會變差)，屬於低相關、具增量價值的因子。<br><b>兩端反轉檢視（Part A 分桶，未來20日）：</b>恐懼端有明顯反轉訊號——分數最低5%那段，未來20日殖利率平均下跌11.7bp(等於債券價格上漲)、勝率72.5%；但貪婪端沒有對稱的反向訊號，分數最高5%那段幾乎打平(−0.2bp)。<b>樣本數請務必打折看：</b>分桶用的是重疊取樣(逐日滾動20日窗口)，最低5%那段的178個交易日換算成互不重疊的獨立事件只剩6筆，統計基礎相當薄，不要當成穩固結論。<br><b>合成後會變差，這點要留意：</b>本因子與動能相關係數−0.30(方向相反)，兩者等權重平均後綜合分數IC降到+0.063，比銅金比單獨使用的+0.124差了一半；而且平均會把分數往中間壓，綜合分數的歷史區間只有5.3–92.3，從未落入0–5%或95–100%的極端尾端，等於兩端反轉訊號在合成後被抹平。完整數據見因子開發與篩選平台的「【合成】官方綜合分數 — 動能 + 銅金比 等權重平均」報告。"
     }
   ],
   "validation": {
@@ -68,9 +68,11 @@
     "position_rule_note": "回測部位 = (50−當日分數)/50,48–52死區強制空手;t日分數套t+1日報酬(不使用未來資料)。"
   },
   "data_sources": [
-    { "column": "ZN_futures", "ticker": "ZN=F", "source": "Yahoo Finance", "earliest": "2000-09", "note": "10年期美債期貨收盤價。非官方管道但穩定,可與CME官網核對。" },
-    { "column": "UST_10Yr", "ticker": "10 Yr", "source": "Treasury.gov", "earliest": "更早", "note": "10年期公債殖利率。美國財政部官方,可信度最高。" },
-    { "column": "HG_futures", "ticker": "HG=F", "source": "Yahoo Finance", "earliest": "2000-09", "note": "銅期貨收盤價。CME原始行情,可與CME官網核對。" },
-    { "column": "GC_futures", "ticker": "GC=F", "source": "Yahoo Finance", "earliest": "2000-09", "note": "金期貨收盤價。CME原始行情,可與CME官網核對。" }
-  ]
+    { "column": "ZN_futures", "ticker": "ZN=F", "fetch": "yahoo", "source": "Yahoo Finance", "earliest": "2000-09", "note": "10年期美債期貨收盤價。非官方管道但穩定,可與CME官網核對。目前不參與任何分數計算,保留供圖表/回測對照用。" },
+    { "column": "UST_10Yr", "ticker": "10 Yr", "fetch": "treasury", "source": "Treasury.gov", "earliest": "更早", "note": "10年期公債殖利率。美國財政部官方,可信度最高。" },
+    { "column": "UST_2Yr", "ticker": "2 Yr", "fetch": "treasury", "source": "Treasury.gov", "earliest": "更早", "note": "2年期公債殖利率。官方。跟UST_10Yr由同一支API一次取得,目前不參與分數計算。" },
+    { "column": "HG_futures", "ticker": "HG=F", "fetch": "yahoo", "source": "Yahoo Finance", "earliest": "2000-09", "note": "銅期貨收盤價。CME原始行情,可與CME官網核對。" },
+    { "column": "GC_futures", "ticker": "GC=F", "fetch": "yahoo", "source": "Yahoo Finance", "earliest": "2000-09", "note": "金期貨收盤價。CME原始行情,可與CME官網核對。" }
+  ],
+  "_data_sources_readme": "fetch 欄位決定這個資料欄由哪支函式抓:yahoo→fetch_yahoo_close、fred→fetch_fred_series、treasury→fetch_treasury_yield_curve(一次回傳10年+2年)。update_dashboard.fetch_all_raw_data() 與 factor_validation_analysis.fetch_extended_history() 兩支都從這份清單動態決定要抓什麼,不再各自手列ticker——2026-08-11因子從七項改兩項時就是因為兩邊沒同步,導致篩選平台整個KeyError掛掉。要新增/移除資料來源,改這裡就好,兩條路徑會自動一致,scripts/check_consistency.py 也會驗證。"
 }

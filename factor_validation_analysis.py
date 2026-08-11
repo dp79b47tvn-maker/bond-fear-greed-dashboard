@@ -95,14 +95,13 @@ DECILE_MIN_N_WARN = _V["decile_min_n_warn"]
 # 滾動百分位需要暖身期，往前多抓視窗長度+margin原始資料，才能讓分數本身有滿N年可用
 PERCENTILE_LOOKBACK_DAYS = ud.DEFS["global"]["percentile_window_days"] + 30
 
+# 2026-08-11：改成從 factor_definitions.json 動態衍生，不再手寫死一份。
+# 原因：官方因子從七項改成兩項(動能/銅金比)時，這裡忘了同步，gate4_incremental()
+# 會拿已經不存在的因子當「現有因子」比較基準。名稱取 name_tpl 破折號前的短名
+# （例："動能 — US 10Y {sma_window}日均線價差" → "動能"）。
 FACTOR_COLS = {
-    "momentum_score": "動能",
-    "strength_score": "強度",
-    "duration_score": "存續期間避險",
-    "putcall_score": "Put/Call",
-    "move_score": "波動度",
-    "curve_score": "殖利率曲線形狀",
-    "inflation_score": "通膨意外",
+    f["score_col"]: f["name_tpl"].split("—")[0].strip()
+    for f in ud.DEFS["factors"]
 }
 COMPOSITE_COL = "composite_score"
 COMPOSITE_LABEL = "綜合分數"
@@ -379,21 +378,15 @@ def fetch_extended_history(years):
 
     raw_ranges = {}
 
-    def _fetch_yahoo(ticker, name):
-        s = ud.fetch_yahoo_close(ticker, name)
-        raw_ranges[name] = (s.index.min(), s.index.max(), len(s))
-        return s
+    # 抓什麼由 factor_definitions.json 的 data_sources 決定，跟 update_dashboard 共用
+    # 同一支 fetch_declared_sources()——兩條路徑不可能再各抓各的而不同步。
+    # (2026-08-11 因子從七項改兩項時，這裡曾經因為沒跟著改而 KeyError: 'HG_futures'，
+    #  整個篩選平台跑不動；改成共用之後這種脫鉤在結構上就不可能發生了。)
+    def _record(name, s):
+        if len(s):
+            raw_ranges[name] = (s.index.min(), s.index.max(), len(s))
 
-    zn = _fetch_yahoo("ZN=F", "ZN_futures")
-    nq = _fetch_yahoo("NQ=F", "NQ_futures")
-    tlt = _fetch_yahoo("TLT", "TLT")
-    shy = _fetch_yahoo("SHY", "SHY")
-    move = _fetch_yahoo("^MOVE", "MOVE_index")
-    ust10, ust2 = ud.fetch_treasury_yield_curve()
-    raw_ranges["UST_10Yr"] = (ust10.index.min(), ust10.index.max(), len(ust10))
-    cpi = ud.fetch_fred_series("CPIAUCSL", "CPI_index")
-    breakeven = ud.fetch_fred_series("T10YIE", "Breakeven_10Y")
-    raw_ranges["Breakeven_10Y"] = (breakeven.index.min(), breakeven.index.max(), len(breakeven))
+    series_list = ud.fetch_declared_sources(on_fetched=_record)
 
     print(f"[{years}年分桶分析] 各原始資料來源實際可回溯範圍：")
     for name, (lo, hi, n) in raw_ranges.items():
@@ -401,9 +394,8 @@ def fetch_extended_history(years):
               f"{f'足夠支撐{years}年分析' if lo <= target_start + pd.Timedelta(days=31) else f'⚠️ 不足{years}年+暖身期，將如實反映在分數的實際起始日'}")
 
     full_index = pd.date_range(ud.FETCH_START_DATE, ud.END_DATE, freq="D")
-    df = pd.concat([zn, nq, tlt, shy, move, ust10, ust2, cpi, breakeven], axis=1, sort=True).reindex(full_index)
+    df = pd.concat(series_list, axis=1, sort=True).reindex(full_index)
     df.index.name = "Date"
-    df["put_call_ratio"] = pd.NA
     df = df.sort_index().ffill().dropna(how="all")
     df = ud.compute_scores(df)
     return df, raw_ranges
