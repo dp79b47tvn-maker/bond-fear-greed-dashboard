@@ -454,11 +454,23 @@ def gate4_incremental(key, main_score, main_df):
     }
 
 
+# ================================================================ 部位規則（回測與第五關共用）
+def score_to_position(score):
+    """把0–100分數轉成 −1~+1 的部位，規則來自 factor_definitions.json 的
+    validation.position_rule_note / dead_zone，全專案只有這一份實作。
+
+    部位 = (50 − 分數) / 50：分數低(恐懼)→做多債券，分數高(貪婪)→做空。
+    死區(預設48–52)強制空手，避免在中性區被雜訊來回洗。
+    """
+    lo, hi = fva._V["dead_zone"]
+    pos = (50 - score) / 50
+    pos = pos.where((score < lo) | (score > hi), 0.0)
+    return pos.clip(-1, 1)
+
+
 # ================================================================ 第五關：可實作性
 def gate5_implementability(score):
-    pos = (50 - score) / 50
-    pos = pos.where((score < 48) | (score > 52), 0.0)
-    pos = pos.clip(-1, 1)
+    pos = score_to_position(score)
     changes = pos.diff().abs()
     turnover_daily_avg = float(changes.mean(skipna=True))
     n_flips = int((changes > 0.05).sum())
@@ -468,6 +480,115 @@ def gate5_implementability(score):
         "reasons": ["成本門檻尚待提供bps假設，此關目前只回報數字、不判定通過與否"],
         "turnover_daily_avg": turnover_daily_avg, "n_position_changes": n_flips,
     }
+
+
+# ================================================================ 回測分析
+def backtest_strategy(score, main_df, target=None):
+    """依 factor_definitions.json 宣告的部位規則做逐日回測。
+
+    【禁止引用未來資料】t日收盤知道當天分數 → 決定t日部位 → 賺t到t+1的報酬。
+    pnl(t) = pos(t) × 報酬(t→t+1)，pos 用的是當天(含)以前的資料算出來的分數，
+    絕不會用到 t+1 才知道的資訊。
+
+    單位是「bp的價格報酬」：目標欄位是10年期殖利率，殖利率下降代表債券價格上漲，
+    所以報酬 = −1 × 殖利率變動(bp)。做多部位遇到殖利率下降就賺錢。
+
+    對照組刻意放「無條件買進持有」(部位恆為+1)——沒有這個基準的話，看到正報酬
+    很容易誤以為是因子有效，其實只是這段期間債券本來就在漲。
+
+    樣本內/外用時間前後對半切：後半段是因子參數決定之後才發生的資料，
+    Sharpe衰退比例(OOS/IS)是判斷有沒有過度配適最直接的指標。
+    """
+    target = target or fva.TARGET
+    sub = pd.concat([score.rename("score"), main_df[target].rename("y")], axis=1).dropna()
+    # 上游的 df 是日曆日索引(週末假日由 ffill 補值)，直接拿來回測會有兩個問題：
+    #   1. 一年變成365筆，卻用 √252 年化，Sharpe/波動度全部算錯
+    #   2. 週末那些「殖利率沒動」的假交易日會灌水交易日數、壓低勝率
+    # 這裡先濾成工作日(週一~週五)。國定假日仍會殘留成零變動日，但影響遠小於週末，
+    # 且這是業界標準做法。
+    sub = sub[sub.index.dayofweek < 5]
+    if len(sub) < 250:
+        return None
+
+    # 未來1日殖利率變動(bp)；最後一天沒有隔天資料，dropna掉
+    d_bp = (sub["y"].shift(-1) - sub["y"]) * 100
+    price_ret = -d_bp                      # 價格報酬 ≈ −1 × 殖利率變動
+    pos = score_to_position(sub["score"])
+
+    pnl = (pos * price_ret).dropna()
+    bh = price_ret.reindex(pnl.index)      # 對照組：無條件買進持有
+    if len(pnl) < 250:
+        return None
+
+    def _stats(series, positions=None):
+        if len(series) < 20 or series.std() == 0:
+            return None
+        ann_ret = float(series.mean() * 252)
+        ann_vol = float(series.std() * np.sqrt(252))
+        curve = series.cumsum()
+        drawdown = float((curve - curve.cummax()).min())
+        # 勝率只看「有下注而且真的有損益」的日子——死區空手日跟殖利率沒動的日子
+        # 損益是0，算進分母會讓勝率看起來莫名其妙地低(明明累積報酬是正的)
+        active = series[series != 0]
+        out = {
+            "ann_ret_bp": ann_ret, "ann_vol_bp": ann_vol,
+            "sharpe": ann_ret / ann_vol if ann_vol else 0.0,
+            "max_dd_bp": drawdown,
+            "total_bp": float(curve.iloc[-1]),
+            "win_rate": float((active > 0).mean() * 100) if len(active) else 0.0,
+            "n_active": len(active),
+            "n_days": len(series),
+        }
+        if positions is not None:
+            p = positions.reindex(series.index)
+            out["avg_exposure"] = float(p.abs().mean())
+            out["long_pct"] = float((p > 0).mean() * 100)
+            out["short_pct"] = float((p < 0).mean() * 100)
+            out["flat_pct"] = float((p == 0).mean() * 100)
+        return out
+
+    split = len(pnl) // 2
+    split_date = pnl.index[split]
+    is_stats = _stats(pnl.iloc[:split], pos)
+    oos_stats = _stats(pnl.iloc[split:], pos)
+    decay = (oos_stats["sharpe"] / is_stats["sharpe"]
+             if is_stats and oos_stats and is_stats["sharpe"] > 0 else None)
+
+    return {
+        "full": _stats(pnl, pos),
+        "buy_hold": _stats(bh),
+        "is": is_stats,
+        "oos": oos_stats,
+        "sharpe_decay": decay,
+        "split_date": split_date,
+        "curve": pnl.cumsum(),
+        "curve_bh": bh.cumsum(),
+        "start": pnl.index.min(),
+        "end": pnl.index.max(),
+    }
+
+
+def backtest_chart_base64(bt, label):
+    """權益曲線圖：策略 vs 無條件買進持有，並標出樣本內/外分界。"""
+    if bt is None:
+        return None
+    fig, ax = plt.subplots(figsize=(7.6, 3.6), dpi=140)
+    ax.plot(bt["curve"].index, bt["curve"], color="#1e3a5f", linewidth=1.4,
+            label="因子策略（累積價格報酬 bp）")
+    ax.plot(bt["curve_bh"].index, bt["curve_bh"], color="#a6742a", linewidth=1.1,
+            linestyle="--", alpha=0.85, label="對照：無條件買進持有")
+    ax.axhline(0, color="#888", linewidth=0.8)
+    ax.axvline(bt["split_date"], color="#a6362f", linewidth=1.0, linestyle=":", alpha=0.8)
+    ax.text(bt["split_date"], ax.get_ylim()[1], " 樣本外起點 ", fontsize=7.5,
+            color="#a6362f", va="top", ha="left")
+    ax.set_ylabel("累積報酬 (bp)", fontsize=9)
+    ax.tick_params(labelsize=8)
+    ax.legend(fontsize=8, loc="upper left", frameon=False)
+    ax.set_title(f"{label}：回測權益曲線（部位＝(50−分數)/50，死區空手）", fontsize=10)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    fig.tight_layout()
+    return fva.fig_to_base64(fig)
 
 
 # ================================================================ 主流程
@@ -525,6 +646,18 @@ def run_screening(config):
     except Exception as e:
         g5 = {"passed": None, "reasons": [f"此關計算失敗：{e}"]}
     result["gate5"] = g5
+
+    print(f"[{label}] 回測分析 ...")
+    try:
+        # 刻意用完整的20年延伸歷史，不是五道關卡用的2020+主範圍——回測要拆樣本內/外，
+        # 6年半的資料切一半只剩3年多，Sharpe衰退比例會被雜訊主導、看不出真正的過度配適。
+        # 這跟平台既有的10年/20年分桶分析用更長窗口是同一個道理。
+        df_bt = ext_df_20y.copy()
+        df_bt[key] = score_full.reindex(df_bt.index)
+        result["backtest"] = backtest_strategy(df_bt[key], df_bt)
+    except Exception as e:
+        print(f"  回測計算失敗（不影響其他關卡）：{e}")
+        result["backtest"] = None
 
     # 整體建議：只統計「真的判斷出及格/不及格」的關卡(第一到四關；第五關换手率
     # 本身就沒有及格線，永遠不計入分母)，第五關永遠是資訊性質。
@@ -745,6 +878,86 @@ def raw_data_chart_base64(config, main_df, label):
     return fva.fig_to_base64(fig)
 
 
+def _bt_row(name, s, highlight=False):
+    if s is None:
+        return f'<tr><td>{name}</td><td colspan="7" class="na">樣本不足</td></tr>'
+    b = "<b>{}</b>".format if highlight else str
+    return (f"<tr><td>{b(name)}</td><td>{s['n_days']}</td>"
+            f"<td>{b(f'{s['total_bp']:+,.0f}')}</td>"
+            f"<td>{s['ann_ret_bp']:+.1f}</td><td>{s['ann_vol_bp']:.1f}</td>"
+            f"<td>{b(f'{s['sharpe']:+.2f}')}</td>"
+            f"<td>{s['max_dd_bp']:,.0f}</td>"
+            f"<td>{s['win_rate']:.1f}%<br><span class='n'>(n={s['n_active']})</span></td></tr>")
+
+
+def _render_backtest_section(bt, label):
+    """回測分析區塊。放在五關之後——五關看的是統計特徵(IC/單調性/相關性)，
+    這裡看的是「照這個訊號實際下單會怎樣」，兩者要分開看。"""
+    if bt is None:
+        return """
+    <section class="card">
+      <h2><span class="bar"></span>回測分析</h2>
+      <p class='na'>資料不足（需要至少約1年的有效分數與報酬）或此報告未執行回測。</p>
+    </section>"""
+
+    chart = backtest_chart_base64(bt, label)
+    full, bh, ins, oos = bt["full"], bt["buy_hold"], bt["is"], bt["oos"]
+    decay = bt["sharpe_decay"]
+
+    # 有沒有贏過「什麼都不判斷、直接買進持有」——沒贏過的話這個因子就沒有實際價值
+    beat_bh = (full and bh and full["sharpe"] > bh["sharpe"])
+    verdict_cls = "verdict-keep" if beat_bh else "verdict-cut"
+    verdict_txt = ("策略Sharpe高於無條件買進持有，訊號有加值"
+                   if beat_bh else "策略Sharpe不如無條件買進持有，訊號沒有加值")
+
+    if decay is None:
+        decay_txt = "<span class='na'>樣本內Sharpe非正，衰退比例無意義</span>"
+    elif decay > 1.2:
+        # 樣本外比樣本內好是可能的，但別急著當成好消息——多半是樣本期間的運氣
+        decay_txt = (f"<span class='verdict-watch'>{decay:.0%}（樣本外反而優於樣本內"
+                     f"——這通常是樣本期間的運氣，不宜當成穩健的證據）</span>")
+    elif decay >= 0.7:
+        decay_txt = f"<span class='verdict-keep'>{decay:.0%}（樣本外保留住大部分表現）</span>"
+    elif decay >= 0.3:
+        decay_txt = f"<span class='verdict-watch'>{decay:.0%}（樣本外明顯衰退）</span>"
+    else:
+        decay_txt = f"<span class='verdict-cut'>{decay:.0%}（樣本外幾乎失效，疑似過度配適）</span>"
+
+    exposure = (f"平均曝險 {full['avg_exposure']:.2f}　·　"
+                f"做多 {full['long_pct']:.0f}%　·　做空 {full['short_pct']:.0f}%　·　"
+                f"空手 {full['flat_pct']:.0f}%" if full else "")
+
+    return f"""
+    <section class="card">
+      <h2><span class="bar"></span>回測分析</h2>
+      <p class="hint">部位規則：<b>(50 − 當日分數) / 50</b>，分數低(恐懼)做多債券、分數高(貪婪)做空，
+        {fva._V["dead_zone"][0]}–{fva._V["dead_zone"][1]} 死區強制空手。
+        <b>t日收盤的分數決定t日部位，賺t到t+1的報酬</b>，不使用未來資料。
+        報酬單位是<b>價格報酬(bp)</b>＝ −1 × 殖利率變動，殖利率下降代表債券價格上漲。
+        回測期間 {bt["start"].date()} ~ {bt["end"].date()}。</p>
+      {"<img class='chart' src='data:image/png;base64," + chart + "'/>" if chart else ""}
+      <table class="data-table mini">
+        <tr><th>期間 / 策略</th><th>交易日</th><th>累積報酬(bp)</th><th>年化報酬(bp)</th>
+            <th>年化波動(bp)</th><th>Sharpe</th><th>最大回撤(bp)</th>
+            <th>單日勝率<br><span class="n">(僅計有損益的日子)</span></th></tr>
+        {_bt_row("全期間（因子策略）", full, highlight=True)}
+        {_bt_row("　對照：無條件買進持有", bh)}
+        {_bt_row("樣本內（前半段）", ins)}
+        {_bt_row("樣本外（後半段）", oos)}
+      </table>
+      <p class="hint">{exposure}</p>
+      <p><b>樣本外Sharpe衰退比例（OOS ÷ IS）：</b>{decay_txt}　·
+         樣本內外以時間對半切（分界 {bt["split_date"].date()}）。</p>
+      <p><b>跟基準比：</b><span class="{verdict_cls}">{verdict_txt}</span>
+         （策略 Sharpe {full['sharpe']:+.2f} vs 買進持有 {bh['sharpe']:+.2f}）——
+         這個對照很重要：債券本身在某些期間就是會漲，沒有基準的話很容易把「大盤在漲」
+         誤認成「因子有效」。</p>
+      <p class="hint"><b>還沒納入的成本（解讀時請自行打折）：</b>本回測不含交易成本、買賣價差與滑價。
+         第五關的每日部位變動量可以拿來粗估周轉率——成本假設一旦確定，把「每日部位變動量 ×
+         單邊成本(bp) × 252」從年化報酬扣掉，就是比較貼近實際的數字。</p>
+    </section>"""
+
+
 def render_screening_report(result):
     key, label = result["key"], result["label"]
     mode_label = TRANSFORM_MODES[result["config"]["mode"]]["label"]
@@ -912,6 +1125,8 @@ def render_screening_report(result):
       <h2><span class="bar"></span>第五關：可實作性 {_gate_badge(g5.get("passed"))}</h2>
       {"<ul>" + "".join(f"<li>{r}</li>" for r in g5.get("reasons", [])) + "</ul>" if g5.get("reasons") else "<p class='na'>無法完成此關分析</p>"}
     </section>""")
+
+    sections.append(_render_backtest_section(result.get("backtest"), label))
 
     gp = result.get("gates_passed", "無法判斷")
     n_passed_str = gp.split("/")[0] if "/" in gp else "0"
