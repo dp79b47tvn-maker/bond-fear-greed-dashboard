@@ -81,7 +81,26 @@ def _rolling_stat(series, window, stat):
     )
 
 
+def _composite_mean(*score_series):
+    """把N個已經是0–100的分數欄位等權重平均（缺值那項自動排除、由其餘項平均，
+    不填假值）——跟 update_dashboard.compute_scores() 算 composite_score 的規則一致。
+
+    這是唯一一個「輸入本身就已經是分數」的模式，其他模式都是從原始價格/利率算起。
+    用途：把因子組合（例如動能+銅金比）當成一個因子丟進篩選平台跑完整五關，
+    不用為每種組合各寫一支一次性腳本。config 寫法：
+        {"mode": "composite_mean",
+         "sources": {"cols": ["momentum_score", "copper_gold_score"]},
+         "uses_percentile": False}
+    uses_percentile 記得設 False——輸入已經是0–100，再轉一次百分位會改變分布形狀。
+    """
+    combined = pd.concat(score_series, axis=1)
+    out = combined.mean(axis=1, skipna=True)
+    return out.where(combined.notna().any(axis=1))
+
+
 TRANSFORM_MODES = {
+    "composite_mean": {"fn": _composite_mean, "n_sources": "n", "uses_percentile_default": False,
+                        "label": "多因子分數等權重平均"},
     "ma_deviation": {"fn": _ma_deviation, "n_sources": 1, "uses_percentile_default": True,
                       "label": "均線乖離百分位"},
     "ma_spread": {"fn": _ma_spread, "n_sources": 1, "uses_percentile_default": True,
@@ -139,7 +158,14 @@ def build_candidate_score(config, df, fetch_yahoo=None, fetch_fred=None):
     params = config.get("params", {})
     sources = config["sources"]
 
-    if mode["n_sources"] == 1:
+    if mode["n_sources"] == "n":
+        # composite_mean：sources["cols"] 是一串「df裡已經有的分數欄名」
+        series_list = []
+        for col in sources["cols"]:
+            s, df = _resolve_source(col, df, fetch_yahoo, fetch_fred)
+            series_list.append(s)
+        raw_metric = mode["fn"](*series_list)
+    elif mode["n_sources"] == 1:
         series, df = _resolve_source(sources["series"], df, fetch_yahoo, fetch_fred)
         if config["mode"] == "rolling_stat":
             raw_metric = mode["fn"](series, params["window"], params.get("stat", "skew"))

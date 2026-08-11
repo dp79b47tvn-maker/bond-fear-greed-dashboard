@@ -42,8 +42,35 @@ def _promoted_labels():
     return {f"promoted_{pf['key']}_score": f"{pf['label']}（候選）" for pf in staged.get("factors", [])}
 
 
+HISTORICAL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "factor_scores_matrix.csv")
+
+
+def _historical_labels():
+    """曾經測過、但已不在官方因子清單裡的歷史因子（2026-08-05的11因子快照）。
+    官方因子從七項縮成兩項之後，只靠官方+已升等候選會讓可比較的因子只剩兩個，
+    整個相關係數矩陣就沒得比了；這些欄位還在快照裡，繼續開放比較。
+    標籤要跟 factor_screening._HISTORICAL_LABELS 一致。"""
+    import factor_screening as fs
+    return {c: f"{label}（歷史）" for c, label in fs._historical_factor_labels().items()}
+
+
+def load_scores_df():
+    """主資料用 bond_fear_greed_v2.csv（每日更新）；歷史因子欄位從
+    factor_scores_matrix.csv 補進來（靜態快照，不會再更新）。兩邊都以日期為index
+    對齊，只有兩邊都有值的日期會進相關係數計算(corr本來就會跳過NaN)。"""
+    df = pd.read_csv(CSV_PATH, index_col=0, parse_dates=True).sort_index()
+    if os.path.exists(HISTORICAL_CSV):
+        hist = pd.read_csv(HISTORICAL_CSV).rename(columns={"date": "Date"})
+        hist["Date"] = pd.to_datetime(hist["Date"])
+        hist = hist.set_index("Date").sort_index()
+        for col in hist.columns:
+            if col not in df.columns:
+                df[col] = hist[col].reindex(df.index)
+    return df
+
+
 def build_factor_cols_map(selected_keys):
-    all_labels = {**_official_labels(), **_promoted_labels()}
+    all_labels = {**_official_labels(), **_promoted_labels(), **_historical_labels()}
     factor_cols_map = {}
     skipped = []
     for key in selected_keys:
@@ -128,7 +155,7 @@ def main():
     if len(factor_cols_map) < 2:
         raise ValueError(f"可識別的因子不足2個(收到{selected_keys}，識別出{list(factor_cols_map.keys())})")
 
-    df = pd.read_csv(CSV_PATH, index_col=0, parse_dates=True).sort_index()
+    df = load_scores_df()
     heatmap_b64, corr = fva.correlation_heatmap_base64(df, factor_cols_map)
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

@@ -584,11 +584,17 @@ def append_to_registry(result):
 
 
 # ================================================================ 單一因子體檢報告
+GATE_NOT_RUN = "未執行"  # 給只產Part A、沒跑關卡的腳本用的哨兵值，見 scripts/build_direct_parta_html.py
+
+
 def _gate_badge(passed):
     if passed is True:
         return '<span class="verdict-keep">通過</span>'
     if passed is False:
         return '<span class="verdict-cut">未通過</span>'
+    if passed == GATE_NOT_RUN:
+        # 跟「跑了但沒設門檻」(第五關)區分開——這是「根本沒跑」，不要讓人誤以為驗證過了
+        return '<span class="verdict-cut">未執行</span>'
     return '<span class="verdict-watch">僅供參考（未設門檻）</span>'
 
 
@@ -820,7 +826,7 @@ def render_screening_report(result):
         sections.append(f"""
     <section class="card">
       <h2><span class="bar"></span>第二關：單獨效力 {_gate_badge(g2.get("passed"))}</h2>
-      <p class="hint">型態標記：<b>{g2["pattern_tag"]}</b>（描述性標記，不當作及格條件——現有七因子裡多數呈現動能延續型，
+      <p class="hint">型態標記：<b>{g2["pattern_tag"]}</b>（描述性標記，不當作及格條件——現有官方因子裡多數呈現動能延續型，
         不是長期反轉型，這個標記純粹讓你知道候選因子屬於哪一種，不會因為不是反轉型就被判定不及格）</p>
       <h3>IC（vs 未來N日{target_name}，全平台一律以重疊取樣為主）</h3>
       <table class="data-table mini">
@@ -876,7 +882,7 @@ def render_screening_report(result):
         sections.append(f"""
     <section class="card">
       <h2><span class="bar"></span>第四關：增量價值 {_gate_badge(g4.get("passed"))}</h2>
-      <h3>跟現有七因子的相關係數</h3>
+      <h3>跟現有官方因子（{len(fva.FACTOR_COLS)}項）的相關係數</h3>
       <table class="data-table mini"><tr><th>因子</th><th>相關係數</th></tr>{corr_rows}</table>
       <p class="hint">最高相關：{g4["max_corr_key"]}（{g4["max_corr"]:+.2f}），門檻±{THRESHOLDS['max_correlation']}</p>
       <h3>Leave-one-out：加入候選因子對綜合分數IC的影響（重疊取樣）</h3>
@@ -1036,7 +1042,42 @@ def _corr_factor_options():
         {"value": f"promoted_{pf['key']}_score", "label": f"{pf['label']}（候選）", "kind": "candidate"}
         for pf in _load_promoted_factors_list()
     ]
+    # 2026-08-11補上第三組：曾經測過、但目前不在官方因子清單裡的歷史因子。
+    # 官方因子從七項縮成兩項(動能/銅金比)之後，這個勾選清單只剩兩個選項、
+    # 等於整個相關係數矩陣功能廢掉。這些因子的分數還留在 factor_scores_matrix.csv
+    # (2026-08-05的11因子快照)，可以繼續拿來比較，只是不會再每日更新——
+    # generate_correlation_matrix.py 會從那份快照補讀這些欄位。
+    # 同一個因子如果已經在官方清單裡(例如動能、銅金比)，就不重複列出歷史快照版本，
+    # 不然勾選清單會出現「動能」跟「動能（歷史）」兩個看起來一樣的選項。
+    known_labels = {o["label"] for o in options}
+    for col, label in _historical_factor_labels().items():
+        if label not in known_labels:
+            options.append({"value": col, "label": f"{label}（歷史）", "kind": "historical"})
     return options
+
+
+HISTORICAL_MATRIX_CSV = "factor_scores_matrix.csv"
+# factor_scores_matrix.csv 的欄名 -> 顯示用中文名。欄名沿用當初批次驗證時的key，
+# 官方六項沒有_score後綴、候選五項是cand_前綴。
+_HISTORICAL_LABELS = {
+    "momentum": "動能", "strength": "強度", "duration": "存續期間避險",
+    "move": "波動度", "curve": "殖利率曲線形狀", "inflation": "通膨意外",
+    "cand_copper_gold": "銅金比", "cand_credit_spread": "投資級企業債信用利差",
+    "cand_swap_spread": "10年期Swap Spread", "cand_sofr_ted_spread": "SOFR與3M美債利差",
+    "cand_inflation_1y": "1年期通膨預期",
+}
+
+
+def _historical_factor_labels():
+    """回傳 factor_scores_matrix.csv 裡實際存在的歷史因子欄位 {欄名: 中文名}。
+    檔案不存在就回傳空dict，不報錯(比照本檔其他選用性檔案的處理方式)。"""
+    if not os.path.exists(HISTORICAL_MATRIX_CSV):
+        return {}
+    try:
+        cols = set(pd.read_csv(HISTORICAL_MATRIX_CSV, nrows=0).columns)
+    except Exception:
+        return {}
+    return {c: label for c, label in _HISTORICAL_LABELS.items() if c in cols}
 
 
 def _build_partb_section_html():
@@ -1132,8 +1173,11 @@ def _build_partb_section_html():
 
 def render_registry_index(registry):
     promoted_keys = _load_promoted_keys()
+    # 官方/已升等因子預設勾選；歷史快照因子預設不勾(只是提供選項，避免預設就跑出
+    # 十幾乘十幾的巨大矩陣，也避免讓人誤以為那些因子還在每日更新)。
     corr_factor_checkboxes = "".join(
-        f'<label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="{opt["value"]}" checked>{opt["label"]}</label>'
+        f'<label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" '
+        f'value="{opt["value"]}"{"" if opt["kind"] == "historical" else " checked"}>{opt["label"]}</label>'
         for opt in _corr_factor_options()
     )
     rows = ""

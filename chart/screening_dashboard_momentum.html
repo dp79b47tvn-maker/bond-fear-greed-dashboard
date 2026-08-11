@@ -86,13 +86,13 @@
 </head>
 <body>
 <div class="wrap">
-  <nav class="site-topnav"><a href="index.html">首頁</a><a href="dashboard.html">儀表板</a><span class="active" aria-current="page">歷史測試紀錄登記簿</span><a href="partb_combination_report.html">11因子爆破與樣本外驗證</a></nav>
+  <nav class="site-topnav"><a href="index.html">首頁</a><a href="dashboard.html">儀表板</a><span class="active" aria-current="page">因子開發與篩選平台</span></nav>
   <header>
     <div class="kicker">FACTOR SCREENING</div>
     <h1>因子篩選：【儀表板驗證】動能 — US 10Y 125日均線價差</h1>
-    <p class="meta">key：dashboard_momentum　·　轉換模式：均線價差百分位　·　測試日期：2026-08-04　·　關卡通過：5/5</p>
+    <p class="meta">key：dashboard_momentum　·　轉換模式：均線價差百分位　·　測試日期：2026-08-11　·　關卡通過：未執行</p>
     <p class="disclaimer">本平台協助債券交易者判斷美債市場目前的整體氛圍，作為交易員的輔助判斷工具，非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，不產出即時部位建議或操作指令。</p>
-    <p class="disclaimer verdict-keep">採用 (Keep)</p>
+    <p class="disclaimer verdict-cut">未評定——本次只產出 Part A 統計分布，未執行五關驗證，不構成採用/觀望/淘汰的建議。</p>
   </header>
   
     <section class="card">
@@ -111,49 +111,24 @@
       </table>
     </section>
     <section class="card">
-      <h2><span class="bar"></span>第一關：資料健檢 <span class="verdict-keep">通過</span></h2>
-      <table class="data-table mini">
-        <tr><th>有效資料天數</th><th>缺值比例</th><th>look-ahead檢查</th></tr>
-        <tr><td>2408</td><td>0.0%</td>
-            <td>通過（通過（抽樣檢查無預知未來的 trailing rolling 邏輯））</td></tr>
-      </table>
-      
+      <h2><span class="bar"></span>第一關：資料健檢 <span class="verdict-cut">未執行</span></h2>
+      <ul><li>此關未執行——本報告由 build_direct_parta_html.py 產生，只計算 Part A 統計分布，沒有跑任何關卡驗證。要取得真正的五關結果，請用 factor_screening.screen_and_save(config) 完整重跑。</li></ul>
     </section>
     <section class="card">
-      <h2><span class="bar"></span>第二關：單獨效力 <span class="verdict-keep">通過</span></h2>
-      <p class="hint">型態標記：<b>單調遞增</b>（描述性標記，不當作及格條件——現有七因子裡多數呈現動能延續型，
-        不是長期反轉型，這個標記純粹讓你知道候選因子屬於哪一種，不會因為不是反轉型就被判定不及格）</p>
-      <h3>IC（vs 未來N日10年期美債殖利率 (bp)，全平台一律以重疊取樣為主）</h3>
-      <table class="data-table mini">
-        <tr><th>持有天數</th><th>重疊</th><th>非重疊（對照參考）</th></tr>
-        <tr><td>5日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=480)</span></td></tr><tr><td>10日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=240)</span></td></tr><tr><td>20日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=120)</span></td></tr><tr><td>60日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=40)</span></td></tr><tr><td>120日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=20)</span></td></tr><tr><td>250日</td><td><span class="pos">+0.120</span> <span class="n">(n=2400)</span></td><td><span class="pos">+0.100</span> <span class="n">(n=9)</span></td></tr>
-      </table>
-      <p class="hint">分桶單調性（10年版本，重疊取樣）：0.850</p>
-      <p class='na'>10年分桶資料不足</p>
-      <p class='na'>20年分桶資料不足</p>
-      <p class='na'>熱力圖資料不足</p>
-      
-      
+      <h2><span class="bar"></span>第二關：單獨效力 <span class="verdict-cut">未執行</span></h2>
+      <ul><li>此關未執行——本報告由 build_direct_parta_html.py 產生，只計算 Part A 統計分布，沒有跑任何關卡驗證。要取得真正的五關結果，請用 factor_screening.screen_and_save(config) 完整重跑。</li></ul>
     </section>
     <section class="card">
-      <h2><span class="bar"></span>第三關：穩定性 <span class="verdict-keep">通過</span></h2>
-      <p class='na'>無法完成此關分析</p>
+      <h2><span class="bar"></span>第三關：穩定性 <span class="verdict-cut">未執行</span></h2>
+      <ul><li>此關未執行——本報告由 build_direct_parta_html.py 產生，只計算 Part A 統計分布，沒有跑任何關卡驗證。要取得真正的五關結果，請用 factor_screening.screen_and_save(config) 完整重跑。</li></ul>
     </section>
     <section class="card">
-      <h2><span class="bar"></span>第四關：增量價值 <span class="verdict-keep">通過</span></h2>
-      <h3>跟現有七因子的相關係數</h3>
-      <table class="data-table mini"><tr><th>因子</th><th>相關係數</th></tr><tr><td>momentum</td><td>+0.15</td></tr><tr><td>strength</td><td>+0.22</td></tr></table>
-      <p class="hint">最高相關：strength（+0.22），門檻±0.6</p>
-      <h3>Leave-one-out：加入候選因子對綜合分數IC的影響（重疊取樣）</h3>
-      <p>不含候選：<span class="pos">+0.140</span>　→　含候選：<span class="pos">+0.160</span>
-        （Δ = -0.020，負值代表候選因子有正貢獻）</p>
-      
+      <h2><span class="bar"></span>第四關：增量價值 <span class="verdict-cut">未執行</span></h2>
+      <ul><li>此關未執行——本報告由 build_direct_parta_html.py 產生，只計算 Part A 統計分布，沒有跑任何關卡驗證。要取得真正的五關結果，請用 factor_screening.screen_and_save(config) 完整重跑。</li></ul>
     </section>
     <section class="card">
-      <h2><span class="bar"></span>第五關：可實作性 <span class="verdict-keep">通過</span></h2>
-      <p>平均每日部位變動量：0.040（0=完全不動，2=從滿多轉滿空）　·
-         部位方向改變次數：18</p>
-      
+      <h2><span class="bar"></span>第五關：可實作性 <span class="verdict-cut">未執行</span></h2>
+      <ul><li>此關未執行——本報告由 build_direct_parta_html.py 產生，只計算 Part A 統計分布，沒有跑任何關卡驗證。要取得真正的五關結果，請用 factor_screening.screen_and_save(config) 完整重跑。</li></ul>
     </section>
   <section class="card promote-card">
     <h2><span class="bar"></span>升等為儀表板可選因子</h2>
