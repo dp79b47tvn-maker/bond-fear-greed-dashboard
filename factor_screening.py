@@ -1749,18 +1749,18 @@ def render_registry_index(registry):
 
   <!-- 因子相關係數矩陣（隨選，取代原本驗證報告裡固定範圍的相關矩陣） -->
   <section class="card">
-    <h2><span class="bar"></span>🔗 產生因子相關係數矩陣</h2>
-    <p class="hint">
+    <h2><span class="bar"></span><span data-i18n="corr_card_title">🔗 產生因子相關係數矩陣</span></h2>
+    <p class="hint" data-i18n="corr_card_desc">
       勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。運算完成後會直接顯示在下方，不用等每日自動報告。
     </p>
     <details class="token-box" id="corrTokenDetails">
-      <summary>🔑 GitHub Personal Access Token（跟上面表單共用同一組）</summary>
+      <summary data-i18n="form_token_summary">🔑 GitHub Personal Access Token（跟上面表單共用同一組）</summary>
       <input type="password" id="corrGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </details>
     <div class="corr-factor-grid">
       {corr_factor_checkboxes}
     </div>
-    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;">📊 產生相關係數矩陣</button>
+    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;" data-i18n="corr_submit_btn">📊 產生相關係數矩陣</button>
     <p class="hint" id="corrStatus" style="margin-top:10px;"></p>
   </section>
 
@@ -1780,26 +1780,26 @@ def render_registry_index(registry):
   <!-- 歷史紀錄表格卡片 -->
   <section class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <h2 style="margin:0;"><span class="bar"></span>歷史測試紀錄登記簿 <span style="font-size:12px;font-weight:normal;color:#667085;margin-left:6px;">(點擊因子名稱可直接在下方展開報告圖表)</span></h2>
+      <h2 style="margin:0;"><span class="bar"></span><span data-i18n="reg_title">歷史測試紀錄登記簿</span> <span style="font-size:12px;font-weight:normal;color:#667085;margin-left:6px;" data-i18n="reg_sub">(點擊因子名稱可直接在下方展開報告圖表)</span></h2>
     </div>
 
     <!-- 篩選控制與搜尋列 (防止列表越來越長) -->
     <div class="registry-controls">
       <div class="registry-filters">
-        <button class="filter-tab-btn active" data-filter="all" onclick="filterRegistry('all')">全部 ({n_total})</button>
-        <button class="filter-tab-btn" data-filter="keep" onclick="filterRegistry('keep')">通過 ({n_keep})</button>
-        <button class="filter-tab-btn" data-filter="watch" onclick="filterRegistry('watch')">觀察 ({n_watch})</button>
-        <button class="filter-tab-btn" data-filter="cut" onclick="filterRegistry('cut')">淘汰 ({n_cut})</button>
-        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')">已升等 ({n_promoted})</button>
+        <button class="filter-tab-btn active" data-filter="all" data-i18n="filter_all" onclick="filterRegistry('all')">全部 ({n_total})</button>
+        <button class="filter-tab-btn" data-filter="keep" data-i18n="filter_keep" onclick="filterRegistry('keep')">通過 ({n_keep})</button>
+        <button class="filter-tab-btn" data-filter="watch" data-i18n="filter_watch" onclick="filterRegistry('watch')">觀察 ({n_watch})</button>
+        <button class="filter-tab-btn" data-filter="cut" data-i18n="filter_cut" onclick="filterRegistry('cut')">淘汰 ({n_cut})</button>
+        <button class="filter-tab-btn" data-filter="promoted" data-i18n="filter_promoted" onclick="filterRegistry('promoted')">已升等 ({n_promoted})</button>
       </div>
       <div class="registry-search-wrap">
-        <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." oninput="onRegistrySearchInput()">
+        <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." data-i18n-placeholder="search_placeholder" oninput="onRegistrySearchInput()">
       </div>
     </div>
 
     <table class="data-table" id="registryTable">
       <thead>
-        <tr><th>測試日期</th><th>因子 (點擊名稱展開報告)</th><th>轉換模式</th><th>IC(20日,重疊取樣)</th><th>型態標記</th><th>關卡通過</th><th>結果</th><th>儀表板狀態</th></tr>
+        <tr><th data-i18n="th_date">測試日期</th><th data-i18n="th_factor">因子 (點擊名稱展開報告)</th><th data-i18n="th_mode">轉換模式</th><th data-i18n="th_ic">IC(20日,重疊取樣)</th><th data-i18n="th_flags">型態標記</th><th data-i18n="th_gates">關卡通過</th><th data-i18n="th_verdict">結果</th><th data-i18n="th_status">儀表板狀態</th></tr>
       </thead>
       <tbody id="registryTbody">
         {rows if rows else "<tr><td colspan='8' class='na'>尚無測試記錄</td></tr>"}
@@ -1810,8 +1810,8 @@ def render_registry_index(registry):
     <div class="pagination-bar" id="paginationBar">
       <div id="pageInfo">顯示 1 - 6 / 共 {n_total} 筆</div>
       <div style="display:flex;gap:6px;">
-        <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)">‹ 上一頁</button>
-        <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">下一頁 ›</button>
+        <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)" data-i18n="btn_prev">‹ 上一頁</button>
+        <button class="page-btn" id="nextPageBtn" onclick="changePage(1)" data-i18n="btn_next">下一頁 ›</button>
       </div>
     </div>
   </section>

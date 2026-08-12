@@ -353,7 +353,7 @@
 <div class="viz-root">
   <h1 class="animate-in animate-delay-1" data-i18n="dash_title">債券市場恐懼貪婪儀表板</h1>
   <p class="subtitle animate-in animate-delay-1" data-i18n="dash_subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
-  <p class="caption animate-in animate-delay-1">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
+  <p class="caption animate-in animate-delay-1" data-i18n="dash_caption">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
   <div class="gauge-card animate-in animate-delay-2">
@@ -368,41 +368,38 @@
     <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_logic_btn">綜合分數的計算邏輯與可信度</span></button>
     <div class="logic-panel">
       <div>
-      <b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
-      某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。<br>
-      <b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
-      公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。<br>
-      <b>資料來源明細：</b>
+      <span data-i18n="dash_method_how" data-i18n-html><b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
+      某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。</span><br>
+      <span data-i18n="dash_method_percentile" data-i18n-html><b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
+      公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。</span><br>
+      <span data-i18n="dash_method_sources_title" data-i18n-html><b>資料來源明細：</b></span>
       <table class="method-table">
-        <tr><th>欄位</th><th>代號</th><th>來源</th><th>可回溯到</th><th>說明</th></tr>
+        <tr><th data-i18n="dash_method_th_field">欄位</th><th data-i18n="dash_method_th_code">代號</th><th data-i18n="dash_method_th_source">來源</th><th data-i18n="dash_method_th_history">可回溯到</th><th data-i18n="dash_method_th_desc">說明</th></tr>
         <tr><td class="mono">UST_10Yr</td><td class="mono">10 Yr</td><td>Treasury.gov</td><td>更早</td><td>10年期公債殖利率，美國財政部官方資料。</td></tr>
         <tr><td class="mono">HG_futures</td><td class="mono">HG=F</td><td>Yahoo Finance</td><td>2000-09</td><td>銅期貨收盤價，可與CME官網核對。</td></tr>
         <tr><td class="mono">GC_futures</td><td class="mono">GC=F</td><td>Yahoo Finance</td><td>2000-09</td><td>金期貨收盤價，可與CME官網核對。</td></tr>
       </table>
       每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
-      <b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
-      每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
-      <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。
+      <span data-i18n="dash_method_no_future" data-i18n-html><b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。</span><br>
+      <span data-i18n="dash_method_limits" data-i18n-html><b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。</span>
       </div>
     </div>
   </div>
 
   <!-- ===== 1.5 自訂權重（研究用，不影響上方官方分數） ===== -->
   <div class="card chart-card animate-in animate-delay-3">
-    <h2>自訂權重<span class="exp-tag">研究用</span></h2>
-    <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span>這是什麼</button>
+    <h2><span data-i18n="dash_custom_weight_title">自訂權重</span><span class="exp-tag" data-i18n="dash_custom_weight_tag">研究用</span></h2>
+    <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span><span data-i18n="dash_custom_weight_explain">這是什麼</span></button>
     <div class="logic-panel" id="logic-custom-weight">
       <div>
-      給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
-      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
-      當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
-      純前端即時運算，不會回饋到儀表板或任何報告；設定可以選擇性存到瀏覽器本機（見下方「儲存目前設定」），不存的話重新整理頁面就恢復預設。
+      <span data-i18n="dash_custom_weight_desc" data-i18n-html>給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
+      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。</span>
       <div id="regimePresetExplain"></div>
       </div>
     </div>
     <label class="overlay-toggle" id="customModeToggleWrap">
       <input type="checkbox" id="customModeToggle">
-      啟用自訂模式（在下方走勢圖疊加一條虛線）
+      <span data-i18n="dash_custom_mode_label">啟用自訂模式（在下方走勢圖疊加一條虛線）</span>
     </label>
     <div class="cw-panel" id="customWeightPanel" style="display:none">
       <div class="cw-regime-preset" id="cwRegimePresetWrap" style="display:none">
@@ -424,25 +421,24 @@
 
   <!-- ===== 2. 總體指數時間軸（疊10年期殖利率） ===== -->
   <div class="card chart-card">
-    <h2>綜合指數歷史時間軸</h2>
-    <button class="logic-btn" type="button"><span class="i-dot">i</span>這張圖怎麼讀</button>
+    <h2><span data-i18n="dash_history_title">綜合指數歷史時間軸</span></h2>
+    <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_history_explain">這張圖怎麼讀</span></button>
     <div class="logic-panel">
       <div>
       <b>藍線</b>是綜合恐懼貪婪分數（左軸0–100），背景五色橫帶對應五個分級區間，線落在哪個顏色就是哪個情緒等級。
       <b>橘線</b>是美國10年期公債殖利率（右軸，%），資料來自Treasury.gov官方每日殖利率曲線——它<b>只是參考疊圖，不參與分數計算</b>，
       放在一起是為了讓你對照情緒指標與利率水準的走勢關係（例如2022年殖利率急升期間，分數長期處於恐懼區）。<br>
       <b>互動：</b>直接在圖上點擊或拖下方滑桿、用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
-      <b>縮放與平移（所有圖表聯動）：</b>滑鼠滾輪可縮放，按住 Shift 拖曳可框選放大，縮放後直接拖曳可左右平移瀏覽；也可使用上方 1M/3M/6M/1Y/2Y/ALL 快速切換。所有圖表的時間範圍會同步連動。雙擊或按「回到全部時間範圍」可重置。
       </div>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="swatch-line" style="background:var(--series-1)"></span>綜合恐懼貪婪分數（左軸）</div>
-      <div class="legend-item"><span class="swatch-line" style="background:var(--series-2)"></span>美國10年期公債殖利率（右軸，%）</div>
-      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-fear); opacity:0.55"></span>極度恐懼 0–24</div>
-      <div class="legend-item"><span class="swatch" style="background:var(--tier-fear); opacity:0.45"></span>恐懼 25–44</div>
-      <div class="legend-item"><span class="swatch" style="background:var(--tier-neutral)"></span>中性 45–55</div>
-      <div class="legend-item"><span class="swatch" style="background:var(--tier-greed); opacity:0.55"></span>貪婪 56–75</div>
-      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-greed); opacity:0.55"></span>極度貪婪 76–100</div>
+      <div class="legend-item"><span class="swatch-line" style="background:var(--series-1)"></span><span data-i18n="dash_legend_score">綜合分數 (等權重)</span></div>
+      <div class="legend-item"><span class="swatch-line" style="background:var(--series-2)"></span><span data-i18n="dash_legend_ust10">10年期公債殖利率 (%)</span></div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-fear); opacity:0.55"></span><span data-i18n="tier_extreme_fear">極度恐懼</span> 0–24</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-fear); opacity:0.45"></span><span data-i18n="tier_fear">恐懼</span> 25–44</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-neutral)"></span><span data-i18n="tier_neutral">中性</span> 45–55</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-greed); opacity:0.55"></span><span data-i18n="tier_greed">貪婪</span> 56–75</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--tier-extreme-greed); opacity:0.55"></span><span data-i18n="tier_extreme_greed">極度貪婪</span> 76–100</div>
     </div>
     <label class="overlay-toggle" id="mainEventsToggleWrap" style="display:none">
       <input type="checkbox" id="mainEventsToggle" checked>
