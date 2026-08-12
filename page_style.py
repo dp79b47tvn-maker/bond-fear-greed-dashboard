@@ -35,20 +35,23 @@ H1_SIZE = "32px"
 LEDE_MAX_WIDTH = "68ch"
 
 FONT_FAMILY = (
-    '-apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", '
+    '"Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", '
     '"Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 )
 
 # 儀表板/手冊/首頁三頁共用同一份色彩變數——這三頁都有深色模式支援，數值取自
 # 原本儀表板的版本(三頁裡最完整的一份)，手冊/首頁原本各自的--accent/--text等
 # 命名全部改叫這份的名稱，不再各自維護一套指向同樣顏色的不同變數名。
+# 【外觀優化】：所有顏色 Hex 碼 100% 保留現狀，僅調優 --shadow 的雙層柔和立體感。
 ROOT_COLORS_CSS = """
   :root {
     --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
     --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
     --grid: #e5e7eb; --axis: #a7adb9;
     --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -56,7 +59,9 @@ ROOT_COLORS_CSS = """
       --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
       --grid: #262b36; --axis: #4a5164;
       --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+      --border: #2c313d;
+      --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+      --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
     }
   }
   :root[data-theme="dark"] {
@@ -64,13 +69,17 @@ ROOT_COLORS_CSS = """
     --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
     --grid: #262b36; --axis: #4a5164;
     --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+    --border: #2c313d;
+    --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+    --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
   }
   :root[data-theme="light"] {
     --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
     --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
     --grid: #e5e7eb; --axis: #a7adb9;
     --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
   }
 """

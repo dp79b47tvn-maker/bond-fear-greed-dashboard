@@ -84,9 +84,36 @@
   h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
   .subtitle { font-size: 16.5px; color: var(--text-secondary); margin: 0 0 9px; font-weight: 400; letter-spacing: -0.005em; }
   .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 34px; line-height: 1.65; max-width: __LEDE_MAX_WIDTH__; }
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); transition: box-shadow 0.25s ease; }
-  a, button, input, .logic-btn, .jump-today, .zoom-reset-btn { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.15s ease; }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+  a, button, input, .logic-btn, .jump-today, .zoom-reset-btn {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  }
+  button:active, .jump-today:active, .zoom-reset-btn:active { transform: scale(0.97); }
   :focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+
+  /* 區塊漸進式入場動畫 */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in {
+    animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-delay-1 { animation-delay: 0.08s; }
+  .animate-delay-2 { animation-delay: 0.16s; }
+  .animate-delay-3 { animation-delay: 0.24s; }
+
+  @media (prefers-color-scheme: dark) {
+    .animate-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
   }
@@ -284,17 +311,17 @@
   .section-heading .count { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
 </style>
 
-<div class="nav-wrap">
+<div class="nav-wrap animate-in">
   __NAV_BAR_HTML__
 </div>
 <div class="page-shell">
 <div class="viz-root">
-  <h1>債券市場恐懼貪婪儀表板</h1>
-  <p class="subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
-  <p class="caption">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
+  <h1 class="animate-in animate-delay-1">債券市場恐懼貪婪儀表板</h1>
+  <p class="subtitle animate-in animate-delay-1">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
+  <p class="caption animate-in animate-delay-1">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
-  <div class="gauge-card">
+  <div class="gauge-card animate-in animate-delay-2">
     <p class="gauge-label">最新收盤日綜合分數</p>
     <div class="gauge-wrap">
       <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -326,7 +353,7 @@
   </div>
 
   <!-- ===== 1.5 自訂權重（研究用，不影響上方官方分數） ===== -->
-  <div class="card chart-card">
+  <div class="card chart-card animate-in animate-delay-3">
     <h2>自訂權重<span class="exp-tag">研究用</span></h2>
     <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span>這是什麼</button>
     <div class="logic-panel" id="logic-custom-weight">

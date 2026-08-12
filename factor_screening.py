@@ -1467,19 +1467,28 @@ def render_registry_index(registry):
 <title>因子開發與篩選平台 · 債券市場恐懼貪婪</title>
 <style>
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:{page_style.BASE_LINE_HEIGHT}; }}
+  body {{ margin:0; background:#f4f5f7; color:#161a23; font-family:"Inter",-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:{page_style.BASE_LINE_HEIGHT}; }}
   .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:44px 24px 80px; }}
   header {{ margin-bottom:28px; }}
   .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }}
   h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }}
   .meta {{ font-size:13px; color:#4a5568; margin:0 0 14px; }}
-  .disclaimer {{ font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; }}
-  .card {{ background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }}
+  .disclaimer {{ font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; box-shadow:0 1px 3px rgba(22,26,35,0.03); }}
+  .card {{
+    background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px;
+    box-shadow:0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }}
+  .card:hover {{
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
+  }}
   .card h2 {{ font-size:18px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:8px; }}
   .bar {{ width:4px; height:18px; background:#1e3a5f; border-radius:2px; display:inline-block; }}
   .data-table {{ width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }}
-  .data-table th, .data-table td {{ text-align:left; padding:8px 12px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }}
+  .data-table th, .data-table td {{ text-align:left; padding:8px 12px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; transition:background-color 0.15s ease; }}
   .data-table th {{ color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }}
+  .data-table tbody tr:hover td {{ background:#f8fafc; }}
   .data-table td.fname {{ font-weight:600; white-space:nowrap; }}
   .verdict-keep {{ color:#2f6b4f; font-weight:700; }}
   .verdict-watch {{ color:#a6742a; font-weight:700; }}
@@ -1488,8 +1497,9 @@ def render_registry_index(registry):
   .promoted-badge {{ display:inline-block; font-size:11px; font-weight:700; color:#2f6b4f;
     background:rgba(47,107,79,0.1); border-radius:999px; padding:3px 10px; white-space:nowrap; }}
   .demote-btn {{ border:1px solid #dfe2e8; border-radius:6px; background:#fff; color:#a6362f;
-    font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; margin-left:4px; }}
+    font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; margin-left:4px; transition:all 0.15s ease; }}
   .demote-btn:hover {{ border-color:#a6362f; background:rgba(166,54,47,0.06); }}
+  .demote-btn:active {{ transform:scale(0.96); }}
   .demote-btn:disabled {{ opacity:.55; cursor:not-allowed; }}
 
   .form-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
@@ -1499,16 +1509,19 @@ def render_registry_index(registry):
   .hint {{ font-size:12px; color:#667085; }}
   input[type="text"], input[type="number"], input[type="password"], select {{
     width:100%; padding:9px 12px; border:1px solid #dfe2e8; border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
   }}
-  input:focus, select:focus {{ border-color:#1e3a5f; }}
+  input:focus, select:focus {{ border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,0.12); }}
   .checkbox-group {{ display:flex; align-items:center; gap:8px; margin-top:4px; }}
   .checkbox-group input {{ width:16px; height:16px; cursor:pointer; }}
   .corr-factor-grid {{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; }}
   .corr-check {{ margin-top:0; font-size:13px; font-weight:normal; color:#161a23; cursor:pointer; }}
   .btn-submit {{
     display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer;
+    transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }}
-  .btn-submit:hover {{ opacity:.92; }}
+  .btn-submit:hover {{ background:#2a4c78; transform:translateY(-1px); box-shadow:0 4px 12px rgba(30,58,95,0.25); }}
+  .btn-submit:active {{ transform:scale(0.98); }}
   .token-box {{ background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px; padding:14px 16px; margin-bottom:18px; font-size:12.5px; }}
   .token-box summary {{ font-weight:700; color:#a6742a; cursor:pointer; }}
   .status-card {{ display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:20px; text-align:center; margin-bottom:22px; }}

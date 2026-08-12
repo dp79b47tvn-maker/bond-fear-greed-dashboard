@@ -8,7 +8,9 @@
     --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
     --grid: #e5e7eb; --axis: #a7adb9;
     --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -16,7 +18,9 @@
       --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
       --grid: #262b36; --axis: #4a5164;
       --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-      --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+      --border: #2c313d;
+      --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+      --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
     }
   }
   :root[data-theme="dark"] {
@@ -24,19 +28,60 @@
     --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
     --grid: #262b36; --axis: #4a5164;
     --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-    --border: #2c313d; --shadow: 0 1px 2px rgba(0,0,0,0.35);
+    --border: #2c313d;
+    --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+    --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
   }
   :root[data-theme="light"] {
     --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
     --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
     --grid: #e5e7eb; --axis: #a7adb9;
     --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8; --shadow: 0 1px 2px rgba(22,26,35,0.04);
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
   }
+
+  
+.site-topnav {
+  display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; align-items: center;
+  width: fit-content; margin: 0 auto 28px; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #dfe2e8; box-shadow: 0 2px 8px rgba(22,26,35,0.05), 0 1px 2px rgba(22,26,35,0.03);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.site-topnav a, .site-topnav span.active {
+  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
+  padding: 7px 18px; border-radius: 999px; white-space: nowrap;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.site-topnav a:hover {
+  background: rgba(30,58,95,0.08); color: #1e3a5f;
+  transform: translateY(-1px) scale(1.02);
+}
+.site-topnav a:active { transform: scale(0.97); }
+.site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); font-weight: 700; }
+
+@media (prefers-color-scheme: dark) {
+  .site-topnav { background: rgba(23, 27, 36, 0.92); border-color: #2c313d; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+  .site-topnav a, .site-topnav span.active { color: #b8c0cc; }
+  .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
+  .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+}
+:root[data-theme="dark"] .site-topnav { background: rgba(23, 27, 36, 0.92); border-color: #2c313d; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
+:root[data-theme="dark"] .site-topnav a, :root[data-theme="dark"] .site-topnav span.active { color: #b8c0cc; }
+:root[data-theme="dark"] .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
+:root[data-theme="dark"] .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+
+:root[data-theme="light"] .site-topnav { background: rgba(255, 255, 255, 0.92); border-color: #dfe2e8; box-shadow: 0 2px 8px rgba(22,26,35,0.05); }
+:root[data-theme="light"] .site-topnav a, :root[data-theme="light"] .site-topnav span.active { color: #4a5568; }
+:root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; transform: translateY(-1px) scale(1.02); }
+:root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); }
 
   * { box-sizing:border-box; }
   body { margin:0; background:var(--page); color:var(--text-primary); line-height:1.6;
-    font-family:-apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    font-family:"Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
   .wrap { max-width:1120px; margin:0 auto; padding:44px 24px 70px; }
   .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:10px; }
   h1 { font-size:32px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }
@@ -47,27 +92,41 @@
   .intro p:last-child { margin-bottom:0; }
   .intro b { color:var(--text-primary); }
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }
-  a.card { display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:14px;
+  a.card { display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:16px;
     padding:24px 24px 20px; text-decoration:none; color:var(--text-primary); box-shadow:var(--shadow);
-    transition:transform .15s ease, box-shadow .2s ease; }
-  a.card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(22,26,35,0.10); }
+    transition:transform .25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .25s ease, border-color .25s ease; }
+  a.card:hover { transform:translateY(-3px) scale(1.005); box-shadow:var(--shadow-hover); border-color:var(--series-1); }
+  a.card:active { transform:scale(0.98); }
   .card .ck { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }
   .card h2 { font-size:18px; margin:6px 0 8px; }
   .card p { font-size:13px; color:var(--text-secondary); margin:0; }
   .foot { font-size:12px; color:var(--text-muted); margin-top:34px; line-height:1.7; }
   .mono { font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+
+  /* 區塊漸進式入場動畫 */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in { animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .animate-delay-1 { animation-delay: 0.08s; }
+  .animate-delay-2 { animation-delay: 0.16s; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+  }
 </style>
 <div class="wrap">
-  <div class="kicker">BOND MARKET FEAR &amp; GREED</div>
-  <h1>債券市場恐懼貪婪 · 專案首頁</h1>
-  <p class="lede">2項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。</p>
-  <section class="intro">
+  <nav class="site-topnav"><span class="active" aria-current="page">首頁</span><a href="dashboard.html">儀表板</a><a href="screening_index.html">因子開發與篩選平台</a></nav>
+  <div class="kicker animate-in">BOND MARKET FEAR &amp; GREED</div>
+  <h1 class="animate-in animate-delay-1">債券市場恐懼貪婪 · 專案首頁</h1>
+  <p class="lede animate-in animate-delay-1">2項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。</p>
+  <section class="intro animate-in animate-delay-2">
     <h2>這是什麼</h2>
     <p>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比反映的景氣/風險偏好等2項指標，每個交易日收盤後重新計算一次。</p>
     <p>每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。</p>
     <p><b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。</p>
   </section>
-  <div class="cards">
+  <div class="cards animate-in animate-delay-2">
     <a class="card" href="dashboard.html">
       <div class="ck">LIVE DASHBOARD</div>
       <h2>即時儀表板</h2>
