@@ -620,7 +620,7 @@ def main():
         template = f.read()
     for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
                "__PROMOTED_FACTORS_JSON__", "__EVENT_CALENDAR_JSON__",
-               "__NAV_BAR_CSS__", "__NAV_BAR_HTML__",
+               "__NAV_BAR_CSS__", "__NAV_BAR_HTML__", "__NAV_BAR_JS__",
                "__ROOT_COLORS_CSS__", "__CONTENT_MAX_WIDTH__", "__BASE_LINE_HEIGHT__",
                "__H1_SIZE__", "__LEDE_MAX_WIDTH__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
@@ -632,6 +632,7 @@ def main():
                 .replace("__EVENT_CALENDAR_JSON__", event_calendar_json)
                 .replace("__NAV_BAR_CSS__", nav_bar.NAV_BAR_CSS)
                 .replace("__NAV_BAR_HTML__", nav_bar.render_nav_bar("dashboard"))
+                .replace("__NAV_BAR_JS__", nav_bar.LANG_TOGGLE_JS)
                 .replace("__ROOT_COLORS_CSS__", page_style.ROOT_COLORS_CSS)
                 .replace("__CONTENT_MAX_WIDTH__", page_style.CONTENT_MAX_WIDTH)
                 .replace("__BASE_LINE_HEIGHT__", page_style.BASE_LINE_HEIGHT)

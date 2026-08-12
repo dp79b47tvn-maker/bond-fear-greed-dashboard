@@ -1629,7 +1629,7 @@ def render_registry_index(registry):
   {nav_bar.render_nav_bar("screening")}
   <header>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
-    <h1>因子開發與篩選平台</h1>
+    <h1 data-i18n="screening_title">因子開發與篩選平台</h1>
     <p class="meta">累計測試 {n_total} 個因子，各關卡全數通過 {n_passed} 個。</p>
     <p class="disclaimer">{POSITIONING_STATEMENT}</p>
     <p class="disclaimer">
@@ -2341,6 +2341,9 @@ def render_registry_index(registry):
       }}
     }}, 10000);
   }}
+</script>
+<script>
+  {nav_bar.LANG_TOGGLE_JS}
 </script>
 </body>
 </html>"""

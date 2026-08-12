@@ -351,13 +351,13 @@
 </div>
 <div class="page-shell">
 <div class="viz-root">
-  <h1 class="animate-in animate-delay-1">債券市場恐懼貪婪儀表板</h1>
-  <p class="subtitle animate-in animate-delay-1">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
+  <h1 class="animate-in animate-delay-1" data-i18n="dash_title">債券市場恐懼貪婪儀表板</h1>
+  <p class="subtitle animate-in animate-delay-1" data-i18n="dash_subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
   <p class="caption animate-in animate-delay-1">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
   <div class="gauge-card animate-in animate-delay-2">
-    <p class="gauge-label">最新收盤日綜合分數</p>
+    <p class="gauge-label" data-i18n="dash_latest_label">最新收盤日綜合分數</p>
     <div class="gauge-wrap">
       <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
       <div class="gauge-score" id="gaugeScore"></div>
@@ -365,7 +365,7 @@
       <div class="gauge-date" id="gaugeDate"></div>
     </div>
     <div class="compare-row" id="compareRow"></div>
-    <button class="logic-btn" type="button"><span class="i-dot">i</span>綜合分數的計算邏輯與可信度</button>
+    <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_logic_btn">綜合分數的計算邏輯與可信度</span></button>
     <div class="logic-panel">
       <div>
       <b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
@@ -509,6 +509,27 @@
 </div>
 
 <script>
+__NAV_BAR_JS__
+
+const TIER_TRANSLATION = {
+  "極度恐懼": { zh: "極度恐懼", en: "Extreme Fear" },
+  "恐懼": { zh: "恐懼", en: "Fear" },
+  "中性": { zh: "中性", en: "Neutral" },
+  "貪婪": { zh: "貪婪", en: "Greed" },
+  "極度貪婪": { zh: "極度貪婪", en: "Extreme Greed" }
+};
+function translateTier(label) {
+  if (!label) return "";
+  const lang = typeof currentLang !== "undefined" ? currentLang : "zh";
+  const item = TIER_TRANSLATION[label];
+  return item ? item[lang] : label;
+}
+function onLanguageChanged(lang) {
+  const currentIdx = typeof timelineSlider !== "undefined" ? (parseInt(timelineSlider.value, 10) || latestIdx) : latestIdx;
+  if (typeof renderGauge === "function") renderGauge(DATA[currentIdx]);
+  if (typeof renderMainReadout === "function") renderMainReadout(DATA[currentIdx]);
+}
+
 const DATA = __DATA_JSON__;
 const REGIME_META = __REGIME_META_JSON__;
 // 因子名稱/說明文字來自 factor_definitions.json(唯一事實來源),由 update_dashboard.py 注入
@@ -1013,7 +1034,7 @@ function renderGauge(pt) {
   document.getElementById("gaugeScore").textContent = pt.score == null ? "—" : pt.score.toFixed(1);
   document.getElementById("gaugeScore").style.color = zoneColor(pt.score);
   const tag = document.getElementById("gaugeTag");
-  tag.textContent = pt.label || zoneLabel(pt.score);
+  tag.textContent = translateTier(pt.label || zoneLabel(pt.score));
   tag.style.background = `color-mix(in srgb, ${zoneColor(pt.score)} 16%, transparent)`;
   tag.style.color = zoneColor(pt.score);
   document.getElementById("gaugeDate").textContent = pt.date;
