@@ -1514,6 +1514,14 @@ def render_registry_index(registry):
   .status-card {{ display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:20px; text-align:center; margin-bottom:22px; }}
   .spinner {{ width:32px; height:32px; border:3px solid #dfe2e8; border-top-color:#1e3a5f; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }}
   @keyframes spin {{ to {{ transform:rotate(360deg); }} }}
+  /* === Plan 004: prefers-reduced-motion 無障礙支援 ===
+     注意：.spinner 是無限旋轉動畫，animation-duration:0.001ms 會讓它每秒轉 1000 圈，
+     造成高頻閃爍（比原本的 1s 旋轉更危險），必須用 animation:none 完全停止。
+     transition 有起點/終點，縮短成 0.001ms 只是讓過渡「看起來是瞬間的」，這是安全的。 */
+  @media (prefers-reduced-motion: reduce) {{
+    .spinner {{ animation: none; border-color: #1e3a5f; opacity: 0.65; }}
+    * {{ transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }}
+  }}
   .status-title {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
   .status-desc {{ font-size:12.5px; color:#4a5568; margin-bottom:14px; }}
   .progress-steps {{ display:flex; justify-content:space-around; font-size:11.5px; color:#667085; border-top:1px solid #e5e7eb; padding-top:12px; }}
@@ -1531,7 +1539,15 @@ def render_registry_index(registry):
   .expand-toggle-btn:hover {{ text-decoration:underline; color:#0f172a; }}
   .expand-toggle-btn .arrow-icon {{ font-size:10px; color:#a6742a; transition:transform .15s ease; }}
 
+  /* === Plan 002: Inline report 展開 fade-in 動畫 ===
+     table row 無法直接用 CSS transition （display 不能被動畫），
+     改用 @keyframes one-shot 動畫 + JS class toggle 解決。 */
+  @keyframes fadeInReport {{
+    from {{ opacity:0; transform:translateY(6px); }}
+    to   {{ opacity:1; transform:translateY(0); }}
+  }}
   .inline-report-row {{ background:#f8fafc; }}
+  .inline-report-row.expanding {{ animation: fadeInReport 0.3s ease forwards; }}
   .inline-report-cell {{ padding:12px 16px !important; border-bottom:2px solid #cbd5e1 !important; }}
   .inline-report-wrap {{ background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }}
   .inline-report-bar {{ display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid #e5e7eb; }}
@@ -1543,17 +1559,45 @@ def render_registry_index(registry):
   .inline-close-btn:hover {{ background:#e2e8f0; color:#0f172a; }}
   .inline-iframe {{ width:100%; height:950px; border:none; border-radius:8px; background:#fff; }}
 
+  /* === Plan 003a: status-card slide-down 進入動畫 === */
+  @keyframes slideDownFade {{
+    from {{ opacity:0; transform:translateY(-8px); }}
+    to   {{ opacity:1; transform:translateY(0); }}
+  }}
+  .status-card-visible {{ animation: slideDownFade 0.3s ease forwards; }}
+
+  /* === Plan 003b: reportViewer 淡入展示 ===
+     JS 引用的 #reportViewer 原本在 HTML 中缺失，這裡補上定義。
+     用 opacity+visibility transition 取代 display:none/block。 */
+  #reportViewer {{
+    display:none; margin-top:20px; border:1px solid #dfe2e8; border-radius:14px;
+    background:#fff; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.08);
+    opacity:0; transition: opacity 0.35s ease;
+  }}
+  #reportViewer.report-visible {{ opacity:1; }}
+  #reportViewerBar {{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; border-bottom:1px solid #e5e7eb; background:#f8fafc;
+  }}
+  #reportViewerTitle {{ font-size:14px; font-weight:700; color:#1e3a5f; }}
+  #reportFrame {{ width:100%; height:820px; border:none; background:#fff; }}
+
   .pagination-bar {{ display:flex; justify-content:space-between; align-items:center; padding-top:14px; margin-top:10px; border-top:1px solid #e5e7eb; font-size:12.5px; color:#64748b; }}
   .page-btn {{ background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer; color:#334155; font-weight:600; }}
   .page-btn:hover:not(:disabled) {{ background:#f1f5f9; }}
   .page-btn:disabled {{ opacity:.4; cursor:not-allowed; }}
 
-  .combo-wrap {{ position:relative; }}
+  /* === Plan 005: combo-list \u4e0b\u62c9\u9078\u55ae fade+slide \u904e\u6e21 ===
+     \u6539\u7528 opacity+transform \u52d5\u756b\uff0c\u4fdd\u7559 display:none \u7d66\u5b8c\u5168\u96b1\u85cf\u7528\uff08blur\u5f8c\uff09\u3002
+     JS \u7684 filterSourceCombo() \u6703\u5148\u8a2d display:block\uff0c\u518d\u52a0 .open \u89f8\u767c\u52d5\u756b\u3002 */
   .combo-list {{
     display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
     background:#fff; border:1px solid #dfe2e8; border-radius:10px; box-shadow:0 8px 24px rgba(22,26,35,0.12);
     max-height:280px; overflow-y:auto;
+    opacity:0; transform:translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
   }}
+  .combo-list.open {{ opacity:1; transform:translateY(0); }}
   .combo-item {{ padding:9px 12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f0f1f3; }}
   .combo-item:last-child {{ border-bottom:none; }}
   .combo-item:hover {{ background:#f4f5f7; }}
@@ -1760,6 +1804,18 @@ def render_registry_index(registry):
   </section>
 
   {_build_partb_section_html()}
+
+  <!-- Plan 003b: reportViewer div（之前 JS 有引用但 HTML 缺失；現在補上並配合 CSS 過渡效果） -->
+  <div id="reportViewer">
+    <div id="reportViewerBar">
+      <span id="reportViewerTitle">📊 因子分析報告與圖表</span>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <a id="reportViewerLink" href="#" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none;">↗ 新分頁開啟</a>
+        <button onclick="closeReportViewer()" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;color:#475569;font-weight:600;">✕ 關閉</button>
+      </div>
+    </div>
+    <iframe id="reportFrame"></iframe>
+  </div>
 </div>
 
 <script>
@@ -1799,7 +1855,10 @@ def render_registry_index(registry):
     matches = matches.slice(0, 8);
     if (!matches.length) {{
       listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」</div>`;
+      // Plan 005: show with animation
       listEl.style.display = "block";
+      void listEl.offsetWidth;
+      listEl.classList.add('open');
       return;
     }}
     listEl.innerHTML = matches.map((item, i) =>
@@ -1815,7 +1874,10 @@ def render_registry_index(registry):
         selectSourceCombo(sfx, item);
       }});
     }});
+    // Plan 005: show with animation
     listEl.style.display = "block";
+    void listEl.offsetWidth;
+    listEl.classList.add('open');
   }}
 
   function selectSourceCombo(sfx, item) {{
@@ -1823,13 +1885,18 @@ def render_registry_index(registry):
     input.value = item.label;
     input.dataset.type = item.type;
     input.dataset.id = item.id;
-    document.getElementById(`sourceComboList${{sfx}}`).style.display = "none";
+    const listEl = document.getElementById(`sourceComboList${{sfx}}`);
+    listEl.classList.remove('open');
+    setTimeout(() => {{ listEl.style.display = "none"; }}, 150);
   }}
 
   function hideComboLater(sfx) {{
     setTimeout(() => {{
       const listEl = document.getElementById(`sourceComboList${{sfx}}`);
-      if (listEl) listEl.style.display = "none";
+      if (listEl) {{
+        listEl.classList.remove('open');
+        setTimeout(() => {{ listEl.style.display = "none"; }}, 150);
+      }}
     }}, 150);
   }}
 
@@ -1891,7 +1958,14 @@ def render_registry_index(registry):
       if (iframe && (!iframe.src || iframe.src === '' || iframe.src.indexOf(reportUrl) === -1)) {{
         iframe.src = reportUrl;
       }}
-      if (expandRow) expandRow.style.display = 'table-row';
+      if (expandRow) {{
+        // Plan 002: trigger fade-in animation
+        expandRow.classList.remove('expanding');
+        expandRow.style.display = 'table-row';
+        // Force reflow so animation re-triggers each time
+        void expandRow.offsetWidth;
+        expandRow.classList.add('expanding');
+      }}
       if (toggleBtn) {{
         const arrow = toggleBtn.querySelector('.arrow-icon');
         if (arrow) arrow.textContent = '▼';
@@ -2000,17 +2074,25 @@ def render_registry_index(registry):
     const viewer = document.getElementById("reportViewer");
     const frame = document.getElementById("reportFrame");
     const title = document.getElementById("reportViewerTitle");
+    const link = document.getElementById("reportViewerLink");
     if (title) title.innerText = "📊 因子分析報告與圖表：" + (label || "");
     if (frame) frame.src = reportUrl;
+    if (link) {{ link.href = reportUrl; }}
     if (viewer) {{
+      // Plan 003b: fade-in animation
       viewer.style.display = "block";
+      void viewer.offsetWidth; // force reflow
+      viewer.classList.add('report-visible');
       viewer.scrollIntoView({{ behavior: "smooth" }});
     }}
   }}
 
   function closeReportViewer() {{
     const viewer = document.getElementById("reportViewer");
-    if (viewer) viewer.style.display = "none";
+    if (viewer) {{
+      viewer.classList.remove('report-visible');
+      setTimeout(() => {{ viewer.style.display = "none"; }}, 350);
+    }}
   }}
 
   document.getElementById("screeningForm").addEventListener("submit", async (e) => {{
@@ -2051,7 +2133,11 @@ def render_registry_index(registry):
     const statusCard = document.getElementById("statusCard");
 
     btnSubmit.disabled = true;
+    // Plan 003a: show status card with slide-down animation
+    statusCard.classList.remove('status-card-visible');
     statusCard.style.display = "block";
+    void statusCard.offsetWidth;
+    statusCard.classList.add('status-card-visible');
     closeReportViewer();
     
     updateStatus(1, "已提交分析請求", "GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...");

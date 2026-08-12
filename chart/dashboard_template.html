@@ -244,13 +244,19 @@
   .logic-btn:hover { border-bottom-color: currentColor; }
   .logic-btn .i-dot { width: 13px; height: 13px; border-radius: 50%; border: 1.3px solid currentColor; color: var(--series-1); font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
   .logic-btn.open { border-bottom-color: currentColor; }
+  /* === Plan 001: logic-panel grid-template-rows 動畫（取代 max-height:2400px hack）===
+     原因：max-height:2400px 讓過渡效果計算從0→2400px，但內容只有~200px，
+     動畫在8%的時間就結束了，產生「瞬間彈出後卡住」的錯誤感。
+     grid-template-rows: 0fr→1fr 直接動畫實際內容高度，完全消除這個問題。
+     限制：每個 .logic-panel 的直接子元素必須有 min-height:0 才能正確 collapse。 */
   .logic-panel {
     font-size: 12.5px; color: var(--text-secondary); line-height: 1.75; padding: 0 14px; border-radius: 10px;
     background: var(--surface-2); border: 1px solid transparent; text-align: left;
-    max-height: 0; opacity: 0; overflow: hidden; margin-top: 0;
-    transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, padding 0.35s ease, margin-top 0.35s ease, border-color 0.25s ease;
+    display: grid; grid-template-rows: 0fr; opacity: 0; overflow: hidden; margin-top: 0;
+    transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, padding 0.35s ease, margin-top 0.35s ease, border-color 0.25s ease;
   }
-  .logic-panel.open { max-height: 2400px; opacity: 1; padding: 12px 14px; margin-top: 12px; border-color: var(--border); }
+  .logic-panel > div { min-height: 0; }
+  .logic-panel.open { grid-template-rows: 1fr; opacity: 1; padding: 12px 14px; margin-top: 12px; border-color: var(--border); }
   .logic-panel b { color: var(--text-primary); }
   .method-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 8px 0; }
   .method-table th, .method-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
@@ -299,6 +305,7 @@
     <div class="compare-row" id="compareRow"></div>
     <button class="logic-btn" type="button"><span class="i-dot">i</span>綜合分數的計算邏輯與可信度</button>
     <div class="logic-panel">
+      <div>
       <b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
       某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。<br>
       <b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
@@ -314,6 +321,7 @@
       <b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。
       每次重算腳本都會自動抽樣多個歷史日期，用「只給到當天為止」的資料重算一次分數，跟正式輸出逐項比對——一旦有任何一天對不上（代表計算邏輯偷看了未來資料），程式會直接報錯中止，不會讓有問題的分數流入儀表板。<br>
       <b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。
+      </div>
     </div>
   </div>
 
@@ -322,11 +330,13 @@
     <h2>自訂權重<span class="exp-tag">研究用</span></h2>
     <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span>這是什麼</button>
     <div class="logic-panel" id="logic-custom-weight">
+      <div>
       給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
       <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。
       當天若某個勾選的因子剛好缺資料，會自動排除、由其餘勾選項目的權重重新分配（不會用假數字填充）；若全部未勾選或權重全部拖到0，當天視為無資料。
       純前端即時運算，不會回饋到儀表板或任何報告；設定可以選擇性存到瀏覽器本機（見下方「儲存目前設定」），不存的話重新整理頁面就恢復預設。
       <div id="regimePresetExplain"></div>
+      </div>
     </div>
     <label class="overlay-toggle" id="customModeToggleWrap">
       <input type="checkbox" id="customModeToggle">
@@ -355,11 +365,13 @@
     <h2>綜合指數歷史時間軸</h2>
     <button class="logic-btn" type="button"><span class="i-dot">i</span>這張圖怎麼讀</button>
     <div class="logic-panel">
+      <div>
       <b>藍線</b>是綜合恐懼貪婪分數（左軸0–100），背景五色橫帶對應五個分級區間，線落在哪個顏色就是哪個情緒等級。
       <b>橘線</b>是美國10年期公債殖利率（右軸，%），資料來自Treasury.gov官方每日殖利率曲線——它<b>只是參考疊圖，不參與分數計算</b>，
       放在一起是為了讓你對照情緒指標與利率水準的走勢關係（例如2022年殖利率急升期間，分數長期處於恐懼區）。<br>
       <b>互動：</b>直接在圖上點擊或拖下方滑桿、用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
       <b>縮放與平移（所有圖表聯動）：</b>滑鼠滾輪可縮放，按住 Shift 拖曳可框選放大，縮放後直接拖曳可左右平移瀏覽；也可使用上方 1M/3M/6M/1Y/2Y/ALL 快速切換。所有圖表的時間範圍會同步連動。雙擊或按「回到全部時間範圍」可重置。
+      </div>
     </div>
     <div class="legend">
       <div class="legend-item"><span class="swatch-line" style="background:var(--series-1)"></span>綜合恐懼貪婪分數（左軸）</div>
@@ -1397,13 +1409,16 @@ COMPONENTS.forEach(comp => {
       ${dataAvailable && comp.rawChart ? `<button class="logic-btn" type="button" data-target="logic-rawchart-${comp.key}"><span class="i-dot">i</span>查看原始走勢圖</button>` : ""}
     </div>
     <div class="logic-panel" id="logic-explain-${comp.key}">
+      <div>
       ${def.explain}
       ${def.formula ? `<br><b>公式：</b><span class="mono">${def.formula}</span>` : ""}
       ${def.tuningNote ? `<br><b>可調參數：</b>${def.tuningNote}` : ""}
       ${def.codeLocation ? `<br><b>程式位置：</b><span class="mono">${def.codeLocation}</span>` : ""}
+      </div>
     </div>
     ${dataAvailable && comp.rawChart ? `
     <div class="logic-panel" id="logic-rawchart-${comp.key}">
+      <div>
       <div class="raw-chart-legend"></div>
       <div class="raw-chart-wrap">
         <svg class="raw-chart-svg" viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -1412,6 +1427,7 @@ COMPONENTS.forEach(comp => {
       <div class="chart-toolbar">
         <button class="jump-today zoom-reset-btn raw-zoom-reset" type="button">回到全部時間範圍</button>
         <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
+      </div>
       </div>
     </div>` : ""}
   `;
