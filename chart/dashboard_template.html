@@ -52,32 +52,67 @@
   .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
   .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
   .event-rail {
-    flex: 0 0 260px; position: sticky; top: 20px; margin-top: 0;
+    flex: 0 0 280px; position: sticky; top: 20px; margin-top: 0;
     max-height: min(calc(100vh - 40px), 900px);
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
-    padding: 16px; box-shadow: var(--shadow);
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 16px; box-shadow: var(--shadow);
     display: flex; flex-direction: column; min-height: 0;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
   }
+  .event-rail:hover { box-shadow: var(--shadow-hover); }
   .event-rail-header { flex: 0 0 auto; }
-  .event-rail h3 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
-  .event-rail-hint { font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.55; }
-  .event-rail-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-  .event-rail-legend .legend-item { display: flex; align-items: center; gap: 5px; }
-  .event-rail-legend .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .event-rail-list { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
-  .event-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border-left: 3px solid transparent; }
-  .event-item:hover { background: var(--surface-2); }
-  .event-item.active { background: var(--surface-2); border-left-color: var(--series-1); }
-  .event-item .event-date { font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .event-item .event-title { font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
-  .event-item .event-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .event-item.future { opacity: 0.6; }
-  .event-item.future .event-title i { font-style: normal; color: var(--text-muted); font-size: 10.5px; }
+  .event-rail h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; justify-content: space-between; }
+  .event-rail-count { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+  .event-rail-hint { font-size: 11px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
+  
+  .event-rail-tabs { display: flex; gap: 5px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .event-tab-btn {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all 0.18s ease;
+  }
+  .event-tab-btn:hover { background: var(--surface-1); color: var(--text-primary); border-color: var(--axis); }
+  .event-tab-btn.active { background: var(--series-1); color: #ffffff; border-color: var(--series-1); }
+
+  .event-rail-list {
+    display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; overflow-y: auto; min-height: 0; padding-right: 2px;
+  }
+  .event-rail-list::-webkit-scrollbar { width: 4px; }
+  .event-rail-list::-webkit-scrollbar-track { background: transparent; }
+  .event-rail-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+  .event-rail-list::-webkit-scrollbar-thumb:hover { background: var(--axis); }
+
+  .event-item {
+    display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid transparent; border-left: 3px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
+  }
+  .event-item:hover {
+    background: var(--surface-1); border-color: var(--border); transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(15,23,42,0.04);
+  }
+  .event-item.active {
+    background: var(--surface-1); border-color: var(--border); border-left-color: var(--series-1);
+    transform: translateX(3px); box-shadow: 0 3px 10px rgba(15,23,42,0.06);
+  }
+  .event-item-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .event-type-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.03em;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+  }
+  .event-type-badge.type-fomc { color: var(--series-1); background: color-mix(in srgb, var(--series-1) 14%, transparent); }
+  .event-type-badge.type-cpi { color: var(--series-2); background: color-mix(in srgb, var(--series-2) 14%, transparent); }
+  .event-type-badge.type-nfp { color: var(--series-4); background: color-mix(in srgb, var(--series-4) 14%, transparent); }
+  .event-type-badge.type-other { color: var(--text-secondary); background: var(--border); }
+  
+  .event-date-str { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
+  .event-title-str { font-size: 12.5px; font-weight: 600; color: var(--text-primary); line-height: 1.4; display: flex; align-items: center; gap: 6px; }
+  .event-future-tag { font-size: 10px; font-weight: 600; color: var(--series-2); background: color-mix(in srgb, var(--series-2) 12%, transparent); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+
   @media (max-width: 900px) {
     .nav-wrap { padding: 30px 16px 0; }
     .page-shell { flex-direction: column; padding: 0 16px 40px; }
     .viz-root { max-width: 100%; }
-    .event-rail { position: static; width: 100%; max-height: 320px; margin-top: 20px; flex: none; }
+    .event-rail { position: static; width: 100%; max-height: 340px; margin-top: 20px; flex: none; }
   }
   __NAV_BAR_CSS__
   h1 { font-size: __H1_SIZE__; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.2; }
@@ -455,14 +490,18 @@
   </p>
 </div>
 
-<aside class="event-rail" id="eventRail">
+<aside class="event-rail animate-in animate-delay-2" id="eventRail">
   <div class="event-rail-header">
-    <h3>總經事件行事曆</h3>
-    <p class="event-rail-hint">FOMC／CPI／NFP等重大經濟數據發布日。點事件可跳到當天的儀表板數值；點左邊圖表也會捲動到對應時間點附近的事件。</p>
-    <div class="event-rail-legend">
-      <span class="legend-item"><span class="swatch" style="background:var(--series-1)"></span>FOMC</span>
-      <span class="legend-item"><span class="swatch" style="background:var(--series-2)"></span>CPI</span>
-      <span class="legend-item"><span class="swatch" style="background:var(--series-4)"></span>NFP</span>
+    <h3>
+      <span>📅 總經事件行事曆</span>
+      <span class="event-rail-count" id="eventRailCount">0 筆</span>
+    </h3>
+    <p class="event-rail-hint">FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。</p>
+    <div class="event-rail-tabs" id="eventRailTabs">
+      <button class="event-tab-btn active" data-type="all" type="button">全部</button>
+      <button class="event-tab-btn" data-type="fomc" type="button">FOMC</button>
+      <button class="event-tab-btn" data-type="cpi" type="button">CPI</button>
+      <button class="event-tab-btn" data-type="nfp" type="button">NFP</button>
     </div>
   </div>
   <div class="event-rail-list" id="eventRailList"></div>
@@ -1583,44 +1622,80 @@ dateJump.min = DATA[0].date;
 dateJump.max = DATA[latestIdx].date;
 dateJump.value = DATA[latestIdx].date;
 
-// ---- 事件行事曆側欄(Phase 5)：清單渲染 + 跟setSelectedIndex雙向同步 ----
+// ---- 事件行事曆側欄：分類頁籤 + 質感卡片 + 雙向同步 ----
 const eventRailListEl = document.getElementById("eventRailList");
-if (eventRailListEl) {
-  eventRailListEl.innerHTML = EVENTS_RESOLVED.map((e, pos) => `
-    <div class="event-item${e.isFuture ? " future" : ""}" data-idx="${e.idx}" data-pos="${pos}">
-      <span class="event-title"><span class="event-dot" style="background:${e.meta.color}"></span>${e.meta.label}：${escapeHtml(e.title)}${e.isFuture ? "　<i>尚未發生</i>" : ""}</span>
-      <span class="event-date">${e.date}</span>
-    </div>
-  `).join("") || `<p class="na" style="font-size:12px;">目前沒有可顯示的事件</p>`;
+const eventRailCountEl = document.getElementById("eventRailCount");
+const eventRailTabsEl = document.getElementById("eventRailTabs");
+let activeEventFilter = "all";
+
+function renderEventRail() {
+  if (!eventRailListEl) return;
+  const filteredEvents = EVENTS_RESOLVED.filter(e => {
+    if (activeEventFilter === "all") return true;
+    return e.type.toLowerCase() === activeEventFilter.toLowerCase();
+  });
+
+  if (eventRailCountEl) {
+    eventRailCountEl.textContent = `${filteredEvents.length} 筆`;
+  }
+
+  if (!filteredEvents.length) {
+    eventRailListEl.innerHTML = `<p class="na" style="font-size:12.5px;padding:12px;text-align:center;">無此類別事件</p>`;
+    return;
+  }
+
+  eventRailListEl.innerHTML = filteredEvents.map((e, pos) => {
+    const typeClass = e.type ? `type-${e.type.toLowerCase()}` : "type-other";
+    return `
+      <div class="event-item${e.isFuture ? " future" : ""}" data-idx="${e.idx}" data-pos="${pos}" data-type="${e.type}">
+        <div class="event-item-header">
+          <span class="event-type-badge ${typeClass}">${escapeHtml(e.meta.label)}</span>
+          <span class="event-date-str">${e.date}</span>
+        </div>
+        <div class="event-title-str">
+          <span>${escapeHtml(e.title)}</span>
+          ${e.isFuture ? `<span class="event-future-tag">未發布</span>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+
   eventRailListEl.querySelectorAll(".event-item").forEach(el => {
     el.addEventListener("click", () => setSelectedIndex(parseInt(el.dataset.idx, 10)));
   });
 }
 
-function scrollEventRailTo(idx) {
-  if (!eventRailListEl || !EVENTS_RESOLVED.length) return;
-  let nearestPos = 0, best = Infinity;
-  EVENTS_RESOLVED.forEach((e, pos) => {
-    const d = Math.abs(e.idx - idx);
-    if (d < best) { best = d; nearestPos = pos; }
+if (eventRailTabsEl) {
+  eventRailTabsEl.querySelectorAll(".event-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      eventRailTabsEl.querySelectorAll(".event-tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeEventFilter = btn.dataset.type;
+      renderEventRail();
+      scrollEventRailTo(parseInt(timelineSlider.value, 10));
+    });
   });
-  eventRailListEl.querySelectorAll(".event-item.active").forEach(el => el.classList.remove("active"));
-  const items = eventRailListEl.querySelectorAll(".event-item");
-  const target = items[nearestPos];
-  if (target) {
-    target.classList.add("active");
-    // 故意不用 scrollIntoView()：.event-rail 是 position:sticky 容器，
-    // 部分瀏覽器的 scrollIntoView 在 sticky 祖先底下不會真的捲動內部
-    // overflow，改成直接算座標用 scrollTo() 比較可靠。
-    // 故意不用 behavior:"smooth"：實測發現在部分瀏覽器/自動化環境下(可能是
-    // prefers-reduced-motion或類似設定)smooth捲動完全不會動、卡在原地，
-    // 直接跳(behavior:"auto")雖然沒有動畫但保證一定會捲到正確位置。
-    // 用 getBoundingClientRect() 算相對位置，而非 offsetTop：標題/圖例區獨立
-    // 出來後，.event-rail-list 才是真正的捲動容器，但 event-item 的
-    // offsetParent 仍可能是外層 .event-rail(position:sticky)，offsetTop 會
-    // 連標題區高度一起算進去，造成捲動位置偏移。
+}
+
+renderEventRail();
+
+function scrollEventRailTo(idx) {
+  if (!eventRailListEl) return;
+  const items = Array.from(eventRailListEl.querySelectorAll(".event-item"));
+  if (!items.length) return;
+  
+  let nearestItem = null, best = Infinity;
+  items.forEach(el => {
+    const itemIdx = parseInt(el.dataset.idx, 10);
+    const d = Math.abs(itemIdx - idx);
+    if (d < best) { best = d; nearestItem = el; }
+  });
+
+  items.forEach(el => el.classList.remove("active"));
+  if (nearestItem) {
+    nearestItem.classList.add("active");
     const listRect = eventRailListEl.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
+    const targetRect = nearestItem.getBoundingClientRect();
     const targetCenter = eventRailListEl.scrollTop + (targetRect.top - listRect.top) + targetRect.height / 2;
     eventRailListEl.scrollTo({ top: targetCenter - eventRailListEl.clientHeight / 2, behavior: "auto" });
   }
