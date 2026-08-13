@@ -346,9 +346,19 @@ def check_main_guard():
         except SyntaxError:
             fail("語法", f"{f} 無法解析")
             continue
-        has_guard = '__main__' in src
-        # top-level 有函式呼叫敘述句(不是賦值、不是 import)就算會自動執行
-        auto = any(isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) for n in tree.body)
+        has_guard = "__main__" in src
+        # 只算「呼叫本檔自己定義的函式」——那才是該被 __main__ 包起來的執行邏輯。
+        # 頂層呼叫函式庫(matplotlib.use("Agg")、warnings.filterwarnings(...)、
+        # pd.set_option(...))是模組設定，import時執行本來就是對的，不該被判為問題。
+        local_fns = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+        def _calls_local(node):
+            fn = node.value.func
+            name = fn.id if isinstance(fn, ast.Name) else None
+            return name in local_fns
+
+        auto = any(isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _calls_local(n)
+                   for n in tree.body)
         if auto and not has_guard:
             bad.append(f)
     if bad:

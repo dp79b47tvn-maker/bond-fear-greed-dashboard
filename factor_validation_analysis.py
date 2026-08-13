@@ -1,34 +1,22 @@
 """
-因子驗證分析 —— 一次性（但可重複執行）的完整報告，產出給主管看的「哪些因子該留、
-哪些訊號品質不夠好」的判斷依據。不整合進儀表板即時顯示，資料更新後可直接重跑：
+因子驗證分析函式庫 —— IC、分桶、單調性、相關矩陣、統計分布等共用計算。
 
-    python3 factor_validation_analysis.py
+這個模組是 factor_screening.py（因子開發與篩選平台）的函式庫，本身沒有進入點、
+不會單獨執行。所有對外頁面都由 factor_screening.py 產生。
 
-輸出：chart/factor_validation_report.html（單一自包含檔案，圖表以base64內嵌，瀏覽器直接開）
+2026-08-11：原本這裡還有一個 main()，會產生 chart/factor_validation_report.html
+（獨立的「因子驗證報告」頁）。那一頁 2026-07-30 就從導覽列移除、內容遷移到儀表板
+與因子篩選平台，之後也不再每日重新產生；報告內容停留在舊七因子時代，跟現行的兩因子
+組成已經對不上，因此連同 main() 與只有它在用的 5 個 render 函式（共364行）一起移除。
+需要看歷史版本請查 git。
 
-八大模組（對應需求書的一到八）：
-  1. IC分析：每個因子 + 綜合分數，對未來5/10/20/60日ZN報酬的Spearman等級相關係數
-  3. （方法內建）IC一律用「非重疊取樣」：每隔N天才取一個樣本點，N=驗證的報酬期間，
-     避免相鄰樣本因報酬窗口重疊而互相高度相關、把統計顯著性灌水
-  2. 分位數分桶：qcut切5等分，看未來20日平均報酬是否隨分數單調遞減
-  4. Leave-one-out：輪流拿掉一項因子重算綜合分數，比較IC變化
-  5. 因子相關係數矩陣 + seaborn熱力圖
-  6. 策略回測：部位大小 = (50-分數)/50，48-52死區，quantstats出績效，
-     綜合分數 + 每個因子單獨各跑一次
-  7. 樣本穩定性：全樣本 / 前半段 / 後半段，1-6項都各跑一次
-  8. 全部整合成一份HTML報告，含摘要頁、各因子詳細頁、熱力圖、完整回測報告、
-     穩定性比較、自動產生的建議頁
-
-方法論注意事項（誠實揭露，report本身也會重複這些話）：
-  - 部位方向假設「恐懼買入」（分數低→未來報酬應該高→IC應該是負的）。這是使用者的
-    操作邏輯，但本專案先前的回測已經發現，多數因子在多數時期實際上是動能延續
-    （分數高、未來報酬也高，IC是正的）。這份報告如實呈現算出來的正負號與數值，
-    不會為了迎合「應該是負相關」的假設而扭曲呈現方式——這正是这份報告存在的目的。
-  - 部位在t日收盤用當天分數決定，套用在t+1日的報酬上（position.shift(1)），
-    不使用未來資料。
-  - IC全部用非重疊取樣，樣本數天生就少，報告會明確列出每組實際樣本數。
-  - 所有IC相關表格另外附上「重疊取樣」版本（每天都取樣、不跳過）供對照參考，
-    這個版本樣本間高度自相關，只看數值，不附顯著性檢定，判斷/建議一律以非重疊版本為準。
+方法論注意事項（各報告頁面也會重複這些話）：
+  - 部位方向假設「恐懼買入」（分數低→未來報酬應該高）。這是使用者的操作邏輯，
+    但實測發現多數因子在多數時期是動能延續。這裡如實呈現算出來的正負號與數值，
+    不會為了迎合假設而扭曲呈現方式。
+  - 部位在t日收盤用當天分數決定，套用在t+1日的報酬上，不使用未來資料。
+  - IC同時提供非重疊與重疊取樣兩個版本。非重疊避免相鄰樣本報酬窗口重疊灌水統計
+    顯著性，但樣本數天生就少；重疊版本樣本間高度自相關，只看數值、不附顯著性檢定。
 """
 import base64
 import io
@@ -110,9 +98,6 @@ BUCKET_LABELS = ["極度恐懼", "恐懼", "中性", "貪婪", "極度貪婪"]
 
 
 # ================================================================ 資料
-def load_data():
-    df = pd.read_csv("bond_fear_greed_v2.csv", index_col=0, parse_dates=True).sort_index()
-    return df
 
 
 def split_halves(df):
@@ -472,48 +457,6 @@ def decile_chart_base64(result, title, buckets, horizon, warn_n=DECILE_MIN_N_WAR
     return fig_to_base64(fig)
 
 
-def render_decile_section(ext_df, all_labels_map, years, buckets, horizon=DECILE_HORIZON, warn_n=DECILE_MIN_N_WARN):
-    """為綜合分數＋七項因子各自產生一個N年期/N分組的區塊：實際使用區間、圖表、
-    每組樣本數（不足門檻的用星號＋斜線網底標示），全部組成一段HTML。
-    """
-    blocks = []
-    for col, label in all_labels_map.items():
-        if col not in ext_df.columns:
-            continue
-        rng = score_actual_range(ext_df, col)
-        if rng is None:
-            blocks.append(f"""
-        <div class="decile-block">
-          <h3>{label}</h3>
-          <p class="na">此因子目前沒有歷史資料（Put/Call尚待使用者提供put_call_ratio），無法產生{buckets}分組分析。</p>
-        </div>""")
-            continue
-        years_covered = (rng["end"] - rng["start"]).days / 365.25
-        result = decile_bucket_analysis(ext_df, col, horizon=horizon, buckets=buckets)
-        chart_b64 = decile_chart_base64(
-            result, f"{label}：未來{horizon}日平均報酬（{buckets}分組，非重疊取樣）", buckets, horizon, warn_n
-        )
-        low_n_rows = result["table"][result["table"]["n"] < warn_n] if result else None
-        table_rows = ""
-        if result:
-            table_rows = "".join(
-                f"<tr class=\"{'low-n' if row.n < warn_n else ''}\">"
-                f"<td>{row.label}</td><td>{fmt_num(row.mean_score,1)}</td>"
-                f"<td>{fmt_num(row.mean_fwd_ret,2)}%</td><td>{fmt_num(row.median_fwd_ret,2)}%</td>"
-                f"<td>{int(row.n)}{' ⚠️' if row.n < warn_n else ''}</td></tr>"
-                for row in result["table"].itertuples()
-            )
-        blocks.append(f"""
-        <div class="decile-block">
-          <h3>{label}</h3>
-          <p class="hint">實際使用區間：<b>{rng['start'].date()} ~ {rng['end'].date()}</b>
-            （約{years_covered:.1f}年，{f'已達成{years}年目標' if years_covered >= years - 0.1 else f'未達{years}年目標，實際只有{years_covered:.1f}年可用'}）　·
-            分數本身有效樣本共{rng['n']}天　·　非重疊取樣後共{result['n_sampled_total'] if result else 0}組樣本點</p>
-          {"<img class='chart' src='data:image/png;base64," + chart_b64 + "'/>" if chart_b64 else f"<p class='na'>樣本不足，無法切成{buckets}組</p>"}
-          {"<table class='data-table'><tr><th>分組</th><th>平均分數</th><th>平均未來報酬</th><th>中位數未來報酬</th><th>樣本數n</th></tr>" + table_rows + "</table>" if result else ""}
-          {"<p class='hint warn-hint'>⚠️ 標記為低樣本數（n&lt;" + str(warn_n) + "）的分組，平均值波動性高，估計不穩定，解讀時不宜跟樣本充足的分組一視同仁。</p>" if low_n_rows is not None and len(low_n_rows) > 0 else ""}
-        </div>""")
-    return "".join(blocks)
 
 
 # ================================================================ 4. Leave-one-out
@@ -608,24 +551,6 @@ def qs_metrics_row(strat, bench, label):
         return {"label": label, "ok": False, "error": str(e)}
 
 
-def full_tearsheet_html(strat, bench, title):
-    import os
-    import tempfile
-    fd, path = tempfile.mkstemp(suffix=".html")
-    import os as _os
-    _os.close(fd)
-    try:
-        qs.reports.html(strat, benchmark=bench, output=path, title=title, download_filename=path)
-        with open(path, encoding="utf-8") as f:
-            html = f.read()
-        return html
-    except Exception as e:
-        return f"<p>quantstats完整報告產生失敗：{e}</p>"
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
 
 
 # ================================================================ HTML 組裝
@@ -693,312 +618,11 @@ def build_recommendation(factor_label, ic20, loo_delta, bucket_mono, is_composit
     return verdict, reasons
 
 
-def render_sample_section(df, sample_label):
-    """對單一樣本（全樣本／前半／後半）跑1,2,4,5,6，回傳一個dict結果，供後續組HTML與跨樣本比較。"""
-    all_cols = dict(FACTOR_COLS)
-    all_cols_with_composite = dict(FACTOR_COLS); all_cols_with_composite[COMPOSITE_COL] = COMPOSITE_LABEL
-
-    ic_rows = ic_table(df, all_cols_with_composite)
-    buckets = {col: bucket_analysis(df, col) for col in all_cols_with_composite}
-    full_loo_ic, loo_rows = leave_one_out_table(df, FACTOR_COLS)
-    heatmap_b64, corr_matrix = correlation_heatmap_base64(df, FACTOR_COLS)
-
-    backtests = {}
-    for col, label in all_cols_with_composite.items():
-        strat, bench = build_strategy_returns(df, col)
-        backtests[col] = qs_metrics_row(strat, bench, label)
-
-    return {
-        "label": sample_label, "n_days": len(df),
-        "date_range": (df.index.min().strftime("%Y-%m-%d"), df.index.max().strftime("%Y-%m-%d")),
-        "ic_rows": ic_rows, "buckets": buckets,
-        "full_loo_ic": full_loo_ic, "loo_rows": loo_rows,
-        "heatmap_b64": heatmap_b64, "corr_matrix": corr_matrix,
-        "backtests": backtests,
-    }
 
 
-def main():
-    print("讀取資料 ...")
-    df = load_data()
-    h1, h2, split_date = split_halves(df)
-    print(f"全樣本：{df.index.min().date()} ~ {df.index.max().date()}（{len(df)}天）")
-    print(f"切點：{split_date.date()}　前半段{len(h1)}天／後半段{len(h2)}天")
-
-    print("跑全樣本分析 ...")
-    full = render_sample_section(df, "全樣本")
-    print("跑前半段分析 ...")
-    half1 = render_sample_section(h1, "前半段")
-    print("跑後半段分析 ...")
-    half2 = render_sample_section(h2, "後半段")
-
-    print("產生綜合分數完整回測報告（quantstats tearsheet）...")
-    comp_strat, comp_bench = build_strategy_returns(df, COMPOSITE_COL)
-    tearsheet_html = full_tearsheet_html(comp_strat, comp_bench, "綜合分數策略 vs 買進持有ZN") if comp_strat is not None else "<p>資料不足</p>"
-
-    all_labels_map = dict(FACTOR_COLS); all_labels_map[COMPOSITE_COL] = COMPOSITE_LABEL
-
-    # 20年的抓取範圍完全涵蓋10年那份（往前多抓的原始資料不影響任何一天的分數，
-    # 因為5年百分位是trailing window，只看『當天以前』），所以只抓一次20年的，
-    # 10年版本用同一份分數資料，只是把最近10年之前的部分切掉，不用重抓一次。
-    _vy, _vb = _V["vigintile_years"], _V["vigintile_n_buckets"]
-    ext_df_20y, raw_ranges_20y = fetch_extended_history(years=_vy)
-    decile_html_20 = render_decile_section(ext_df_20y, all_labels_map, years=_vy, buckets=_vb)
-
-    ten_year_cutoff = pd.Timestamp(date.today()) - pd.Timedelta(days=DECILE_YEARS * 365)
-    ext_df_10y = ext_df_20y.loc[ext_df_20y.index >= ten_year_cutoff]
-    decile_html_10 = render_decile_section(ext_df_10y, all_labels_map, years=DECILE_YEARS, buckets=DECILE_N_BUCKETS)
-
-    print("產生因子相關係數熱力圖 ...")
-    print("組裝HTML報告 ...")
-    html = render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html_10, decile_html_20)
-    with open("chart/factor_validation_report.html", "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"完成！已輸出 chart/factor_validation_report.html（{len(html)/1024:.0f} KB）")
 
 
 # ---------------------------------------------------------------- HTML 模板
-def render_report(df, full, half1, half2, tearsheet_html, split_date, decile_html, decile_html_20):
-    all_labels = dict(FACTOR_COLS); all_labels[COMPOSITE_COL] = COMPOSITE_LABEL
-
-    # ---- 摘要頁 ----
-    summary_rows = []
-    for col, label in all_labels.items():
-        ic_row = next((r for r in full["ic_rows"] if r["col"] == col), None)
-        ic20 = ic_row["h20"] if ic_row else None
-        ic20_overlap = ic_row["h20_overlap"] if ic_row else None
-        bucket = full["buckets"].get(col)
-        mono = bucket["monotonicity"] if bucket else None
-        loo_delta = None
-        loo_delta_overlap = None
-        if col != COMPOSITE_COL:
-            loo_row = next((r for r in full["loo_rows"] if r["col"] == col), None)
-            loo_delta = loo_row["delta"] if loo_row else None
-            loo_delta_overlap = loo_row["delta_overlap"] if loo_row else None
-        verdict, reasons = build_recommendation(label, ic20, loo_delta, mono, is_composite=(col == COMPOSITE_COL))
-        summary_rows.append({
-            "label": label, "col": col, "ic20": ic20, "ic20_overlap": ic20_overlap, "mono": mono,
-            "loo_delta": loo_delta, "loo_delta_overlap": loo_delta_overlap,
-            "verdict": verdict, "reasons": reasons,
-        })
-
-    summary_table_html = "".join(f"""
-      <tr>
-        <td class="fname">{r['label']}</td>
-        <td>{fmt_rho(r['ic20'])}</td>
-        <td>{fmt_rho(r['ic20_overlap'])}</td>
-        <td>{fmt_num(r['mono'], 2) if r['mono'] is not None else '—'}</td>
-        <td>{(f"{r['loo_delta']:+.3f}" if r['loo_delta'] is not None else '—')}</td>
-        <td>{(f"{r['loo_delta_overlap']:+.3f}" if r['loo_delta_overlap'] is not None else '—')}</td>
-        <td class="verdict-{'keep' if '保留' in r['verdict'] else ('cut' if '剔除' in r['verdict'] else 'watch')}">{r['verdict']}</td>
-      </tr>""" for r in summary_rows)
-
-    # ---- IC比較表（跨樣本） ----
-    def ic_compare_row(label, col, key="h20"):
-        def cell(sample):
-            row = next((r for r in sample["ic_rows"] if r["col"] == col), None)
-            return row
-        f_row, h1_row, h2_row = cell(full), cell(half1), cell(half2)
-        cells = ""
-        for r in (f_row, h1_row, h2_row):
-            d = r[key] if r else None
-            cells += f"<td>{fmt_rho(d)}</td>"
-        return f"<tr><td class='fname'>{label}</td>{cells}</tr>"
-
-    ic_compare_html = "".join(ic_compare_row(label, col) for col, label in all_labels.items())
-    ic_compare_overlap_html = "".join(ic_compare_row(label, col, key="h20_overlap") for col, label in all_labels.items())
-
-    # ---- 回測穩定性比較表 ----
-    def backtest_compare_row(label, col):
-        cells = ""
-        for sample in (full, half1, half2):
-            bt = sample["backtests"].get(col, {})
-            if not bt.get("ok"):
-                cells += "<td class='na'>資料不足</td>"
-            else:
-                cells += f"<td>Sharpe {fmt_num(bt.get('sharpe'))}　MaxDD {fmt_pct(bt.get('max_dd'))}　勝率 {fmt_pct(bt.get('win_rate'))}</td>"
-        return f"<tr><td class='fname'>{label}</td>{cells}</tr>"
-
-    backtest_compare_html = "".join(backtest_compare_row(label, col) for col, label in all_labels.items())
-
-    # ---- 各因子詳細頁 ----
-    factor_sections = []
-    for col, label in FACTOR_COLS.items():
-        ic_row = next((r for r in full["ic_rows"] if r["col"] == col), None)
-        ic_cells = "".join(f"<td>{fmt_rho(ic_row[f'h{h}'])}</td>" for h in HORIZONS) if ic_row else ""
-        ic_cells_overlap = "".join(f"<td>{fmt_rho(ic_row[f'h{h}_overlap'])}</td>" for h in HORIZONS) if ic_row else ""
-        bucket = full["buckets"].get(col)
-        chart_b64 = bucket_chart_base64(bucket, f"{label}：未來{BUCKET_HORIZON}日平均報酬（依分數五分組）") if bucket else None
-        bucket_table_html = ""
-        if bucket:
-            bucket_table_html = "".join(
-                f"<tr><td>{row.label}</td><td>{fmt_num(row.mean_score,1)}</td><td>{fmt_num(row.mean_fwd_ret,2)}%</td>"
-                f"<td>{fmt_num(row.median_fwd_ret,2)}%</td><td>{int(row.n)}</td></tr>"
-                for row in bucket["table"].itertuples()
-            )
-        bt = full["backtests"].get(col, {})
-        loo_row = next((r for r in full["loo_rows"] if r["col"] == col), None)
-        factor_sections.append(f"""
-        <section class="card">
-          <h2>{label}</h2>
-          <h3>資訊係數（IC，vs 未來N日ZN報酬）</h3>
-          <table class="data-table">
-            <tr><th></th><th>5日</th><th>10日</th><th>20日</th><th>60日</th></tr>
-            <tr><td class="fname">非重疊取樣</td>{ic_cells}</tr>
-            <tr><td class="fname">重疊取樣（僅供參考）</td>{ic_cells_overlap}</tr>
-          </table>
-          <p class="hint">負值＝符合「恐懼買入」假設方向；正值＝與假設相反（動能延續）。括號內n為樣本數。「重疊取樣」樣本間高度自相關，只當數值對照參考，不適合判斷顯著性，本報告的建議判斷一律以非重疊版本為準。</p>
-
-          <h3>分位數分桶：未來{BUCKET_HORIZON}日平均報酬</h3>
-          {"<img class='chart' src='data:image/png;base64," + chart_b64 + "'/>" if chart_b64 else "<p class='na'>資料不足，無法分桶</p>"}
-          {"<table class='data-table'><tr><th>分組</th><th>平均分數</th><th>平均未來報酬</th><th>中位數未來報酬</th><th>樣本數</th></tr>" + bucket_table_html + "</table>" if bucket else ""}
-          <p class="hint">單調性係數（分組序 vs 平均報酬的Spearman rho）：{fmt_num(bucket['monotonicity'],3) if bucket else '—'}（接近-1代表報酬隨分數遞減、符合假設；接近+1代表遞增、動能延續）</p>
-
-          <h3>Leave-one-out：拿掉此因子後對綜合分數IC（20日）的影響</h3>
-          <p>非重疊取樣：完整七項IC：{fmt_rho(loo_row['full_ic']) if loo_row else '—'}　→　拿掉此因子後：{fmt_rho(loo_row['loo_ic']) if loo_row else '—'}
-          （Δ = {f"{loo_row['delta']:+.3f}" if loo_row and loo_row['delta'] is not None else '—'}）</p>
-          <p>重疊取樣（僅供參考）：完整七項IC：{fmt_rho(loo_row['full_ic_overlap']) if loo_row else '—'}　→　拿掉此因子後：{fmt_rho(loo_row['loo_ic_overlap']) if loo_row else '—'}
-          （Δ = {f"{loo_row['delta_overlap']:+.3f}" if loo_row and loo_row['delta_overlap'] is not None else '—'}）</p>
-
-          <h3>單因子回測績效（此因子分數單獨當訊號來源）</h3>
-          {render_backtest_mini_table(bt)}
-        </section>""")
-
-    recommendation_rows = "".join(f"""
-      <div class="rec-item">
-        <div class="rec-head verdict-{'keep' if '保留' in r['verdict'] else ('cut' if '剔除' in r['verdict'] else 'watch')}">{r['label']} — {r['verdict']}</div>
-        <ul>{''.join(f'<li>{reason}</li>' for reason in r['reasons'])}</ul>
-      </div>""" for r in summary_rows)
-
-    composite_bt = full["backtests"].get(COMPOSITE_COL, {})
-
-    return f"""<!doctype html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>因子驗證分析報告</title>
-<style>
-{REPORT_CSS}
-{nav_bar.NAV_BAR_CSS}
-</style>
-</head>
-<body>
-<div class="wrap">
-  {nav_bar.render_nav_bar("report")}
-  <header>
-    <div class="kicker">FACTOR VALIDATION REPORT</div>
-    <h1>因子驗證分析報告</h1>
-    <p class="meta">
-      資料範圍：{full['date_range'][0]} ~ {full['date_range'][1]}（共{full['n_days']}天）　·
-      前後半分割點：{split_date.date()}（前半段{half1['n_days']}天／後半段{half2['n_days']}天）　·
-      產生日期：{date.today().isoformat()}
-    </p>
-    <p class="disclaimer">
-      方法論：所有判斷、建議一律以「非重疊取樣」（每隔N天取一次樣本，N=驗證的報酬期間）算出來的IC為準，避免相鄰樣本因報酬窗口重疊而互相高度相關、把統計顯著性灌水。
-      部分表格另外附上「重疊取樣」版本的IC（每天都取樣，不跳過）供對照參考——這個版本樣本間高度自相關，只看數值本身跟非重疊版本差多少，不附顯著性檢定，不能拿來判斷訊號是否顯著。
-      策略回測的部位在t日收盤用當天分數決定、套用在t+1日報酬（不使用未來資料）。「恐懼買入」是使用者設定的操作假設（分數低→未來報酬應該高→IC應為負），
-      本報告如實呈現每個因子算出來的正負號與數值，不會為了迎合假設而扭曲呈現——這正是這份報告存在的目的。<br><br>
-      <b>重要指引：本報告功能是了解目前市場的方向和大環境情緒，而不是看到指標去做交易，所以需要的是研究框架而不是策略回測。</b>
-    </p>
-  </header>
-
-  <!-- ===== 1. 摘要頁 ===== -->
-  <section class="card">
-    <h2><span class="bar"></span>摘要：七項因子總覽</h2>
-    <table class="data-table summary-table">
-      <tr><th>因子</th><th>IC（20日，非重疊）</th><th>IC（20日，重疊，僅供參考）</th><th>分桶單調性</th><th>Leave-one-out ΔIC（非重疊）</th><th>Leave-one-out ΔIC（重疊，僅供參考）</th><th>建議</th></tr>
-      {summary_table_html}
-    </table>
-    <p class="hint">分桶單調性：-1到+1之間，越接近-1代表報酬隨分數（恐懼→貪婪）單調遞減，符合「恐懼買入」假設；越接近+1代表單調遞增（動能延續，與假設相反）。</p>
-    <p class="hint">「重疊，僅供參考」欄：每天都取樣、不像非重疊版本每隔N天才取一筆，相鄰樣本的報酬窗口高度重疊、彼此高度自相關，樣本數雖然大很多，但「有效」樣本數並沒有真的變多。這個數字只拿來跟非重疊版本互相對照（差很多代表訊號對取樣方式敏感），不附顯著性檢定，也不能拿來判斷這個因子的訊號是否顯著——本報告的建議判斷一律以非重疊版本為準。</p>
-  </section>
-
-  <!-- ===== 2. 各因子詳細頁 ===== -->
-  <h2 class="section-heading"><span class="bar"></span>各因子詳細分析（全樣本）</h2>
-  {"".join(factor_sections)}
-
-  <!-- ===== 2b. 10年期／10分組分位數分桶分析（附加，不取代上面5組版本） ===== -->
-  <h2 class="section-heading"><span class="bar"></span>分位數分桶分析：10分組版本（目標10年期，非重疊取樣）</h2>
-  <section class="card">
-    <p class="hint">
-      跟上面各因子頁裡的5組版本是兩份獨立分析，互相對照用，不是取代關係。差異：(1) 切10組不是5組，
-      粒度更細；(2) 時間範圍拉到10年（會多抓5年原始資料當5年滾動百分位的暖身期，暖身期本身不計入10年分析範圍）；
-      (3) 一律用非重疊取樣（每隔{DECILE_HORIZON}個交易日才取一次樣本），避免相鄰樣本因報酬窗口重疊而灌水。
-      每個因子實際能取得的資料長度不一定完全相同，下面每個區塊都明確列出「實際使用區間」，不會假裝全部都湊滿10年。
-      每組樣本數只有10幾筆是預期中的結果（10年÷20個交易日一組≈120多個樣本點，再切10組），標記⚠️/星號的分組代表
-      樣本數低於{DECILE_MIN_N_WARN}筆，估計出來的平均值不穩定，不宜跟樣本充足的分組一視同仁地解讀。
-    </p>
-    {decile_html}
-  </section>
-
-  <!-- ===== 2c. 20年期／20分組分位數分桶分析（附加，不取代前面兩個版本） ===== -->
-  <h2 class="section-heading"><span class="bar"></span>分位數分桶分析：20分組版本（目標20年期，非重疊取樣）</h2>
-  <section class="card">
-    <p class="hint">
-      跟上面5組、10組版本都是獨立分析，互相對照用。時間拉到20年是為了讓非重疊取樣後的樣本點數變多，
-      支撐得起切20組還有足夠的每組樣本數；但20年會往前多抓5年原始資料當百分位暖身期，MOVE指數、
-      存續期間避險（TLT/SHY）、通膨意外（損益兩平通膨率）這三項因子的原始資料本身回溯不到20年+暖身期
-      那麼長，實際能用的分數區間會比20年短，下面每個區塊都如實列出。<br>
-      <b>方法論提醒：</b>20年會橫跨遠比10年更多次的Fed升降息循環（2000年網路泡沫、2008金融海嘯、
-      2011-2015零利率、2015-2018升息、2020疫情、2022-2023升息⋯），不同階段同一個因子的訊號方向可能相反
-      （這點本專案在儀表板那邊已經證實過）。樣本數字變多不代表分桶平均值就更可靠——如果背後其實是把方向互相
-      矛盾的好幾段時期混在一起平均，數字健康只是表象，解讀時務必留意。
-    </p>
-    {decile_html_20}
-  </section>
-
-  <!-- ===== 3. 因子相關係數熱力圖 ===== -->
-  <section class="card">
-    <h2><span class="bar"></span>因子相關係數矩陣</h2>
-    <img class="chart" src="data:image/png;base64,{full['heatmap_b64']}"/>
-    <p class="hint">顏色越深（紅或藍）代表兩個因子的歷史分數相關性越高——高度相關的因子可能在講重複的事，可以考慮是否有精簡空間。</p>
-  </section>
-
-  <!-- ===== 4. 綜合分數完整回測報告 ===== -->
-  <section class="card">
-    <h2><span class="bar"></span>綜合分數完整回測報告（quantstats）</h2>
-    <p class="hint">部位規則：部位大小 = (50 − 當日綜合分數) / 50，48–52分死區強制空手；t日分數決定的部位套用在t+1日報酬。基準為買進持有ZN期貨不動。</p>
-    {render_backtest_mini_table(composite_bt)}
-    <div class="tearsheet-wrap">
-      <iframe class="tearsheet" srcdoc="{tearsheet_html.replace('"', '&quot;')}"></iframe>
-    </div>
-  </section>
-
-  <!-- ===== 5. 前後半樣本穩定性比較 ===== -->
-  <section class="card">
-    <h2><span class="bar"></span>樣本穩定性：全樣本 / 前半段 / 後半段</h2>
-    <p class="hint">前半段：{half1['date_range'][0]} ~ {half1['date_range'][1]}（{half1['n_days']}天）　·
-      後半段：{half2['date_range'][0]} ~ {half2['date_range'][1]}（{half2['n_days']}天）</p>
-    <h3>IC（20日）比較 — 非重疊取樣</h3>
-    <table class="data-table">
-      <tr><th>因子</th><th>全樣本</th><th>前半段</th><th>後半段</th></tr>
-      {ic_compare_html}
-    </table>
-    <h3>IC（20日）比較 — 重疊取樣（僅供參考）</h3>
-    <p class="hint">每天都取樣、樣本間高度自相關，只當跟上表互相對照參考，不適合判斷顯著性或穩定性結論。</p>
-    <table class="data-table">
-      <tr><th>因子</th><th>全樣本</th><th>前半段</th><th>後半段</th></tr>
-      {ic_compare_overlap_html}
-    </table>
-    <h3>回測績效比較</h3>
-    <table class="data-table">
-      <tr><th>因子</th><th>全樣本</th><th>前半段</th><th>後半段</th></tr>
-      {backtest_compare_html}
-    </table>
-    <p class="hint">如果同一個因子在前後半段的IC正負號都不一樣，代表這個訊號不穩定，可能是被某一段特別的時期（例如2020年疫情、2022年升息）主導，不宜直接套用到現在的市況。</p>
-  </section>
-
-  <!-- ===== 6. 建議 ===== -->
-  <section class="card">
-    <h2><span class="bar"></span>建議</h2>
-    <p class="hint">以下判斷規則透明可稽核：綜合考量IC方向與強度、分桶單調性、leave-one-out邊際貢獻。不是自動下定論，帶去跟主管討論時可以直接檢查每一條理由背後的數字。</p>
-    {recommendation_rows}
-  </section>
-
-</div>
-</body>
-</html>"""
 
 
 def render_backtest_mini_table(bt):
@@ -1070,5 +694,3 @@ REPORT_CSS = (REPORT_CSS
               .replace("__LEDE_MAX_WIDTH__", page_style.LEDE_MAX_WIDTH))
 
 
-if __name__ == "__main__":
-    main()
