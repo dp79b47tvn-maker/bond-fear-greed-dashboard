@@ -521,9 +521,13 @@ function translateTier(label) {
   return item ? item[lang] : label;
 }
 function onLanguageChanged(lang) {
+  currentLang = lang;
   const currentIdx = typeof timelineSlider !== "undefined" ? (parseInt(timelineSlider.value, 10) || latestIdx) : latestIdx;
   if (typeof renderGauge === "function") renderGauge(DATA[currentIdx]);
   if (typeof renderMainReadout === "function") renderMainReadout(DATA[currentIdx]);
+  if (typeof renderCompareRow === "function") renderCompareRow();
+  if (typeof refreshCustomWeight === "function") refreshCustomWeight();
+  if (typeof renderEventRail === "function") renderEventRail();
 }
 
 const DATA = __DATA_JSON__;
@@ -1037,25 +1041,36 @@ function renderGauge(pt) {
 }
 renderGauge(DATA[latestIdx]);
 
-const compareRow = document.getElementById("compareRow");
-[
-  { label: "前一交易日", days: 1 },
-  { label: "一週前", days: 7 },
-  { label: "一個月前", days: 30 },
-  { label: "一年前", days: 365 },
-].forEach(({ label, days }) => {
-  const idx = latestIdx - days;
-  if (idx < 0) return;
-  const pt = DATA[idx];
-  const div = document.createElement("div");
-  div.className = "compare-item";
-  div.innerHTML = `
-    <div class="compare-label">${label}</div>
-    <div class="compare-badge" style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(0)}</div>
-    <div class="compare-tag" style="color:${zoneColor(pt.score)}">${pt.label || "—"}</div>
-  `;
-  compareRow.appendChild(div);
-});
+const COMPARE_ITEMS_CONFIG = [
+  { key: "comp_prev_day", fallback: "前一交易日", days: 1 },
+  { key: "comp_1w", fallback: "一週前", days: 7 },
+  { key: "comp_1m", fallback: "一個月前", days: 30 },
+  { key: "comp_1y", fallback: "一年前", days: 365 },
+];
+
+function renderCompareRow() {
+  const compareRow = document.getElementById("compareRow");
+  if (!compareRow) return;
+  compareRow.innerHTML = "";
+  const dict = (typeof I18N_DICT !== "undefined" && I18N_DICT[currentLang]) ? I18N_DICT[currentLang] : null;
+
+  COMPARE_ITEMS_CONFIG.forEach(({ key, fallback, days }) => {
+    const idx = latestIdx - days;
+    if (idx < 0) return;
+    const pt = DATA[idx];
+    const label = dict && dict[key] ? dict[key] : fallback;
+    const tierText = translateTier(pt.label || zoneLabel(pt.score));
+    const div = document.createElement("div");
+    div.className = "compare-item";
+    div.innerHTML = `
+      <div class="compare-label">${label}</div>
+      <div class="compare-badge" style="color:${zoneColor(pt.score)}">${pt.score == null ? "—" : pt.score.toFixed(0)}</div>
+      <div class="compare-tag" style="color:${zoneColor(pt.score)}">${tierText || "—"}</div>
+    `;
+    compareRow.appendChild(div);
+  });
+}
+renderCompareRow();
 
 // ============ Global viewport sync ============
 const allChartHandles = [];
