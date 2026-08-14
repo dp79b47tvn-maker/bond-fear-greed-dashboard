@@ -1603,23 +1603,64 @@ def render_registry_index(registry):
   /* === Plan 005: combo-list \u4e0b\u62c9\u9078\u55ae fade+slide \u904e\u6e21 ===
      \u6539\u7528 opacity+transform \u52d5\u756b\uff0c\u4fdd\u7559 display:none \u7d66\u5b8c\u5168\u96b1\u85cf\u7528\uff08blur\u5f8c\uff09\u3002
      JS \u7684 filterSourceCombo() \u6703\u5148\u8a2d display:block\uff0c\u518d\u52a0 .open \u89f8\u767c\u52d5\u756b\u3002 */
+  /* === 資料來源搜尋彈出視窗 (Combo Dropdown UI/UX 重構) === */
+  .combo-wrap {{
+    position: relative; width: 100%; display: block; z-index: 50;
+  }}
+  .combo-wrap input {{
+    padding: 10px 14px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;
+    width: 100%; background: #ffffff; outline: none; transition: all 0.2s ease;
+    color: #0f172a; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }}
+  .combo-wrap input:focus {{
+    border-color: #1e3a5f; box-shadow: 0 0 0 3.5px rgba(30, 58, 95, 0.12);
+  }}
   .combo-list {{
-    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
-    background:#fff; border:1px solid #dfe2e8; border-radius:10px; box-shadow:0 8px 24px rgba(22,26,35,0.12);
-    max-height:280px; overflow-y:auto;
-    opacity:0; transform:translateY(-4px);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000;
+    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
+    box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+    max-height: 320px; overflow-y: auto; padding: 6px;
+    opacity: 0; transform: translateY(-6px) scale(0.995);
+    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }}
-  .combo-list.open {{ opacity:1; transform:translateY(0); }}
-  .combo-item {{ padding:9px 12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f0f1f3; }}
-  .combo-item:last-child {{ border-bottom:none; }}
-  .combo-item:hover {{ background:#f4f5f7; }}
+  .combo-list.open {{ opacity: 1; transform: translateY(0) scale(1); }}
+  
+  .combo-header-bar {{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; margin-bottom: 6px; border-radius: 6px;
+    background: #f8fafc; border: 1px solid #e2e8f0; font-size: 11.5px; color: #475569; font-weight: 600;
+  }}
+  .combo-header-bar .hint-text {{ display: flex; align-items: center; gap: 5px; }}
+  .combo-header-bar .count-badge {{ font-family: ui-monospace, "SF Mono", Menlo, monospace; background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 99px; font-size: 10.5px; }}
+
+  .combo-item {{
+    padding: 9px 12px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border-radius: 8px; margin-bottom: 2px; transition: all 0.15s ease;
+    border-left: 3px solid transparent; color: #1e293b;
+  }}
+  .combo-item:last-child {{ margin-bottom: 0; }}
+  .combo-item:hover {{
+    background: #f1f5f9; border-left-color: #1e3a5f; color: #0f172a;
+    transform: translateX(2px);
+  }}
+  .combo-item-left {{ display: flex; align-items: center; gap: 8px; min-width: 0; }}
+  .combo-item-label {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }}
+
   .combo-tag {{
-    font-size:10.5px; font-weight:700; color:#a6742a; background:rgba(166,116,42,0.1);
-    border-radius:5px; padding:2px 6px; flex-shrink:0;
+    font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; line-height: 1.4;
   }}
-  .combo-id {{ margin-left:auto; color:#a7adb9; font-size:11.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }}
-  .combo-empty {{ padding:12px; font-size:12.5px; color:#a7adb9; font-style:italic; }}
+  .combo-tag.tag-existing {{ background: rgba(30, 58, 95, 0.08); color: #1e3a5f; border: 1px solid rgba(30, 58, 95, 0.18); }}
+  .combo-tag.tag-yahoo {{ background: rgba(99, 102, 241, 0.08); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.18); }}
+  .combo-tag.tag-fred {{ background: rgba(16, 185, 129, 0.08); color: #059669; border: 1px solid rgba(16, 185, 129, 0.18); }}
+  .combo-tag.tag-treasury {{ background: rgba(14, 165, 233, 0.08); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.18); }}
+
+  .combo-id {{
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #475569;
+    font-size: 11.5px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
+  }}
+  .combo-empty {{ padding: 14px 12px; font-size: 12.5px; color: #64748b; text-align: center; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }}
   .manual-source-group {{ margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }}
   {nav_bar.NAV_BAR_CSS}
 </style>
@@ -1835,7 +1876,12 @@ def render_registry_index(registry):
   const REPO_OWNER = "dp79b47tvn-maker";
   const REPO_NAME = "bond-fear-greed-dashboard";
   const SOURCE_CATALOG = {json.dumps(SOURCE_CATALOG, ensure_ascii=False)};
-  const SOURCE_TYPE_LABEL = {{ yahoo: "Yahoo", fred: "FRED", existing: "既有" }};
+  const SOURCE_TYPE_CONFIG = {{
+    "existing": {{ label: "既有欄位", class: "tag-existing" }},
+    "yahoo": {{ label: "Yahoo", class: "tag-yahoo" }},
+    "fred": {{ label: "FRED 聯備", class: "tag-fred" }},
+    "treasury": {{ label: "Treasury", class: "tag-treasury" }}
+  }};
 
   function zhNumToArabic(str) {{
     // 目錄裡的中文說明一律用阿拉伯數字(10年期、2年期...)，但使用者可能習慣打
@@ -1865,21 +1911,33 @@ def render_registry_index(registry):
           return hay.includes(qRaw) || (qNorm !== qRaw && hay.includes(qNorm));
         }})
       : SOURCE_CATALOG;
-    matches = matches.slice(0, 8);
+    matches = matches.slice(0, 10);
     if (!matches.length) {{
-      listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」</div>`;
-      // Plan 005: show with animation
+      listEl.innerHTML = `<div class="combo-empty">🔍 找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
       listEl.style.display = "block";
       void listEl.offsetWidth;
       listEl.classList.add('open');
       return;
     }}
-    listEl.innerHTML = matches.map((item, i) =>
-      `<div class="combo-item" data-idx="${{SOURCE_CATALOG.indexOf(item)}}">
-        <span class="combo-tag">${{SOURCE_TYPE_LABEL[item.type]}}</span>${{item.label}}
+
+    const headerHtml = `
+      <div class="combo-header-bar">
+        <div class="hint-text">💡 可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
+        <div class="count-badge">${{matches.length}} 筆結果</div>
+      </div>
+    `;
+
+    listEl.innerHTML = headerHtml + matches.map((item) => {{
+      const cfg = SOURCE_TYPE_CONFIG[item.type] || {{ label: item.type, class: "" }};
+      return `<div class="combo-item" data-idx="${{SOURCE_CATALOG.indexOf(item)}}">
+        <div class="combo-item-left">
+          <span class="combo-tag ${{cfg.class}}">${{cfg.label}}</span>
+          <span class="combo-item-label">${{item.label}}</span>
+        </div>
         <span class="combo-id">${{item.id}}</span>
-      </div>`
-    ).join("");
+      </div>`;
+    }}).join("");
+
     listEl.querySelectorAll(".combo-item").forEach(el => {{
       el.addEventListener("mousedown", (ev) => {{
         ev.preventDefault();
@@ -1887,7 +1945,6 @@ def render_registry_index(registry):
         selectSourceCombo(sfx, item);
       }});
     }});
-    // Plan 005: show with animation
     listEl.style.display = "block";
     void listEl.offsetWidth;
     listEl.classList.add('open');

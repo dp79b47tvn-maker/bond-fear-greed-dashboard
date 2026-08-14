@@ -142,23 +142,64 @@
   /* === Plan 005: combo-list 下拉選單 fade+slide 過渡 ===
      改用 opacity+transform 動畫，保留 display:none 給完全隱藏用（blur後）。
      JS 的 filterSourceCombo() 會先設 display:block，再加 .open 觸發動畫。 */
+  /* === 資料來源搜尋彈出視窗 (Combo Dropdown UI/UX 重構) === */
+  .combo-wrap {
+    position: relative; width: 100%; display: block; z-index: 50;
+  }
+  .combo-wrap input {
+    padding: 10px 14px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;
+    width: 100%; background: #ffffff; outline: none; transition: all 0.2s ease;
+    color: #0f172a; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .combo-wrap input:focus {
+    border-color: #1e3a5f; box-shadow: 0 0 0 3.5px rgba(30, 58, 95, 0.12);
+  }
   .combo-list {
-    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:20;
-    background:#fff; border:1px solid #dfe2e8; border-radius:10px; box-shadow:0 8px 24px rgba(22,26,35,0.12);
-    max-height:280px; overflow-y:auto;
-    opacity:0; transform:translateY(-4px);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000;
+    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
+    box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+    max-height: 320px; overflow-y: auto; padding: 6px;
+    opacity: 0; transform: translateY(-6px) scale(0.995);
+    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .combo-list.open { opacity:1; transform:translateY(0); }
-  .combo-item { padding:9px 12px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; border-bottom:1px solid #f0f1f3; }
-  .combo-item:last-child { border-bottom:none; }
-  .combo-item:hover { background:#f4f5f7; }
+  .combo-list.open { opacity: 1; transform: translateY(0) scale(1); }
+  
+  .combo-header-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; margin-bottom: 6px; border-radius: 6px;
+    background: #f8fafc; border: 1px solid #e2e8f0; font-size: 11.5px; color: #475569; font-weight: 600;
+  }
+  .combo-header-bar .hint-text { display: flex; align-items: center; gap: 5px; }
+  .combo-header-bar .count-badge { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 99px; font-size: 10.5px; }
+
+  .combo-item {
+    padding: 9px 12px; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    border-radius: 8px; margin-bottom: 2px; transition: all 0.15s ease;
+    border-left: 3px solid transparent; color: #1e293b;
+  }
+  .combo-item:last-child { margin-bottom: 0; }
+  .combo-item:hover {
+    background: #f1f5f9; border-left-color: #1e3a5f; color: #0f172a;
+    transform: translateX(2px);
+  }
+  .combo-item-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .combo-item-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+
   .combo-tag {
-    font-size:10.5px; font-weight:700; color:#a6742a; background:rgba(166,116,42,0.1);
-    border-radius:5px; padding:2px 6px; flex-shrink:0;
+    font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; line-height: 1.4;
   }
-  .combo-id { margin-left:auto; color:#a7adb9; font-size:11.5px; font-variant-numeric:tabular-nums; flex-shrink:0; }
-  .combo-empty { padding:12px; font-size:12.5px; color:#a7adb9; font-style:italic; }
+  .combo-tag.tag-existing { background: rgba(30, 58, 95, 0.08); color: #1e3a5f; border: 1px solid rgba(30, 58, 95, 0.18); }
+  .combo-tag.tag-yahoo { background: rgba(99, 102, 241, 0.08); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.18); }
+  .combo-tag.tag-fred { background: rgba(16, 185, 129, 0.08); color: #059669; border: 1px solid rgba(16, 185, 129, 0.18); }
+  .combo-tag.tag-treasury { background: rgba(14, 165, 233, 0.08); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.18); }
+
+  .combo-id {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #475569;
+    font-size: 11.5px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
+  }
+  .combo-empty { padding: 14px 12px; font-size: 12.5px; color: #64748b; text-align: center; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
   .manual-source-group { margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }
   
 .site-topnav {
@@ -1327,7 +1368,12 @@
   const REPO_OWNER = "dp79b47tvn-maker";
   const REPO_NAME = "bond-fear-greed-dashboard";
   const SOURCE_CATALOG = [{"id": "ZN_futures", "type": "existing", "label": "10年期公債期貨(ZN)原始價格（儀表板既有欄位）"}, {"id": "NQ_futures", "type": "existing", "label": "那斯達克100期貨(NQ)原始價格（儀表板既有欄位）"}, {"id": "TLT", "type": "existing", "label": "20年期以上公債ETF(TLT)（儀表板既有欄位）"}, {"id": "SHY", "type": "existing", "label": "1-3年期短債ETF(SHY)（儀表板既有欄位）"}, {"id": "MOVE_index", "type": "existing", "label": "公債波動率指數(MOVE)（儀表板既有欄位）"}, {"id": "UST_10Yr", "type": "existing", "label": "美國10年期公債殖利率（儀表板既有欄位）"}, {"id": "UST_2Yr", "type": "existing", "label": "美國2年期公債殖利率（儀表板既有欄位）"}, {"id": "CPI_index", "type": "existing", "label": "CPI消費者物價指數（儀表板既有欄位）"}, {"id": "Breakeven_10Y", "type": "existing", "label": "10年期損益平衡通膨率（儀表板既有欄位）"}, {"id": "put_call_ratio", "type": "existing", "label": "選擇權Put/Call比率（儀表板既有欄位）"}, {"id": "momentum_score", "type": "existing", "label": "動能分數（儀表板既有因子）"}, {"id": "copper_gold_score", "type": "existing", "label": "銅金比分數（儀表板既有因子）"}, {"id": "composite_score", "type": "existing", "label": "綜合分數（儀表板既有欄位）"}, {"id": "^VIX", "type": "yahoo", "label": "VIX恐慌指數"}, {"id": "^MOVE", "type": "yahoo", "label": "MOVE公債波動率指數(Yahoo版)"}, {"id": "^TNX", "type": "yahoo", "label": "10年期公債殖利率×10(Yahoo版,注意單位)"}, {"id": "GLD", "type": "yahoo", "label": "黃金ETF(GLD)"}, {"id": "DX-Y.NYB", "type": "yahoo", "label": "美元指數(DXY)"}, {"id": "CL=F", "type": "yahoo", "label": "原油期貨(WTI)"}, {"id": "JPY=X", "type": "yahoo", "label": "美元兌日圓匯率"}, {"id": "IEF", "type": "yahoo", "label": "7-10年期公債ETF(IEF)"}, {"id": "HYG", "type": "yahoo", "label": "高收益債ETF(HYG)"}, {"id": "LQD", "type": "yahoo", "label": "投資級公司債ETF(LQD)"}, {"id": "^GSPC", "type": "yahoo", "label": "標普500指數"}, {"id": "^IXIC", "type": "yahoo", "label": "那斯達克綜合指數"}, {"id": "DGS10", "type": "fred", "label": "10年期公債殖利率(FRED)"}, {"id": "DGS2", "type": "fred", "label": "2年期公債殖利率(FRED)"}, {"id": "DGS3MO", "type": "fred", "label": "3個月期公債殖利率(FRED)"}, {"id": "DGS30", "type": "fred", "label": "30年期公債殖利率(FRED)"}, {"id": "T10YIE", "type": "fred", "label": "10年期損益平衡通膨率(FRED)"}, {"id": "T5YIE", "type": "fred", "label": "5年期損益平衡通膨率(FRED)"}, {"id": "BAMLH0A0HYM2", "type": "fred", "label": "高收益債利差(FRED)"}, {"id": "WALCL", "type": "fred", "label": "聯準會資產負債表規模(FRED)"}, {"id": "M2SL", "type": "fred", "label": "M2貨幣供給(FRED)"}, {"id": "UNRATE", "type": "fred", "label": "失業率(FRED)"}, {"id": "FEDFUNDS", "type": "fred", "label": "聯邦基金利率(FRED)"}];
-  const SOURCE_TYPE_LABEL = { yahoo: "Yahoo", fred: "FRED", existing: "既有" };
+  const SOURCE_TYPE_CONFIG = {
+    "existing": { label: "既有欄位", class: "tag-existing" },
+    "yahoo": { label: "Yahoo", class: "tag-yahoo" },
+    "fred": { label: "FRED 聯備", class: "tag-fred" },
+    "treasury": { label: "Treasury", class: "tag-treasury" }
+  };
 
   function zhNumToArabic(str) {
     // 目錄裡的中文說明一律用阿拉伯數字(10年期、2年期...)，但使用者可能習慣打
@@ -1357,21 +1403,33 @@
           return hay.includes(qRaw) || (qNorm !== qRaw && hay.includes(qNorm));
         })
       : SOURCE_CATALOG;
-    matches = matches.slice(0, 8);
+    matches = matches.slice(0, 10);
     if (!matches.length) {
-      listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」</div>`;
-      // Plan 005: show with animation
+      listEl.innerHTML = `<div class="combo-empty">🔍 找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
       listEl.style.display = "block";
       void listEl.offsetWidth;
       listEl.classList.add('open');
       return;
     }
-    listEl.innerHTML = matches.map((item, i) =>
-      `<div class="combo-item" data-idx="${SOURCE_CATALOG.indexOf(item)}">
-        <span class="combo-tag">${SOURCE_TYPE_LABEL[item.type]}</span>${item.label}
+
+    const headerHtml = `
+      <div class="combo-header-bar">
+        <div class="hint-text">💡 可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
+        <div class="count-badge">${matches.length} 筆結果</div>
+      </div>
+    `;
+
+    listEl.innerHTML = headerHtml + matches.map((item) => {
+      const cfg = SOURCE_TYPE_CONFIG[item.type] || { label: item.type, class: "" };
+      return `<div class="combo-item" data-idx="${SOURCE_CATALOG.indexOf(item)}">
+        <div class="combo-item-left">
+          <span class="combo-tag ${cfg.class}">${cfg.label}</span>
+          <span class="combo-item-label">${item.label}</span>
+        </div>
         <span class="combo-id">${item.id}</span>
-      </div>`
-    ).join("");
+      </div>`;
+    }).join("");
+
     listEl.querySelectorAll(".combo-item").forEach(el => {
       el.addEventListener("mousedown", (ev) => {
         ev.preventDefault();
@@ -1379,7 +1437,6 @@
         selectSourceCombo(sfx, item);
       });
     });
-    // Plan 005: show with animation
     listEl.style.display = "block";
     void listEl.offsetWidth;
     listEl.classList.add('open');
