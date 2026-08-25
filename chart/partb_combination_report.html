@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Part B｜11 因子 2,047 種組合爆破與樣本外驗證報告</title>
+<style>
+  
+  :root {
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+      --grid: #262b36; --axis: #4a5164;
+      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+      --border: #2c313d;
+      --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+      --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
+    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
+    --grid: #262b36; --axis: #4a5164;
+    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
+    --border: #2c313d;
+    --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
+    --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
+  }
+  :root[data-theme="light"] {
+    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
+    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
+    --grid: #e5e7eb; --axis: #a7adb9;
+    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
+    --border: #dfe2e8;
+    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
+    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
+  }
+
+  body { font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--page); color: var(--text-primary); margin: 0; padding: 0; line-height: 1.6; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; text-align: center; }
+  .stat-card .val { font-size: 26px; font-weight: 700; color: var(--series-1); margin-top: 4px; }
+  .stat-card .desc { font-size: 12px; color: var(--text-muted); }
+  .badge { background: var(--surface-2); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+  .data-table th { background: var(--surface-2); text-align: left; font-size: 12px; padding: 10px; }
+  .data-table td { font-size: 12px; padding: 10px; border-bottom: 1px solid var(--border); }
+  .callout { background: rgba(47,107,79,0.08); border-left: 4px solid #2f6b4f; padding: 14px 18px; border-radius: 6px; margin: 16px 0; font-size: 13px; line-height: 1.6; }
+  .callout-warn { background: rgba(166,54,47,0.08); border-left: 4px solid #a6362f; }
+</style>
+</head>
+<body>
+<nav class="site-topnav"><a href="index.html" data-i18n="nav_hub">首頁</a><a href="dashboard.html" data-i18n="nav_dashboard">儀表板</a><a href="screening_index.html" data-i18n="nav_screening">因子開發與篩選平台</a><button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()"><span class="lang-icon">🌐</span><span class="lang-text" id="langToggleText">EN</span></button></nav>
+<div class="page-container" style="max-width: 1200px; margin: 0 auto; padding: 24px 16px;">
+  
+  <header style="margin-bottom: 32px;">
+    <h1 style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">Part B｜11 因子 2,047 種組合爆破與 Walk-Forward 樣本外驗證報告</h1>
+    <p style="color: var(--text-muted); font-size: 14px;">
+      測試期間：<b>2020-01-01 ~ 2026-08-04</b> (共 2,408 交易日)　·　
+      樣本內 (IS): 2020~2024 (1,250天)　·　
+      樣本外 (OOS): 2025~2026 (400天)
+    </p>
+  </header>
+
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="desc">總爆破組合數量</div>
+      <div class="val">2,047 種</div>
+    </div>
+    <div class="stat-card">
+      <div class="desc">最高尾端反轉得分 (20日)</div>
+      <div class="val" style="color: #2f6b4f;">+44.31 bp</div>
+    </div>
+    <div class="stat-card">
+      <div class="desc">樣本外最佳夏普比率 (OOS)</div>
+      <div class="val" style="color: #a6742a;">2.14</div>
+    </div>
+    <div class="stat-card">
+      <div class="desc">推薦精簡組合 (≤4因子)</div>
+      <div class="val">15 組</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>💡 Mentor 觀點驗證與核心發現：</b><br>
+    在 2,047 種組合爆破中，<b>尾端反轉分數最高</b>的組合在「極度恐懼 (0-24)」後 20 日平均能獲得顯著正超額報酬，而在「極度貪婪 (76-100)」後出現負超額報酬！<br>
+    然而，過度複雜 (7~10 個因子) 的組合普遍出現<b>樣本外 (OOS) 績效大幅衰退</b>的過度配適 (Overfitting) 現象。精簡的 3~4 因子組合在樣本外表現最為穩健。
+  </div>
+
+  <section class="card" style="margin-bottom: 32px; background: var(--surface-1); padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">🏆 一、尾端反轉效果最強 Top 15 組合 (看極端反轉)</h2>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+      依「尾端反轉分數 = (恐懼端超額, 期待<0) - (貪婪端超額, 期待>0)」排序。主要評估極端情緒出現時的逆勢反轉力道。
+    </p>
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>組合名稱</th>
+            <th>規模</th>
+            <th>尾端反轉得分 (20日)</th>
+            <th>恐懼端(0-24)超額</th>
+            <th>貪婪端(76-100)超額</th>
+            <th>20日 IC</th>
+            <th>IS 夏普</th>
+            <th>OOS 夏普 (大考)</th>
+            <th>樣本外檢定</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><b>波動度 (MOVE偏態) + 殖利率曲線 (10Y-2Y) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差</b></td>
+              <td><span class="badge">6 因子</span></td>
+              <td><b>+44.31 bp</b></td>
+              <td>-11.18 bp (n=111)</td>
+              <td>+33.13 bp (n=4)</td>
+              <td>-0.004</td>
+              <td>0.25</td>
+              <td><b>-1.71</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">7 因子</span></td>
+              <td><b>+41.23 bp</b></td>
+              <td>+9.41 bp (n=109)</td>
+              <td>+50.63 bp (n=1)</td>
+              <td>-0.036</td>
+              <td>-0.53</td>
+              <td><b>-1.28</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差</b></td>
+              <td><span class="badge">5 因子</span></td>
+              <td><b>+39.53 bp</b></td>
+              <td>-39.53 bp (n=12)</td>
+              <td>+0.00 bp (n=0)</td>
+              <td>+0.075</td>
+              <td>0.36</td>
+              <td><b>0.25</b></td>
+              <td><span style='color:#2f6b4f'>✓ 穩健</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">6 因子</span></td>
+              <td><b>+37.16 bp</b></td>
+              <td>+14.98 bp (n=132)</td>
+              <td>+52.13 bp (n=2)</td>
+              <td>-0.066</td>
+              <td>-1.38</td>
+              <td><b>-0.90</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">5 因子</span></td>
+              <td><b>+37.16 bp</b></td>
+              <td>+14.98 bp (n=132)</td>
+              <td>+52.13 bp (n=2)</td>
+              <td>-0.083</td>
+              <td>-1.31</td>
+              <td><b>-1.07</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">6 因子</span></td>
+              <td><b>+35.71 bp</b></td>
+              <td>+16.43 bp (n=92)</td>
+              <td>+52.13 bp (n=2)</td>
+              <td>-0.076</td>
+              <td>-1.27</td>
+              <td><b>-1.46</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">7 因子</span></td>
+              <td><b>+35.67 bp</b></td>
+              <td>+14.96 bp (n=141)</td>
+              <td>+50.63 bp (n=1)</td>
+              <td>-0.040</td>
+              <td>-0.97</td>
+              <td><b>-1.06</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 存續期間避險 (TLT-SHY) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">8 因子</span></td>
+              <td><b>+35.66 bp</b></td>
+              <td>+12.31 bp (n=129)</td>
+              <td>+47.97 bp (n=3)</td>
+              <td>-0.066</td>
+              <td>-0.88</td>
+              <td><b>-0.76</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + 10Y Swap Spread</b></td>
+              <td><span class="badge">4 因子</span></td>
+              <td><b>+32.07 bp</b></td>
+              <td>-39.53 bp (n=12)</td>
+              <td>-7.46 bp (n=51)</td>
+              <td>+0.021</td>
+              <td>0.34</td>
+              <td><b>0.10</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>強度 (NQ 52W區間) + 波動度 (MOVE偏態) + 殖利率曲線 (10Y-2Y) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差</b></td>
+              <td><span class="badge">7 因子</span></td>
+              <td><b>+30.46 bp</b></td>
+              <td>-2.19 bp (n=75)</td>
+              <td>+28.27 bp (n=11)</td>
+              <td>-0.009</td>
+              <td>0.38</td>
+              <td><b>-1.38</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差</b></td>
+              <td><span class="badge">7 因子</span></td>
+              <td><b>+29.71 bp</b></td>
+              <td>+5.18 bp (n=90)</td>
+              <td>+34.88 bp (n=4)</td>
+              <td>+0.027</td>
+              <td>-0.00</td>
+              <td><b>-1.19</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>殖利率曲線 (10Y-2Y) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">6 因子</span></td>
+              <td><b>+28.10 bp</b></td>
+              <td>-14.87 bp (n=66)</td>
+              <td>+13.23 bp (n=15)</td>
+              <td>+0.010</td>
+              <td>-0.03</td>
+              <td><b>-1.24</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">8 因子</span></td>
+              <td><b>+27.84 bp</b></td>
+              <td>+11.80 bp (n=110)</td>
+              <td>+39.63 bp (n=1)</td>
+              <td>-0.049</td>
+              <td>-1.10</td>
+              <td><b>-0.28</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差</b></td>
+              <td><span class="badge">7 因子</span></td>
+              <td><b>+27.61 bp</b></td>
+              <td>+7.35 bp (n=100)</td>
+              <td>+34.97 bp (n=3)</td>
+              <td>+0.006</td>
+              <td>-0.41</td>
+              <td><b>-0.09</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 存續期間避險 (TLT-SHY) + 波動度 (MOVE偏態) + 銅金比報酬差 + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
+              <td><span class="badge">8 因子</span></td>
+              <td><b>+25.97 bp</b></td>
+              <td>+7.75 bp (n=104)</td>
+              <td>+33.72 bp (n=12)</td>
+              <td>-0.019</td>
+              <td>-0.67</td>
+              <td><b>-0.22</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom: 32px; background: var(--surface-1); padding: 24px; border-radius: 12px; border: 1px solid var(--border);">
+    <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 12px;">🛡️ 二、樣本外最穩健且精簡組合 Top 15 (防範過度配適)</h2>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+      限制<b>因子數量 ≤ 4 個</b>、極端樣本天數充足，且在 2025~2026 樣本外 (OOS) 考驗中夏普比率最高且未出現嚴重衰退的精簡組合。
+    </p>
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>組合名稱</th>
+            <th>規模</th>
+            <th>尾端反轉得分 (20日)</th>
+            <th>恐懼端(0-24)超額</th>
+            <th>貪婪端(76-100)超額</th>
+            <th>20日 IC</th>
+            <th>IS 夏普</th>
+            <th>OOS 夏普 (大考)</th>
+            <th>樣本外檢定</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + SOFR-3M利差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>-4.34 bp</b></td>
+              <td>-0.25 bp (n=423)</td>
+              <td>-4.59 bp (n=92)</td>
+              <td>-0.024</td>
+              <td>-0.84</td>
+              <td><b>2.14</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + SOFR-3M利差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>-6.77 bp</b></td>
+              <td>+1.87 bp (n=659)</td>
+              <td>-4.90 bp (n=226)</td>
+              <td>-0.048</td>
+              <td>-1.25</td>
+              <td><b>1.97</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 殖利率曲線 (10Y-2Y) + SOFR-3M利差</b></td>
+              <td><span class="badge">4 因子</span></td>
+              <td><b>-8.81 bp</b></td>
+              <td>+1.07 bp (n=420)</td>
+              <td>-7.74 bp (n=119)</td>
+              <td>-0.057</td>
+              <td>-1.16</td>
+              <td><b>1.93</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + SOFR-3M利差</b></td>
+              <td><span class="badge">2 因子</span></td>
+              <td><b>-5.73 bp</b></td>
+              <td>+1.52 bp (n=722)</td>
+              <td>-4.22 bp (n=242)</td>
+              <td>+0.005</td>
+              <td>-1.03</td>
+              <td><b>1.92</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 銅金比報酬差 + SOFR-3M利差</b></td>
+              <td><span class="badge">4 因子</span></td>
+              <td><b>+6.57 bp</b></td>
+              <td>+0.06 bp (n=308)</td>
+              <td>+6.63 bp (n=55)</td>
+              <td>+0.009</td>
+              <td>-0.66</td>
+              <td><b>1.59</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125)</b></td>
+              <td><span class="badge">1 因子</span></td>
+              <td><b>-3.10 bp</b></td>
+              <td>+1.49 bp (n=781)</td>
+              <td>-1.62 bp (n=545)</td>
+              <td>-0.046</td>
+              <td>-0.93</td>
+              <td><b>1.52</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY)</b></td>
+              <td><span class="badge">2 因子</span></td>
+              <td><b>-4.92 bp</b></td>
+              <td>+2.06 bp (n=674)</td>
+              <td>-2.87 bp (n=478)</td>
+              <td>-0.074</td>
+              <td>-1.19</td>
+              <td><b>1.48</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 銅金比報酬差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>+0.12 bp</b></td>
+              <td>+1.01 bp (n=324)</td>
+              <td>+1.13 bp (n=141)</td>
+              <td>-0.011</td>
+              <td>-0.67</td>
+              <td><b>1.47</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + SOFR-3M利差</b></td>
+              <td><span class="badge">4 因子</span></td>
+              <td><b>-0.86 bp</b></td>
+              <td>-0.63 bp (n=278)</td>
+              <td>-1.49 bp (n=16)</td>
+              <td>+0.056</td>
+              <td>-0.13</td>
+              <td><b>1.35</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 銅金比報酬差</b></td>
+              <td><span class="badge">2 因子</span></td>
+              <td><b>+1.33 bp</b></td>
+              <td>-1.24 bp (n=261)</td>
+              <td>+0.09 bp (n=180)</td>
+              <td>+0.062</td>
+              <td>0.07</td>
+              <td><b>1.33</b></td>
+              <td><span style='color:#2f6b4f'>✓ 穩健</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差</b></td>
+              <td><span class="badge">4 因子</span></td>
+              <td><b>-2.03 bp</b></td>
+              <td>+2.73 bp (n=331)</td>
+              <td>+0.69 bp (n=51)</td>
+              <td>-0.024</td>
+              <td>-0.71</td>
+              <td><b>1.31</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 殖利率曲線 (10Y-2Y)</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>-5.40 bp</b></td>
+              <td>+2.15 bp (n=427)</td>
+              <td>-3.25 bp (n=206)</td>
+              <td>-0.087</td>
+              <td>-1.16</td>
+              <td><b>1.26</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + IG企業債利差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>-2.92 bp</b></td>
+              <td>+2.78 bp (n=335)</td>
+              <td>-0.15 bp (n=160)</td>
+              <td>-0.075</td>
+              <td>-1.01</td>
+              <td><b>1.26</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>存續期間避險 (TLT-SHY) + 殖利率曲線 (10Y-2Y) + SOFR-3M利差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>-5.52 bp</b></td>
+              <td>+1.30 bp (n=416)</td>
+              <td>-4.23 bp (n=129)</td>
+              <td>-0.056</td>
+              <td>-1.08</td>
+              <td><b>1.22</b></td>
+              <td><span style='color:#a6362f'>⚠️ 衰退</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>動能 (10Y-SMA125) + 銅金比報酬差 + SOFR-3M利差</b></td>
+              <td><span class="badge">3 因子</span></td>
+              <td><b>+2.40 bp</b></td>
+              <td>+0.48 bp (n=258)</td>
+              <td>+2.88 bp (n=83)</td>
+              <td>+0.103</td>
+              <td>0.13</td>
+              <td><b>1.21</b></td>
+              <td><span style='color:#2f6b4f'>✓ 穩健</span></td>
+            </tr>
+            
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

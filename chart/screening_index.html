@@ -267,7 +267,7 @@
   <header>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1 data-i18n="screening_title">因子開發與篩選平台</h1>
-    <p class="meta">累計測試 23 個因子，各關卡全數通過 1 個。</p>
+    <p class="meta">累計測試 24 個因子，各關卡全數通過 1 個。</p>
     <p class="disclaimer">本平台協助債券交易者判斷美債市場目前的整體氛圍，作為交易員的輔助判斷工具，非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，不產出即時部位建議或操作指令。</p>
     <p class="disclaimer">
       這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
@@ -423,9 +423,9 @@
     <!-- 篩選控制與搜尋列 (防止列表越來越長) -->
     <div class="registry-controls">
       <div class="registry-filters">
-        <button class="filter-tab-btn active" data-filter="all" data-i18n="filter_all" onclick="filterRegistry('all')">全部 (23)</button>
+        <button class="filter-tab-btn active" data-filter="all" data-i18n="filter_all" onclick="filterRegistry('all')">全部 (24)</button>
         <button class="filter-tab-btn" data-filter="keep" data-i18n="filter_keep" onclick="filterRegistry('keep')">通過 (1)</button>
-        <button class="filter-tab-btn" data-filter="watch" data-i18n="filter_watch" onclick="filterRegistry('watch')">觀察 (14)</button>
+        <button class="filter-tab-btn" data-filter="watch" data-i18n="filter_watch" onclick="filterRegistry('watch')">觀察 (15)</button>
         <button class="filter-tab-btn" data-filter="cut" data-i18n="filter_cut" onclick="filterRegistry('cut')">淘汰 (1)</button>
         <button class="filter-tab-btn" data-filter="promoted" data-i18n="filter_promoted" onclick="filterRegistry('promoted')">已升等 (0)</button>
       </div>
@@ -440,14 +440,14 @@
       </thead>
       <tbody id="registryTbody">
         <tr class="registry-row" data-row-id="composite_momentum_coppergold_0" data-key="composite_momentum_coppergold" data-verdict="watch" data-promoted="false" data-search="【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 composite_momentum_coppergold">
-          <td>2026-08-11</td>
+          <td>2026-08-13</td>
           <td>
             <button id="toggle-btn-composite_momentum_coppergold_0" class="expand-toggle-btn" data-label="【合成】官方綜合分數 — 動能 + 銅金比 等權重平均" onclick="toggleInlineReport('composite_momentum_coppergold_0', 'screening_composite_momentum_coppergold.html', '【合成】官方綜合分數 — 動能 + 銅金比 等權重平均')">
               <span class="arrow-icon">▶</span> 【合成】官方綜合分數 — 動能 + 銅金比 等權重平均
             </button>
           </td>
           <td>多因子分數等權重平均</td>
-          <td>0.021</td>
+          <td>0.020</td>
           <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
           <td>3/4</td>
           <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
@@ -466,10 +466,37 @@
               <iframe id="iframe-composite_momentum_coppergold_0" class="inline-iframe" data-src="screening_composite_momentum_coppergold.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_copper_gold_1" data-key="cand_copper_gold" data-verdict="watch" data-promoted="false" data-search="【候選】銅金比 60日報酬差 (hg=f vs gc=f) cand_copper_gold">
+        </tr><tr class="registry-row" data-row-id="composite_momentum_coppergold_1" data-key="composite_momentum_coppergold" data-verdict="watch" data-promoted="false" data-search="【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 composite_momentum_coppergold">
           <td>2026-08-11</td>
           <td>
-            <button id="toggle-btn-cand_copper_gold_1" class="expand-toggle-btn" data-label="【候選】銅金比 60日報酬差 (HG=F vs GC=F)" onclick="toggleInlineReport('cand_copper_gold_1', 'screening_cand_copper_gold.html', '【候選】銅金比 60日報酬差 (HG=F vs GC=F)')">
+            <button id="toggle-btn-composite_momentum_coppergold_1" class="expand-toggle-btn" data-label="【合成】官方綜合分數 — 動能 + 銅金比 等權重平均" onclick="toggleInlineReport('composite_momentum_coppergold_1', 'screening_composite_momentum_coppergold.html', '【合成】官方綜合分數 — 動能 + 銅金比 等權重平均')">
+              <span class="arrow-icon">▶</span> 【合成】官方綜合分數 — 動能 + 銅金比 等權重平均
+            </button>
+          </td>
+          <td>多因子分數等權重平均</td>
+          <td>0.021</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>3/4</td>
+          <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
+          <td><span class="na">—</span></td>
+        </tr>
+        <tr id="expand-row-composite_momentum_coppergold_1" class="inline-report-row" style="display:none;">
+          <td colspan="8" class="inline-report-cell">
+            <div class="inline-report-wrap">
+              <div class="inline-report-bar">
+                <span class="inline-report-title">📊 因子體檢報告：【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 (composite_momentum_coppergold)</span>
+                <div class="inline-report-actions">
+                  <a class="inline-link" href="screening_composite_momentum_coppergold.html" target="_blank">在新分頁開啟 ↗</a>
+                  <button class="inline-close-btn" onclick="closeInlineReport('composite_momentum_coppergold_1')">✕ 關閉報告</button>
+                </div>
+              </div>
+              <iframe id="iframe-composite_momentum_coppergold_1" class="inline-iframe" data-src="screening_composite_momentum_coppergold.html"></iframe>
+            </div>
+          </td>
+        </tr><tr class="registry-row" data-row-id="cand_copper_gold_2" data-key="cand_copper_gold" data-verdict="watch" data-promoted="false" data-search="【候選】銅金比 60日報酬差 (hg=f vs gc=f) cand_copper_gold">
+          <td>2026-08-11</td>
+          <td>
+            <button id="toggle-btn-cand_copper_gold_2" class="expand-toggle-btn" data-label="【候選】銅金比 60日報酬差 (HG=F vs GC=F)" onclick="toggleInlineReport('cand_copper_gold_2', 'screening_cand_copper_gold.html', '【候選】銅金比 60日報酬差 (HG=F vs GC=F)')">
               <span class="arrow-icon">▶</span> 【候選】銅金比 60日報酬差 (HG=F vs GC=F)
             </button>
           </td>
@@ -480,23 +507,23 @@
           <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_copper_gold_1" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_copper_gold_2" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】銅金比 60日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_1')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_2')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_copper_gold_1" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
+              <iframe id="iframe-cand_copper_gold_2" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="NQ_F_2" data-key="NQ_F" data-verdict="watch" data-promoted="false" data-search="nq期貨52週高低區間位置 nq_f">
+        </tr><tr class="registry-row" data-row-id="NQ_F_3" data-key="NQ_F" data-verdict="watch" data-promoted="false" data-search="nq期貨52週高低區間位置 nq_f">
           <td>2026-07-31</td>
           <td>
-            <button id="toggle-btn-NQ_F_2" class="expand-toggle-btn" data-label="NQ期貨52週高低區間位置" onclick="toggleInlineReport('NQ_F_2', 'screening_NQ_F.html', 'NQ期貨52週高低區間位置')">
+            <button id="toggle-btn-NQ_F_3" class="expand-toggle-btn" data-label="NQ期貨52週高低區間位置" onclick="toggleInlineReport('NQ_F_3', 'screening_NQ_F.html', 'NQ期貨52週高低區間位置')">
               <span class="arrow-icon">▶</span> NQ期貨52週高低區間位置
             </button>
           </td>
@@ -507,44 +534,17 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-NQ_F_2" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-NQ_F_3" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：NQ期貨52週高低區間位置 (NQ_F)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_NQ_F.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('NQ_F_2')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('NQ_F_3')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-NQ_F_2" class="inline-iframe" data-src="screening_NQ_F.html"></iframe>
-            </div>
-          </td>
-        </tr><tr class="registry-row" data-row-id="us10y_3" data-key="us10y" data-verdict="watch" data-promoted="false" data-search="us10y us10y">
-          <td>2026-07-29</td>
-          <td>
-            <button id="toggle-btn-us10y_3" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_3', 'screening_us10y.html', 'us10y')">
-              <span class="arrow-icon">▶</span> us10y
-            </button>
-          </td>
-          <td>均線價差百分位</td>
-          <td>-0.056</td>
-          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
-          <td>2/4</td>
-          <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
-          <td><span class="na">—</span></td>
-        </tr>
-        <tr id="expand-row-us10y_3" class="inline-report-row" style="display:none;">
-          <td colspan="8" class="inline-report-cell">
-            <div class="inline-report-wrap">
-              <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
-                <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_3')">✕ 關閉報告</button>
-                </div>
-              </div>
-              <iframe id="iframe-us10y_3" class="inline-iframe" data-src="screening_us10y.html"></iframe>
+              <iframe id="iframe-NQ_F_3" class="inline-iframe" data-src="screening_NQ_F.html"></iframe>
             </div>
           </td>
         </tr><tr class="registry-row" data-row-id="us10y_4" data-key="us10y" data-verdict="watch" data-promoted="false" data-search="us10y us10y">
@@ -554,9 +554,9 @@
               <span class="arrow-icon">▶</span> us10y
             </button>
           </td>
-          <td>均線乖離百分位</td>
-          <td>0.058</td>
-          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>均線價差百分位</td>
+          <td>-0.056</td>
+          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
           <td>2/4</td>
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
@@ -574,18 +574,18 @@
               <iframe id="iframe-us10y_4" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="us10y_5" data-key="us10y" data-verdict="cut" data-promoted="false" data-search="us10y us10y">
-          <td>2026-07-28</td>
+        </tr><tr class="registry-row" data-row-id="us10y_5" data-key="us10y" data-verdict="watch" data-promoted="false" data-search="us10y us10y">
+          <td>2026-07-29</td>
           <td>
             <button id="toggle-btn-us10y_5" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_5', 'screening_us10y.html', 'us10y')">
               <span class="arrow-icon">▶</span> us10y
             </button>
           </td>
           <td>均線乖離百分位</td>
-          <td>-0.056</td>
-          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
-          <td>無法判斷</td>
-          <td class="verdict-cut">第三關（穩定性）未通過</td>
+          <td>0.058</td>
+          <td>動能延續型（隨持有天數拉長，訊號仍是「貪婪續漲、恐懼續跌」方向）</td>
+          <td>2/4</td>
+          <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_5" class="inline-report-row" style="display:none;">
@@ -636,10 +636,10 @@
             </button>
           </td>
           <td>均線乖離百分位</td>
-          <td>—</td>
-          <td>—</td>
+          <td>-0.056</td>
+          <td>長期反轉型（隨持有天數拉長，訊號轉為「恐懼買、貪婪賣」方向且加深）</td>
           <td>無法判斷</td>
-          <td class="verdict-cut">第一關（資料健檢）未通過</td>
+          <td class="verdict-cut">第三關（穩定性）未通過</td>
           <td><span class="na">—</span></td>
         </tr>
         <tr id="expand-row-us10y_7" class="inline-report-row" style="display:none;">
@@ -655,11 +655,11 @@
               <iframe id="iframe-us10y_7" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="jpy_8" data-key="jpy" data-verdict="cut" data-promoted="false" data-search="jpy jpy">
+        </tr><tr class="registry-row" data-row-id="us10y_8" data-key="us10y" data-verdict="cut" data-promoted="false" data-search="us10y us10y">
           <td>2026-07-28</td>
           <td>
-            <button id="toggle-btn-jpy_8" class="expand-toggle-btn" data-label="jpy" onclick="toggleInlineReport('jpy_8', 'screening_jpy.html', 'jpy')">
-              <span class="arrow-icon">▶</span> jpy
+            <button id="toggle-btn-us10y_8" class="expand-toggle-btn" data-label="us10y" onclick="toggleInlineReport('us10y_8', 'screening_us10y.html', 'us10y')">
+              <span class="arrow-icon">▶</span> us10y
             </button>
           </td>
           <td>均線乖離百分位</td>
@@ -669,17 +669,17 @@
           <td class="verdict-cut">第一關（資料健檢）未通過</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-jpy_8" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-us10y_8" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：jpy (jpy)</span>
+                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_jpy.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('jpy_8')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
+                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_8')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-jpy_8" class="inline-iframe" data-src="screening_jpy.html"></iframe>
+              <iframe id="iframe-us10y_8" class="inline-iframe" data-src="screening_us10y.html"></iframe>
             </div>
           </td>
         </tr><tr class="registry-row" data-row-id="jpy_9" data-key="jpy" data-verdict="cut" data-promoted="false" data-search="jpy jpy">
@@ -709,10 +709,37 @@
               <iframe id="iframe-jpy_9" class="inline-iframe" data-src="screening_jpy.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="gold_10" data-key="gold" data-verdict="cut" data-promoted="false" data-search="黃金 gold">
+        </tr><tr class="registry-row" data-row-id="jpy_10" data-key="jpy" data-verdict="cut" data-promoted="false" data-search="jpy jpy">
           <td>2026-07-28</td>
           <td>
-            <button id="toggle-btn-gold_10" class="expand-toggle-btn" data-label="黃金" onclick="toggleInlineReport('gold_10', 'screening_gold.html', '黃金')">
+            <button id="toggle-btn-jpy_10" class="expand-toggle-btn" data-label="jpy" onclick="toggleInlineReport('jpy_10', 'screening_jpy.html', 'jpy')">
+              <span class="arrow-icon">▶</span> jpy
+            </button>
+          </td>
+          <td>均線乖離百分位</td>
+          <td>—</td>
+          <td>—</td>
+          <td>無法判斷</td>
+          <td class="verdict-cut">第一關（資料健檢）未通過</td>
+          <td><span class="na">—</span></td>
+        </tr>
+        <tr id="expand-row-jpy_10" class="inline-report-row" style="display:none;">
+          <td colspan="8" class="inline-report-cell">
+            <div class="inline-report-wrap">
+              <div class="inline-report-bar">
+                <span class="inline-report-title">📊 因子體檢報告：jpy (jpy)</span>
+                <div class="inline-report-actions">
+                  <a class="inline-link" href="screening_jpy.html" target="_blank">在新分頁開啟 ↗</a>
+                  <button class="inline-close-btn" onclick="closeInlineReport('jpy_10')">✕ 關閉報告</button>
+                </div>
+              </div>
+              <iframe id="iframe-jpy_10" class="inline-iframe" data-src="screening_jpy.html"></iframe>
+            </div>
+          </td>
+        </tr><tr class="registry-row" data-row-id="gold_11" data-key="gold" data-verdict="cut" data-promoted="false" data-search="黃金 gold">
+          <td>2026-07-28</td>
+          <td>
+            <button id="toggle-btn-gold_11" class="expand-toggle-btn" data-label="黃金" onclick="toggleInlineReport('gold_11', 'screening_gold.html', '黃金')">
               <span class="arrow-icon">▶</span> 黃金
             </button>
           </td>
@@ -723,23 +750,23 @@
           <td class="verdict-cut">通過全部五關，建議納入正式綜合分數（可實作性門檻尚待補上成本假設，目前只供參考）</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-gold_10" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-gold_11" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：黃金 (gold)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('gold_10')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('gold_11')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-gold_10" class="inline-iframe" data-src="screening_gold.html"></iframe>
+              <iframe id="iframe-gold_11" class="inline-iframe" data-src="screening_gold.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="vix_test_11" data-key="vix_test" data-verdict="cut" data-promoted="false" data-search="vix 125日均線乖離 vix_test">
+        </tr><tr class="registry-row" data-row-id="vix_test_12" data-key="vix_test" data-verdict="cut" data-promoted="false" data-search="vix 125日均線乖離 vix_test">
           <td>2026-07-28</td>
           <td>
-            <button id="toggle-btn-vix_test_11" class="expand-toggle-btn" data-label="VIX 125日均線乖離" onclick="toggleInlineReport('vix_test_11', 'screening_vix_test.html', 'VIX 125日均線乖離')">
+            <button id="toggle-btn-vix_test_12" class="expand-toggle-btn" data-label="VIX 125日均線乖離" onclick="toggleInlineReport('vix_test_12', 'screening_vix_test.html', 'VIX 125日均線乖離')">
               <span class="arrow-icon">▶</span> VIX 125日均線乖離
             </button>
           </td>
@@ -750,23 +777,23 @@
           <td class="verdict-cut">第二關（單獨效力）未通過</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-vix_test_11" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-vix_test_12" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：VIX 125日均線乖離 (vix_test)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_vix_test.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('vix_test_11')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('vix_test_12')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-vix_test_11" class="inline-iframe" data-src="screening_vix_test.html"></iframe>
+              <iframe id="iframe-vix_test_12" class="inline-iframe" data-src="screening_vix_test.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_inflation_1y_12" data-key="cand_inflation_1y" data-verdict="watch" data-promoted="false" data-search="【候選】1年期通膨預期 125日均線價差 (fred: expinf1yr) cand_inflation_1y">
+        </tr><tr class="registry-row" data-row-id="cand_inflation_1y_13" data-key="cand_inflation_1y" data-verdict="watch" data-promoted="false" data-search="【候選】1年期通膨預期 125日均線價差 (fred: expinf1yr) cand_inflation_1y">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-cand_inflation_1y_12" class="expand-toggle-btn" data-label="【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR)" onclick="toggleInlineReport('cand_inflation_1y_12', 'screening_cand_inflation_1y.html', '【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR)')">
+            <button id="toggle-btn-cand_inflation_1y_13" class="expand-toggle-btn" data-label="【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR)" onclick="toggleInlineReport('cand_inflation_1y_13', 'screening_cand_inflation_1y.html', '【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR)')">
               <span class="arrow-icon">▶</span> 【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR)
             </button>
           </td>
@@ -777,23 +804,23 @@
           <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_inflation_1y_12" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_inflation_1y_13" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR) (cand_inflation_1y)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_inflation_1y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_inflation_1y_12')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_inflation_1y_13')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_inflation_1y_12" class="inline-iframe" data-src="screening_cand_inflation_1y.html"></iframe>
+              <iframe id="iframe-cand_inflation_1y_13" class="inline-iframe" data-src="screening_cand_inflation_1y.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_sofr_ted_spread_13" data-key="cand_sofr_ted_spread" data-verdict="watch" data-promoted="false" data-search="【候選】sofr與3m美債利差 (sofr vs dtb3) cand_sofr_ted_spread">
+        </tr><tr class="registry-row" data-row-id="cand_sofr_ted_spread_14" data-key="cand_sofr_ted_spread" data-verdict="watch" data-promoted="false" data-search="【候選】sofr與3m美債利差 (sofr vs dtb3) cand_sofr_ted_spread">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-cand_sofr_ted_spread_13" class="expand-toggle-btn" data-label="【候選】SOFR與3M美債利差 (SOFR vs DTB3)" onclick="toggleInlineReport('cand_sofr_ted_spread_13', 'screening_cand_sofr_ted_spread.html', '【候選】SOFR與3M美債利差 (SOFR vs DTB3)')">
+            <button id="toggle-btn-cand_sofr_ted_spread_14" class="expand-toggle-btn" data-label="【候選】SOFR與3M美債利差 (SOFR vs DTB3)" onclick="toggleInlineReport('cand_sofr_ted_spread_14', 'screening_cand_sofr_ted_spread.html', '【候選】SOFR與3M美債利差 (SOFR vs DTB3)')">
               <span class="arrow-icon">▶</span> 【候選】SOFR與3M美債利差 (SOFR vs DTB3)
             </button>
           </td>
@@ -804,23 +831,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_sofr_ted_spread_13" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_sofr_ted_spread_14" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】SOFR與3M美債利差 (SOFR vs DTB3) (cand_sofr_ted_spread)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_sofr_ted_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_sofr_ted_spread_13')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_sofr_ted_spread_14')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_sofr_ted_spread_13" class="inline-iframe" data-src="screening_cand_sofr_ted_spread.html"></iframe>
+              <iframe id="iframe-cand_sofr_ted_spread_14" class="inline-iframe" data-src="screening_cand_sofr_ted_spread.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_swap_spread_14" data-key="cand_swap_spread" data-verdict="watch" data-promoted="false" data-search="【候選】10年期美債 swap spread (dswp10 vs dgs10) cand_swap_spread">
+        </tr><tr class="registry-row" data-row-id="cand_swap_spread_15" data-key="cand_swap_spread" data-verdict="watch" data-promoted="false" data-search="【候選】10年期美債 swap spread (dswp10 vs dgs10) cand_swap_spread">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-cand_swap_spread_14" class="expand-toggle-btn" data-label="【候選】10年期美債 Swap Spread (DSWP10 vs DGS10)" onclick="toggleInlineReport('cand_swap_spread_14', 'screening_cand_swap_spread.html', '【候選】10年期美債 Swap Spread (DSWP10 vs DGS10)')">
+            <button id="toggle-btn-cand_swap_spread_15" class="expand-toggle-btn" data-label="【候選】10年期美債 Swap Spread (DSWP10 vs DGS10)" onclick="toggleInlineReport('cand_swap_spread_15', 'screening_cand_swap_spread.html', '【候選】10年期美債 Swap Spread (DSWP10 vs DGS10)')">
               <span class="arrow-icon">▶</span> 【候選】10年期美債 Swap Spread (DSWP10 vs DGS10)
             </button>
           </td>
@@ -831,23 +858,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_swap_spread_14" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_swap_spread_15" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】10年期美債 Swap Spread (DSWP10 vs DGS10) (cand_swap_spread)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_swap_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_swap_spread_14')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_swap_spread_15')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_swap_spread_14" class="inline-iframe" data-src="screening_cand_swap_spread.html"></iframe>
+              <iframe id="iframe-cand_swap_spread_15" class="inline-iframe" data-src="screening_cand_swap_spread.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_credit_spread_15" data-key="cand_credit_spread" data-verdict="watch" data-promoted="false" data-search="【候選】投資級企業債信用利差 (fred: baa10y) cand_credit_spread">
+        </tr><tr class="registry-row" data-row-id="cand_credit_spread_16" data-key="cand_credit_spread" data-verdict="watch" data-promoted="false" data-search="【候選】投資級企業債信用利差 (fred: baa10y) cand_credit_spread">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-cand_credit_spread_15" class="expand-toggle-btn" data-label="【候選】投資級企業債信用利差 (FRED: BAA10Y)" onclick="toggleInlineReport('cand_credit_spread_15', 'screening_cand_credit_spread.html', '【候選】投資級企業債信用利差 (FRED: BAA10Y)')">
+            <button id="toggle-btn-cand_credit_spread_16" class="expand-toggle-btn" data-label="【候選】投資級企業債信用利差 (FRED: BAA10Y)" onclick="toggleInlineReport('cand_credit_spread_16', 'screening_cand_credit_spread.html', '【候選】投資級企業債信用利差 (FRED: BAA10Y)')">
               <span class="arrow-icon">▶</span> 【候選】投資級企業債信用利差 (FRED: BAA10Y)
             </button>
           </td>
@@ -858,23 +885,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_credit_spread_15" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_credit_spread_16" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】投資級企業債信用利差 (FRED: BAA10Y) (cand_credit_spread)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_credit_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_credit_spread_15')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_credit_spread_16')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_credit_spread_15" class="inline-iframe" data-src="screening_cand_credit_spread.html"></iframe>
+              <iframe id="iframe-cand_credit_spread_16" class="inline-iframe" data-src="screening_cand_credit_spread.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="cand_copper_gold_16" data-key="cand_copper_gold" data-verdict="keep" data-promoted="false" data-search="【候選】銅金比 40日報酬差 (hg=f vs gc=f) cand_copper_gold">
+        </tr><tr class="registry-row" data-row-id="cand_copper_gold_17" data-key="cand_copper_gold" data-verdict="keep" data-promoted="false" data-search="【候選】銅金比 40日報酬差 (hg=f vs gc=f) cand_copper_gold">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-cand_copper_gold_16" class="expand-toggle-btn" data-label="【候選】銅金比 40日報酬差 (HG=F vs GC=F)" onclick="toggleInlineReport('cand_copper_gold_16', 'screening_cand_copper_gold.html', '【候選】銅金比 40日報酬差 (HG=F vs GC=F)')">
+            <button id="toggle-btn-cand_copper_gold_17" class="expand-toggle-btn" data-label="【候選】銅金比 40日報酬差 (HG=F vs GC=F)" onclick="toggleInlineReport('cand_copper_gold_17', 'screening_cand_copper_gold.html', '【候選】銅金比 40日報酬差 (HG=F vs GC=F)')">
               <span class="arrow-icon">▶</span> 【候選】銅金比 40日報酬差 (HG=F vs GC=F)
             </button>
           </td>
@@ -885,23 +912,23 @@
           <td class="verdict-keep">4/4項關卡通過，初步判斷具備統計相關性，建議可以考慮——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-cand_copper_gold_16" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-cand_copper_gold_17" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【候選】銅金比 40日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_16')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_17')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-cand_copper_gold_16" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
+              <iframe id="iframe-cand_copper_gold_17" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_inflation_17" data-key="dashboard_inflation" data-verdict="cut" data-promoted="false" data-search="【儀表板驗證】通膨意外 — cpi年增率減損益兩平通膨率 dashboard_inflation">
+        </tr><tr class="registry-row" data-row-id="dashboard_inflation_18" data-key="dashboard_inflation" data-verdict="cut" data-promoted="false" data-search="【儀表板驗證】通膨意外 — cpi年增率減損益兩平通膨率 dashboard_inflation">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_inflation_17" class="expand-toggle-btn" data-label="【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率" onclick="toggleInlineReport('dashboard_inflation_17', 'screening_dashboard_inflation.html', '【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率')">
+            <button id="toggle-btn-dashboard_inflation_18" class="expand-toggle-btn" data-label="【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率" onclick="toggleInlineReport('dashboard_inflation_18', 'screening_dashboard_inflation.html', '【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率
             </button>
           </td>
@@ -912,23 +939,23 @@
           <td class="verdict-cut">1/4項關卡通過，多項指標不理想，建議不採用——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_inflation_17" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_inflation_18" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率 (dashboard_inflation)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_inflation.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_inflation_17')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_inflation_18')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_inflation_17" class="inline-iframe" data-src="screening_dashboard_inflation.html"></iframe>
+              <iframe id="iframe-dashboard_inflation_18" class="inline-iframe" data-src="screening_dashboard_inflation.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_curve_18" data-key="dashboard_curve" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】殖利率曲線形狀 — 10y減2y利差 dashboard_curve">
+        </tr><tr class="registry-row" data-row-id="dashboard_curve_19" data-key="dashboard_curve" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】殖利率曲線形狀 — 10y減2y利差 dashboard_curve">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_curve_18" class="expand-toggle-btn" data-label="【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差" onclick="toggleInlineReport('dashboard_curve_18', 'screening_dashboard_curve.html', '【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差')">
+            <button id="toggle-btn-dashboard_curve_19" class="expand-toggle-btn" data-label="【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差" onclick="toggleInlineReport('dashboard_curve_19', 'screening_dashboard_curve.html', '【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差
             </button>
           </td>
@@ -939,23 +966,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_curve_18" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_curve_19" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差 (dashboard_curve)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_curve.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_curve_18')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_curve_19')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_curve_18" class="inline-iframe" data-src="screening_dashboard_curve.html"></iframe>
+              <iframe id="iframe-dashboard_curve_19" class="inline-iframe" data-src="screening_dashboard_curve.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_move_19" data-key="dashboard_move" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】波動度 — move指數90日偏態係數 dashboard_move">
+        </tr><tr class="registry-row" data-row-id="dashboard_move_20" data-key="dashboard_move" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】波動度 — move指數90日偏態係數 dashboard_move">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_move_19" class="expand-toggle-btn" data-label="【儀表板驗證】波動度 — MOVE指數90日偏態係數" onclick="toggleInlineReport('dashboard_move_19', 'screening_dashboard_move.html', '【儀表板驗證】波動度 — MOVE指數90日偏態係數')">
+            <button id="toggle-btn-dashboard_move_20" class="expand-toggle-btn" data-label="【儀表板驗證】波動度 — MOVE指數90日偏態係數" onclick="toggleInlineReport('dashboard_move_20', 'screening_dashboard_move.html', '【儀表板驗證】波動度 — MOVE指數90日偏態係數')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】波動度 — MOVE指數90日偏態係數
             </button>
           </td>
@@ -966,23 +993,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_move_19" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_move_20" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】波動度 — MOVE指數90日偏態係數 (dashboard_move)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_move.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_move_19')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_move_20')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_move_19" class="inline-iframe" data-src="screening_dashboard_move.html"></iframe>
+              <iframe id="iframe-dashboard_move_20" class="inline-iframe" data-src="screening_dashboard_move.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_duration_20" data-key="dashboard_duration" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】存續期間避險 — tlt vs shy 40日報酬差 dashboard_duration">
+        </tr><tr class="registry-row" data-row-id="dashboard_duration_21" data-key="dashboard_duration" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】存續期間避險 — tlt vs shy 40日報酬差 dashboard_duration">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_duration_20" class="expand-toggle-btn" data-label="【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差" onclick="toggleInlineReport('dashboard_duration_20', 'screening_dashboard_duration.html', '【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差')">
+            <button id="toggle-btn-dashboard_duration_21" class="expand-toggle-btn" data-label="【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差" onclick="toggleInlineReport('dashboard_duration_21', 'screening_dashboard_duration.html', '【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差
             </button>
           </td>
@@ -993,23 +1020,23 @@
           <td class="verdict-watch">3/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_duration_20" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_duration_21" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差 (dashboard_duration)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_duration.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_duration_20')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_duration_21')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_duration_20" class="inline-iframe" data-src="screening_dashboard_duration.html"></iframe>
+              <iframe id="iframe-dashboard_duration_21" class="inline-iframe" data-src="screening_dashboard_duration.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_strength_21" data-key="dashboard_strength" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】強度 — nq期貨52週高低區間位置 dashboard_strength">
+        </tr><tr class="registry-row" data-row-id="dashboard_strength_22" data-key="dashboard_strength" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】強度 — nq期貨52週高低區間位置 dashboard_strength">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_strength_21" class="expand-toggle-btn" data-label="【儀表板驗證】強度 — NQ期貨52週高低區間位置" onclick="toggleInlineReport('dashboard_strength_21', 'screening_dashboard_strength.html', '【儀表板驗證】強度 — NQ期貨52週高低區間位置')">
+            <button id="toggle-btn-dashboard_strength_22" class="expand-toggle-btn" data-label="【儀表板驗證】強度 — NQ期貨52週高低區間位置" onclick="toggleInlineReport('dashboard_strength_22', 'screening_dashboard_strength.html', '【儀表板驗證】強度 — NQ期貨52週高低區間位置')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】強度 — NQ期貨52週高低區間位置
             </button>
           </td>
@@ -1020,23 +1047,23 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_strength_21" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_strength_22" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】強度 — NQ期貨52週高低區間位置 (dashboard_strength)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_strength.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_strength_21')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_strength_22')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_strength_21" class="inline-iframe" data-src="screening_dashboard_strength.html"></iframe>
+              <iframe id="iframe-dashboard_strength_22" class="inline-iframe" data-src="screening_dashboard_strength.html"></iframe>
             </div>
           </td>
-        </tr><tr class="registry-row" data-row-id="dashboard_momentum_22" data-key="dashboard_momentum" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】動能 — us 10y 125日均線價差 dashboard_momentum">
+        </tr><tr class="registry-row" data-row-id="dashboard_momentum_23" data-key="dashboard_momentum" data-verdict="watch" data-promoted="false" data-search="【儀表板驗證】動能 — us 10y 125日均線價差 dashboard_momentum">
           <td>2026-08-03</td>
           <td>
-            <button id="toggle-btn-dashboard_momentum_22" class="expand-toggle-btn" data-label="【儀表板驗證】動能 — US 10Y 125日均線價差" onclick="toggleInlineReport('dashboard_momentum_22', 'screening_dashboard_momentum.html', '【儀表板驗證】動能 — US 10Y 125日均線價差')">
+            <button id="toggle-btn-dashboard_momentum_23" class="expand-toggle-btn" data-label="【儀表板驗證】動能 — US 10Y 125日均線價差" onclick="toggleInlineReport('dashboard_momentum_23', 'screening_dashboard_momentum.html', '【儀表板驗證】動能 — US 10Y 125日均線價差')">
               <span class="arrow-icon">▶</span> 【儀表板驗證】動能 — US 10Y 125日均線價差
             </button>
           </td>
@@ -1047,17 +1074,17 @@
           <td class="verdict-watch">2/4項關卡通過，部分指標有疑慮，建議謹慎評估後再決定——本工具僅提供研究建議，最終是否採用由使用者自行判斷。</td>
           <td><span class="na">—</span></td>
         </tr>
-        <tr id="expand-row-dashboard_momentum_22" class="inline-report-row" style="display:none;">
+        <tr id="expand-row-dashboard_momentum_23" class="inline-report-row" style="display:none;">
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
                 <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】動能 — US 10Y 125日均線價差 (dashboard_momentum)</span>
                 <div class="inline-report-actions">
                   <a class="inline-link" href="screening_dashboard_momentum.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_momentum_22')">✕ 關閉報告</button>
+                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_momentum_23')">✕ 關閉報告</button>
                 </div>
               </div>
-              <iframe id="iframe-dashboard_momentum_22" class="inline-iframe" data-src="screening_dashboard_momentum.html"></iframe>
+              <iframe id="iframe-dashboard_momentum_23" class="inline-iframe" data-src="screening_dashboard_momentum.html"></iframe>
             </div>
           </td>
         </tr>
@@ -1066,7 +1093,7 @@
 
     <!-- 分頁控制列 -->
     <div class="pagination-bar" id="paginationBar">
-      <div id="pageInfo">顯示 1 - 6 / 共 23 筆</div>
+      <div id="pageInfo">顯示 1 - 6 / 共 24 筆</div>
       <div style="display:flex;gap:6px;">
         <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)" data-i18n="btn_prev">‹ 上一頁</button>
         <button class="page-btn" id="nextPageBtn" onclick="changePage(1)" data-i18n="btn_next">下一頁 ›</button>

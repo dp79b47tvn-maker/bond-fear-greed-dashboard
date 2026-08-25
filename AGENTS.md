@@ -47,8 +47,7 @@
   因子篩選平台、升等/退回功能、相關係數矩陣也會被各自獨立的workflow自動commit（見上方
   workflow說明），`chart/screening_*.html`、`chart/correlation_matrix.html`、
   `factor_screening_registry.json`、`promoted_candidate_factors.json`也可能遇到同樣狀況，
-  處理方式一樣。（`chart/factor_validation_report.html`、`chart/manual.html`2026-07-30起
-  已經不再自動重新產生，是凍結在移除當下那一刻的靜態備份，不會再衝突。）**這個repo常常有
+  處理方式一樣。**這個repo常常有
   多個agent/session並行改動**，push前務必先`git fetch`確認落後狀態，落後就先
   `git stash push -u` → `git pull --rebase` → `git stash pop`，不要直接硬push。
 
@@ -63,14 +62,16 @@
 ## Part 2｜這個專案的具體操作方式
 
 ### 這是什麼
-債券市場恐懼貪婪儀表板：7項美債市場指標彙整成每日恐懼貪婪分數。**三個對外頁面**——首頁、
+債券市場恐懼貪婪儀表板：美債市場指標彙整成每日恐懼貪婪分數。**三個對外頁面**——首頁、
 即時儀表板、因子開發與篩選平台——全部由`factor_definitions.json`這份單一定義檔驅動，
-共用同一份頂部導覽列（`nav_bar.py`）跟同一套排版基準數值（`page_style.py`）。
+共用同一份頂部導覽列（`nav_bar.py`，含中英文切換）跟同一套排版基準數值（`page_style.py`）。
 
-**2026-07-30起**：原本的「因子驗證報告」「因子定義手冊」兩頁從導覽列拿掉，內容遷移
-（不是單純刪除，見下方「驗證報告與定義手冊的遷移」）——`factor_validation_analysis.py`
-繼續當函式庫用（`factor_screening.py`依賴它），`chart/factor_validation_report.html`跟
-`chart/manual.html`都還在`chart/`裡，只是凍結在移除當下、不再自動重新產生。
+**因子數量會變，不要在任何地方寫死**：2026-08-05起從七項縮減為兩項（動能、銅金比），
+一律以`factor_definitions.json`的`factors`陣列為準。`scripts/check_consistency.py`會
+檢查各處是否同步，包括文案裡寫死的「七項」這種過期字眼。
+
+**專案本身的說明文件是`HANDOVER.md`**（給接手的人讀：分數怎麼算、怎麼跑、踩過的坑、
+研究結論）。本檔`AGENTS.md`只負責AI agent的協作規範。
 
 ### 正式發布管道（目前唯一的正式管道，不是Claude Artifact）
 專案已經上架在GitHub Pages公開發布，跟任何特定AI工具無關：
@@ -103,10 +104,9 @@
    python3 update_dashboard.py          # 重新產生 chart/dashboard.html
    python3 generate_hub.py              # 重新產生 chart/index.html（首頁）
    ```
-   `factor_validation_analysis.py`現在只是函式庫（給`factor_screening.py`用）+本機工具，
-   不是自動pipeline的一部分；真的想重新產生`chart/factor_validation_report.html`參考用
-   （較慢，~4分鐘，會重抓20年歷史資料），本機可以直接`python3 factor_validation_analysis.py`
-   手動跑，但不會自動commit進daily workflow。
+   `factor_validation_analysis.py`現在**純粹是函式庫**（給`factor_screening.py`用），
+   沒有進入點、不會單獨執行——它的`main()`(產生已刪除的factor_validation_report.html)
+   已於2026-08-13連同5個只有它在用的render函式一併移除。
    本機用 `venv/bin/python3`（repo內有現成的venv，裝好所有套件），不要用系統python3，
    否則會缺套件（例如`seaborn`）。
 2. 檢查：
@@ -145,30 +145,32 @@ JSON，重跑`update_dashboard.py`，儀表板會自動同步更新（含各分�
 互為同資料夾的相對路徑連結（GitHub Pages同站託管的緣故）。只有想改回發布到Claude Artifact
 （各頁各自獨立網址）時才需要填值。
 
-### 驗證報告與定義手冊的遷移（2026-07-30）
-使用者要求把「驗證報告」「定義手冊」兩頁從導覽列拿掉，但不是單純刪除內容，而是各自遷移：
-- **驗證報告**：`factor_validation_analysis.py`本身沒刪、沒搬——`factor_screening.py`對它有
-  ~20處`import factor_validation_analysis as fva`的依賴（`FACTOR_COLS`/`correlation_heatmap_base64`/
-  `non_overlapping_ic`等），這支檔案繼續當函式庫用，只是`main()`(產生report網頁)不再被
-  `update-and-deploy.yml`呼叫。裡面的「因子相關係數矩陣」改造成因子篩選平台的隨選功能
-  （見上方`correlation-matrix.yml`說明）——直接重用`correlation_heatmap_base64()`這個通用函式
-  （吃任意DataFrame + `{欄位名:label}`字典），不用重寫。已產生好的`chart/factor_validation_report.html`
-  保留在原地，只是不再進導覽列、不再每日自動重新產生（使用者決定：檔案本身當備份留著即可）。
-- **定義手冊**：`generate_manual.py`改名`generate_hub.py`，manual.html的產生邏輯整段刪掉，
-  只留首頁(index.html)產生邏輯。手冊裡跟儀表板重複的內容（`explain`文字）本來就跟儀表板
-  同一個JSON來源，不用搬；手冊獨有的公式(`formula_tpl`)/參數調校筆記(`tuning_note`)/程式
-  位置(`code_location`)這三項，2026-07-30起補進`update_dashboard.py`的`FACTOR_DEFS`注入
-  （原本只有手冊會讀這三個欄位），折進儀表板每張分項卡片既有的「計算邏輯與資料來源」
-  說明面板；跨因子的「資料來源明細」「為何用百分位」內容折進gauge卡片既有的「綜合分數的
-  計算邏輯與可信度」說明面板。**手冊裡的互動試算器直接移除、沒有搬到別的地方**（使用者
-  明確決定）。`chart/manual.html`檔案本身也保留在原地，只是不再進導覽列、不再自動重新產生。
+### 驗證報告與定義手冊：先遷移(2026-07-30)、後刪除(2026-08-13)
+兩頁在2026-07-30從導覽列拿掉、內容遷移，檔案當時保留在`chart/`裡當備份；
+2026-08-13清理repo時確認它們已無人可達（只剩5份舊格式報告的殘留舊導覽列連著），
+連同產生它們的程式碼一併刪除：
+
+- **`chart/factor_validation_report.html`（2.8MB）已刪**。它的產生者
+  `factor_validation_analysis.main()`與只有它在用的5個render函式（共364行）也一併移除，
+  該檔1074→708行。`factor_validation_analysis.py`本身**繼續當函式庫用**——`factor_screening.py`
+  對它有大量依賴（`FACTOR_COLS`/`correlation_heatmap_base64`/`non_overlapping_ic`等）。
+  原本報告裡的「因子相關係數矩陣」早已改造成因子篩選平台的隨選功能（見`correlation-matrix.yml`）。
+- **`chart/manual.html`已刪**。手冊獨有的公式(`formula_tpl`)/參數筆記(`tuning_note`)/
+  程式位置(`code_location`)三項，2026-07-30起已注入儀表板每張分項卡片的「計算邏輯與資料來源」
+  面板；跨因子的「資料來源明細」「為何用百分位」折進gauge卡片的說明面板。
+  互動試算器當時就直接移除、沒有搬到別的地方。
+- 刪除前已先把5份舊格式報告（`screening_jpy/gold/vix_test/us10y/NQ_F`）殘留的舊導覽列
+  換成現行版本，不留404。
+
+需要看歷史版本請查git。
+
 
 ### 因子篩選框架（factor_screening.py）
 跟儀表板並列的獨立功能（首頁是入口，不算功能本身），2026-07-28新增。除了測試新候選因子，
 2026-07-30起也承接了原本驗證報告頁「因子相關係數矩陣」的隨選版本（見上方
 `correlation-matrix.yml`說明）。
 目的：之後想到新的候選因子，
-填一張設定表餵進去，自動跑五道關卡判定該不該加入正式的七因子綜合分數，不用每次重新手動分析。
+填一張設定表餵進去，自動跑五道關卡判定該不該加入正式的綜合分數，不用每次重新手動分析。
 
 **用法**：
 ```python
@@ -202,7 +204,7 @@ screen_and_save(config)
    10年/20年分桶、雙版本熱力圖(原始報酬vs超額報酬,分桶×持有天數)、動能延續/長期反轉描述性
    標記(不當及格條件)
 3. 穩定性：前後半段IC是否同號；跨Fed循環IC(用`regime_lib.py`,僅供參考)
-4. 增量價值：跟現有七因子相關係數上限0.6；加入候選後對綜合分數的LOO ΔIC方向是否為
+4. 增量價值：跟現有官方因子相關係數上限0.6；加入候選後對綜合分數的LOO ΔIC方向是否為
    「拿掉候選IC會變差」
 5. 可實作性：換手率(成本門檻尚待補上bps假設，目前只回報數字)
 
@@ -253,10 +255,10 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
 
 ### 因子升等/退回路徑：篩選平台 ↔ 儀表板（2026-07-29新增升等，2026-07-30補上退回）
 因子篩選平台驗證過的候選因子，可以在報告頁點「升等為可選因子」按鈕，讓它同時出現在
-(a) 儀表板一張獨立分項卡片（標示「候選因子」，**不計入官方七因子綜合分數**）跟
+(a) 儀表板一張獨立分項卡片（標示「候選因子」，**不計入官方綜合分數**）跟
 (b) 儀表板「自訂權重」區塊的可選清單裡。登記簿頁（`screening_index.html`）已升等的因子
 那一列會顯示「已升等」徽章＋「退回」按鈕，可以把因子從儀表板整個移除（雙向、不是單向）。
-- `promoted_candidate_factors.json`：升等暫存清單，跟`factor_definitions.json`（官方七因子
+- `promoted_candidate_factors.json`：升等暫存清單，跟`factor_definitions.json`（官方因子
   唯一事實來源）**刻意分開存放**，不會污染到官方定義。格式(`key`/`label`/`mode`/`sources`/
   `params`/`invert`)跟因子篩選平台的candidate config一致。
 - `scripts/promote_factor.py`：`--config-json`寫入/更新這份清單裡對應`key`的條目（升等），
@@ -313,12 +315,24 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
   （見上方「儀表板進階互動功能」）。
 - `scripts/generate_correlation_matrix.py`：因子相關係數矩陣的隨選產生腳本（Phase 7新增），
   由`correlation-matrix.yml`呼叫，直接重用`factor_validation_analysis.correlation_heatmap_base64()`。
-- `data_input.xlsx`：使用者手動輸入/覆蓋的原始資料（例如Put/Call），填的值優先於自動抓取。
+- `data_input.xlsx`：使用者手動輸入/覆蓋的原始資料，填的值優先於自動抓取。
+- `scripts/check_consistency.py`：**靜態一致性檢查，已接進`update-and-deploy.yml`最前面**。
+  純靜態不發網路請求、一秒跑完。檢查因子清單/資料管線/儀表板模板/文案/登記簿寫入方式
+  是否互相脫鉤——過去這類問題全都是上線後才發現，現在部署前就會擋下來。改因子後務必跑。
+- `factor_scores_matrix.csv` / `partb_combination_results.csv`：2026-08-05的靜態快照
+  （11因子）。產生前者的腳本依賴已刪除的舊七因子，**目前無法重新產生**；
+  相關係數矩陣的「歷史因子」選項用的就是這份。
 
-### 不是正式pipeline的一部分、但保留在repo裡的探索性工具
-- `decile_overlap_comparison.py`：獨立腳本，比較10年/20年分桶分析在「非重疊」vs「重疊」
-  取樣下的差異，純粹給使用者自己評估、決定要不要換正式報告的取樣方式用，
-  輸出`chart/decile_overlap_comparison.html`不連結進首頁/導覽列，也不是每次pipeline都要重跑。
+### 不是正式pipeline的一部分、但保留在repo裡的研究工具
+不進導覽列、不在CI跑，本機手動執行用來回答特定問題：
+- `scripts/sweep_window_sensitivity.py`：因子視窗長度敏感度掃描（同時看完整歷史與2020+
+  兩個期間，避免只看單一期間就下結論）。
+- `scripts/walkforward_window_selection.py`：walk-forward參數驗證——每年只用當時之前的
+  資料重選參數再套到下一年，判斷「最佳參數」到底挑不挑得出來。
+- `scripts/screen_composite_2factor.py`：把因子組合當成一個因子跑完整五關（用`composite_mean`模式）。
+- `scripts/build_direct_parta_html.py`：只產Part A統計分布、**不跑五關**。用前務必看檔頭
+  說明——它曾經把五關結果寫死成假值上過正式站。
+- `scripts/run_partb_combination_backtest.py`：Part B組合爆破回測，產出`partb_combination_results.csv`。
 
 ### 不要納入版本控制的東西（已寫進 .gitignore）
 `venv/`、每次重跑會重新產生的CSV/xlsx資料檔——這些是從Yahoo/Treasury/FRED重新抓來的，
