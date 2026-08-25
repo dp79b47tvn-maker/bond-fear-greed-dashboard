@@ -76,7 +76,7 @@ hub_html = f"""<meta charset="utf-8">
   <p class="lede animate-in animate-delay-1" data-i18n="hub_lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。</p>
   <section class="intro animate-in animate-delay-2">
     <h2 data-i18n="hub_intro_title">這是什麼</h2>
-    <p data-i18n="hub_intro_p1" data-i18n-html>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比反映的景氣/風險偏好等{factor_count}項指標，每個交易日收盤後重新計算一次。</p>
+    <p data-i18n="hub_intro_p1" data-i18n-html>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這{factor_count}項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。</p>
     <p data-i18n="hub_intro_p2" data-i18n-html>每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。</p>
     <p data-i18n="hub_intro_p3" data-i18n-html><b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。</p>
   </section>

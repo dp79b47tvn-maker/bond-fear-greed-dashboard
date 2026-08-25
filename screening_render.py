@@ -33,7 +33,7 @@ plt = fva.plt
 # 產品定位聲明(2026-07-28product framework)：這個平台是輔助交易員判斷氛圍的研究工具，
 # 不是策略、不是投資建議——每個對外頁面的頁首都要看得到這句話。
 POSITIONING_STATEMENT = (
-    "本平台協助債券交易者判斷美債市場目前的整體氛圍，作為交易員的輔助判斷工具，"
+    "本平台是輔助債券交易者判斷美債市場目前整體氛圍的研究工具，"
     "非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，"
     "不產出即時部位建議或操作指令。"
 )
@@ -232,7 +232,7 @@ def render_screening_report(result):
             )
             sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>Part A 統計分布與極端兩端檢視 (未來20日持倉)</h2>
+      <h2><span class="bar"></span>統計分布與極端兩端檢視 (未來20日持倉)</h2>
       <p class="hint">包含箱型圖 (Boxplot/IQR)、勝率 %、小提琴密度形狀與全分數對報酬之非線性趨勢線。特別檢視極度恐懼 (0-24) 與極度貪婪 (76-100) 兩端是否有逆勢勾回/反轉跡象。</p>
       <img class="chart" src="data:image/png;base64,{dist_chart_b64}"/>
       <table class="data-table mini">
@@ -574,9 +574,9 @@ def _build_partb_section_html():
         robust_rows = make_rows(robust_candidates)
 
         return f"""
-  <!-- Part B: 11 因子 2,047 種組合爆破與 Walk-Forward 樣本外驗證 -->
+  <!-- 多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合） -->
   <section class="card" style="margin-top:28px;">
-    <h2><span class="bar"></span>Part B ｜ 11 因子 2,047 種組合爆破與 Walk-Forward 樣本外驗證</h2>
+    <h2><span class="bar"></span>多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合）</h2>
     <p class="hint">
       測試期間：<b>2020-01-01 ~ 2026-08-04</b> (共 2,408 交易日)　·　
       樣本內 (IS): 2020~2024 (1,827天)　·　
@@ -918,7 +918,7 @@ def render_registry_index(registry):
   <header>
     <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1 data-i18n="screening_title">因子開發與篩選平台</h1>
-    <p class="meta">累計測試 {n_total} 個因子，各關卡全數通過 {n_passed} 個。</p>
+    <p class="meta">累計測試 {n_total} 個因子，其中全數通過關卡的有 {n_passed} 個。</p>
     <p class="disclaimer">{POSITIONING_STATEMENT}</p>
     <p class="disclaimer">
       這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
