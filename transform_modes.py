@@ -13,12 +13,14 @@
 update_dashboard.fetch_yahoo_close/fetch_fred_series，同樣是為了避免循環依賴——
 呼叫端(factor_screening.py或update_dashboard.py)各自把自己既有的抓取函式傳進來即可。
 """
-import json
-
 import pandas as pd
 
-with open("factor_definitions.json", encoding="utf-8") as _f:
-    _DEFS = json.load(_f)
+# 改用 factor_defs_schema 的驗證載入器，不再自己 json.load()——順便修掉這支模組原本
+# 用「相對路徑」讀檔案的隱患(CWD不是repo根目錄時就讀不到)，validate_and_load()預設
+# 用絕對路徑，兩支消費者(這裡跟update_dashboard.py)現在讀的保證是同一份、且已驗證過格式。
+from factor_defs_schema import validate_and_load
+
+_DEFS = validate_and_load()
 _PERCENTILE_WINDOW_DAYS = _DEFS["global"]["percentile_window_days"]
 
 

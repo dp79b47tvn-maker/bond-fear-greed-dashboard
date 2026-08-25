@@ -27,13 +27,14 @@ JS 陣列、還有一堆說明文案。2026-08-11 官方因子從七項改成兩
 """
 import argparse
 import ast
-import json
 import os
 import re
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
+
+from factor_defs_schema import FactorDefinitionsError, validate_and_load  # noqa: E402
 
 DEFS_PATH = os.path.join(ROOT, "factor_definitions.json")
 UPDATE_DASHBOARD = os.path.join(ROOT, "update_dashboard.py")
@@ -371,7 +372,20 @@ def main():
     parser.add_argument("--list", action="store_true", help="只列出盤點結果，不判定成敗")
     args = parser.parse_args()
 
-    defs = json.loads(_read(DEFS_PATH))
+    # 格式檢查放第一步：檔案本身結構就有問題的話，應該第一個講清楚，
+    # 不要拖到後面的AST掃描裡因為缺欄位而報一個看不懂的錯誤。
+    try:
+        defs = validate_and_load(DEFS_PATH)
+    except FactorDefinitionsError as e:
+        fail("factor_definitions.json 格式", str(e))
+        print("=" * 72)
+        print("專案一致性檢查")
+        print("=" * 72)
+        print(f"\n✗ 發現 {len(failures)} 個問題：\n")
+        for check, msg in failures:
+            print(f"  [{check}] {msg}\n")
+        return 1
+
     ud_src = _read(UPDATE_DASHBOARD)
     fva_src = _read(FVA)
     template_src = _read(TEMPLATE) if os.path.exists(TEMPLATE) else ""

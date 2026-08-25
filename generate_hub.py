@@ -16,11 +16,11 @@ from datetime import date
 
 import nav_bar
 import page_style
+from factor_defs_schema import validate_and_load
 
 BASE = __file__.rsplit("/", 1)[0]
 
-with open(f"{BASE}/factor_definitions.json", encoding="utf-8") as f:
-    DEFS = json.load(f)
+DEFS = validate_and_load()
 with open(f"{BASE}/artifact_urls.json", encoding="utf-8") as f:
     URLS = json.load(f)
 

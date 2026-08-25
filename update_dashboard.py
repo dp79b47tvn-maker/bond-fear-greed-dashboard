@@ -49,8 +49,11 @@ import yfinance as yf
 
 # ---- 唯一事實來源:所有計算參數與因子定義都在 factor_definitions.json ----
 # 想改因子的視窗天數、門檻等,改那個檔就好,這裡不再寫死任何參數。
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "factor_definitions.json"), encoding="utf-8") as _f:
-    DEFS = json.load(_f)
+# 讀取前先過 factor_defs_schema 的格式檢查——漏填欄位/打錯值在這裡就會報清楚的錯誤，
+# 不會拖到幾十個呼叫深之後才 KeyError。
+from factor_defs_schema import validate_and_load
+
+DEFS = validate_and_load()
 _G = DEFS["global"]
 _FP = {f["key"]: f["params"] for f in DEFS["factors"]}
 
