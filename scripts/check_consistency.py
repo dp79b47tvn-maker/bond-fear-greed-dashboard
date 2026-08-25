@@ -230,6 +230,37 @@ def check_dashboard_template(defs, template_src):
         note("找不到 CUSTOM_WEIGHT_FACTORS 陣列，略過")
 
 
+def check_template_placeholder_counts(ud_src, template_src):
+    """update_dashboard.py 用 str.replace() 把 __XXX__ 佔位符換成真資料——這是**全域**
+    替換，不是只換第一個。如果模板裡任何地方（包括說明文字/註解）意外重複打了同一個
+    佔位符字串兩次，第二次會被硬塞進不該塞的地方(2026-08-25發生過一次：模板裡一句
+    中文註解提到 __NAV_BAR_JS__ 這個名字，結果被當成真的佔位符整段替換，把一大段JS
+    程式碼硬生生塞進單行註解中間，直接切斷成語法錯誤——是 scripts/verify_dashboard.py
+    的node --check抓到的，但要等實際跑過一次才會發現，這裡改成靜態就能查)。
+
+    每個佔位符在模板裡必須**剛好出現一次**：0次是漏放、忘記接資料；>1次就是這裡在防的
+    這種污染。清單直接從 update_dashboard.py 的 `for ph in [...]` 那段動態擷取，
+    不在這裡另外手key一份、兩邊各自維護會漂移。
+    """
+    m = re.search(r"for ph in \[(.*?)\]:", ud_src, re.S)
+    if not m:
+        note("找不到 update_dashboard.py 的佔位符清單，略過模板佔位符次數檢查")
+        return
+    placeholders = re.findall(r"__[A-Z_]+__", m.group(1))
+    if not placeholders:
+        note("update_dashboard.py 的佔位符清單解析出來是空的，略過")
+        return
+
+    for ph in placeholders:
+        n = template_src.count(ph)
+        if n == 0:
+            fail("模板佔位符", f"{ph} 在模板裡完全找不到——update_dashboard.py 填不進資料")
+        elif n > 1:
+            fail("模板佔位符", f"{ph} 在模板裡出現了 {n} 次(該剛好1次)——"
+                              f"str.replace()是全域替換，多出來的那幾次很可能不是真的佔位符，"
+                              f"而是文案/註解裡剛好打到同樣的字串，會被誤換成一大段程式碼")
+
+
 COUNT_WORDS = {2: "兩", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八", 9: "九", 10: "十"}
 
 
@@ -396,6 +427,7 @@ def main():
     check_factor_cols_derived(fva_src)
     if template_src:
         check_dashboard_template(defs, template_src)
+        check_template_placeholder_counts(ud_src, template_src)
     check_stale_count_prose(defs)
     check_registry_not_overwritten()
     check_no_orphan_modules()

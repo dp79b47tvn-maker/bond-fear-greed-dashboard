@@ -360,7 +360,9 @@
     <p class="gauge-label" data-i18n="dash_latest_label">最新收盤日綜合分數</p>
     <div class="gauge-wrap">
       <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
-      <div class="gauge-score" id="gaugeScore"></div>
+      <!-- 資料現在是fetch()來的，這三格伺服器端先印一個載入中的樣子，等JS拿到
+           dashboard_data.json後會馬上覆蓋掉，避免使用者在極短的載入空檔看到全空白 -->
+      <div class="gauge-score" id="gaugeScore" style="font-size:16px;">載入中…</div>
       <div class="gauge-tag" id="gaugeTag"></div>
       <div class="gauge-date" id="gaugeDate"></div>
     </div>
@@ -507,6 +509,17 @@
 <script>
 __NAV_BAR_JS__
 
+// 這裡開始整段包進一個 async IIFE，因為 DATA 現在是 fetch 外部 JSON 來的（見下方），
+// 下面幾乎所有程式碼都要等 DATA 到手才能跑。上面導覽列注入的那段JS定義的
+// toggleLanguage() 特意留在這個 IIFE 外面(它綁在 nav_bar.py 產生的
+// onclick="toggleLanguage()" 這種inline HTML屬性上，只有真正的全域函式才能被inline
+// 屬性找到)，靠下面明確賦值的
+// window.onLanguageChanged 跨越IIFE邊界互相溝通，行為跟包之前完全一樣，
+// 只是onLanguageChanged現在要等fetch完成才存在——toggleLanguage()本來就用
+// typeof檢查有沒有定義，那個時間差不影響正確性，只是使用者在資料還沒載入完的
+// 那零點幾秒內按語言切換鈕，數字部分暫時不會跟著切換語言，之後會自動補上。
+(async () => {
+
 const TIER_TRANSLATION = {
   "極度恐懼": { zh: "極度恐懼", en: "Extreme Fear" },
   "恐懼": { zh: "恐懼", en: "Fear" },
@@ -529,8 +542,35 @@ function onLanguageChanged(lang) {
   if (typeof refreshCustomWeight === "function") refreshCustomWeight();
   if (typeof renderEventRail === "function") renderEventRail();
 }
+// toggleLanguage()(在這個IIFE外面，見上方註解)靠這個橋接找到這支函式。
+window.onLanguageChanged = onLanguageChanged;
 
-const DATA = __DATA_JSON__;
+// DATA 是這個頁面最大宗的資料(每天的完整歷史)，改成執行期用fetch()向同目錄下的
+// dashboard_data.json 拿，不再把整份歷史內嵌進這份HTML本身——update_dashboard.py
+// 現在只把 REGIME_META/FACTOR_DEFS 這類小、幾乎不變的設定注入HTML，DATA另外寫檔。
+// 好處：HTML本身不用整份重新產生/重新commit，git diff只看得到真的變動的資料；
+// 圖片/瀏覽器都能個別快取這個JSON。fetch失敗時要清楚顯示錯誤，不能悄悄留一個
+// 空白頁面給使用者(GitHub Pages偶爾CDN還沒同步好、或本機沒開http server直接雙擊
+// 開檔案(file://)都會讓fetch失敗，後者是開發時常見的踩坑，錯誤訊息裡順便提示)。
+let DATA;
+try {
+  const res = await fetch("dashboard_data.json");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  DATA = await res.json();
+  if (!Array.isArray(DATA) || DATA.length === 0) throw new Error("資料是空的");
+} catch (err) {
+  const msg = location.protocol === "file:"
+    ? "無法載入資料：用 file:// 直接開啟本檔案時瀏覽器會擋下 fetch()，請改用本機伺服器" +
+      "(例如 python3 -m http.server)開啟，或直接看正式站。"
+    : `無法載入資料(dashboard_data.json)：${err.message}。請重新整理頁面，若持續發生請回報。`;
+  const scoreEl = document.getElementById("gaugeScore");
+  if (scoreEl) { scoreEl.textContent = "—"; scoreEl.style.fontSize = "16px"; }
+  const dateEl = document.getElementById("gaugeDate");
+  if (dateEl) dateEl.textContent = msg;
+  console.error("dashboard_data.json 載入失敗", err);
+  return;  // 沒有DATA，後面所有渲染邏輯都跑不動，直接停在這裡不要繼續往下噴一堆錯誤
+}
+
 const REGIME_META = __REGIME_META_JSON__;
 // 因子名稱/說明文字來自 factor_definitions.json(唯一事實來源),由 update_dashboard.py 注入
 const FACTOR_DEFS = __FACTOR_DEFS_JSON__;
@@ -1033,6 +1073,9 @@ function renderGauge(pt) {
   });
   document.getElementById("gaugeScore").textContent = pt.score == null ? "—" : pt.score.toFixed(1);
   document.getElementById("gaugeScore").style.color = zoneColor(pt.score);
+  // 清掉伺服器端「載入中…」佔位文字用的縮小字級(見上方HTML)，不清的話真的分數
+  // 進來後還是會卡在16px小字，不會變回CSS原本的60px
+  document.getElementById("gaugeScore").style.fontSize = "";
   const tag = document.getElementById("gaugeTag");
   tag.textContent = translateTier(pt.label || zoneLabel(pt.score));
   tag.style.background = `color-mix(in srgb, ${zoneColor(pt.score)} 16%, transparent)`;
@@ -1769,4 +1812,6 @@ document.querySelectorAll("button.logic-btn").forEach(btn => {
     btn.classList.toggle("open", open);
   });
 });
+
+})().catch(err => console.error("儀表板初始化失敗", err));
 </script>

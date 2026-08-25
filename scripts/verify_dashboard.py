@@ -6,8 +6,12 @@
 
 檢查項目：
   1. 用 node --check 驗證抽出來的<script>內容語法正確（會抓到今天這種bug）。
-  2. DATA / REGIME_META 這兩個注入的JSON區塊本身是合法JSON（不是語法正確但資料是空的）。
-  3. HTML裡出現的關鍵id（gaugeSvg、mainChart、componentCards等）都存在，
+  2. REGIME_META 這個注入HTML的JSON區塊本身是合法JSON（不是語法正確但資料是空的）。
+  3. chart/dashboard_data.json（架構檢討第4項2026-08-25起，DATA改成頁面執行期
+     fetch()這支外部檔案，不再內嵌進HTML本身）本身存在、是合法JSON、筆數夠多。
+  4. dashboard.html 裡真的有 fetch("dashboard_data.json") 這行——防的是有人
+     改動了模板卻忘記兩邊要對得上：HTML去讀一個沒人產生的檔名，或反過來。
+  5. HTML裡出現的關鍵id（gaugeSvg、mainChart、componentCards等）都存在，
      避免「JS引用了一個已經被刪掉的HTML元素」這類啞巴錯誤。
 
 用法：
@@ -20,7 +24,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-DASHBOARD_PATH = Path(__file__).resolve().parent.parent / "chart" / "dashboard.html"
+CHART_DIR = Path(__file__).resolve().parent.parent / "chart"
+DASHBOARD_PATH = CHART_DIR / "dashboard.html"
+DATA_JSON_PATH = CHART_DIR / "dashboard_data.json"
 
 REQUIRED_IDS = [
     "gaugeSvg", "gaugeScore", "gaugeTag", "gaugeDate", "compareRow",
@@ -50,26 +56,43 @@ def main():
     else:
         print("✓ JS語法檢查通過")
 
-    # ---- 2. DATA / REGIME_META 是合法JSON ----
-    for var_name in ["DATA", "REGIME_META"]:
-        vm = re.search(rf"const {var_name} = (.*?);\n", html, re.S)
-        if not vm:
-            ok = fail(f"找不到 const {var_name} = ... 這一行")
-            continue
+    # ---- 2. REGIME_META 是合法JSON ----
+    vm = re.search(r"const REGIME_META = (.*?);\n", html, re.S)
+    if not vm:
+        ok = fail("找不到 const REGIME_META = ... 這一行")
+    else:
         try:
             parsed = json.loads(vm.group(1))
+            print(f"✓ REGIME_META 是合法JSON（{'null' if parsed is None else '有內容'}）")
         except json.JSONDecodeError as e:
-            ok = fail(f"{var_name} 不是合法JSON：{e}")
-            continue
-        if var_name == "DATA":
-            if not isinstance(parsed, list) or len(parsed) < 100:
-                ok = fail(f"DATA 筆數異常少（{len(parsed) if isinstance(parsed, list) else 'N/A'}筆），可能資料沒注入成功")
-            else:
-                print(f"✓ DATA 是合法JSON，共{len(parsed)}筆")
-        else:
-            print(f"✓ {var_name} 是合法JSON（{'null' if parsed is None else '有內容'}）")
+            ok = fail(f"REGIME_META 不是合法JSON：{e}")
 
-    # ---- 3. 關鍵HTML id都存在 ----
+    # ---- 3. dashboard_data.json 存在、合法、筆數夠多 ----
+    if not DATA_JSON_PATH.exists():
+        ok = fail(f"{DATA_JSON_PATH} 不存在——DATA現在是fetch()這支檔案來的，"
+                  "沒有這個檔案頁面會整個空白")
+    else:
+        try:
+            parsed = json.loads(DATA_JSON_PATH.read_text())
+        except json.JSONDecodeError as e:
+            ok = fail(f"dashboard_data.json 不是合法JSON：{e}")
+            parsed = None
+        if parsed is not None:
+            if not isinstance(parsed, list) or len(parsed) < 100:
+                ok = fail(f"dashboard_data.json 筆數異常少"
+                          f"（{len(parsed) if isinstance(parsed, list) else 'N/A'}筆），"
+                          "可能資料沒寫入成功")
+            else:
+                print(f"✓ dashboard_data.json 是合法JSON，共{len(parsed)}筆")
+
+    # ---- 4. HTML 真的有去 fetch 這個檔案 ----
+    if 'fetch("dashboard_data.json")' not in html:
+        ok = fail("dashboard.html 裡沒有找到 fetch(\"dashboard_data.json\")——"
+                  "模板可能改壞了，頁面會拿不到任何資料")
+    else:
+        print("✓ dashboard.html 有正確 fetch dashboard_data.json")
+
+    # ---- 5. 關鍵HTML id都存在 ----
     missing = [i for i in REQUIRED_IDS if f'id="{i}"' not in html]
     if missing:
         ok = fail(f"HTML缺少關鍵id：{missing}")

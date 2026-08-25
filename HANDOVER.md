@@ -94,10 +94,22 @@ python3 scripts/verify_dashboard.py    # 發布前檢查(JS語法/JSON合法性/
 
 ```
 factor_definitions.json        ★ 唯一事實來源：因子定義、計算參數、資料來源、說明文字
-update_dashboard.py            抓資料 → compute_scores() → 產生 dashboard.html
+factor_defs_schema.py          factor_definitions.json 的 Pydantic 格式驗證(載入前先過這關)
+update_dashboard.py            抓資料 → compute_scores() → 產生 dashboard.html + dashboard_data.json
 transform_modes.py             8 種因子轉換模式，儀表板與篩選平台共用同一份實作
-factor_screening.py            因子篩選平台：五道關卡 + 回測 + 報告產生 + 登記簿
 factor_validation_analysis.py  IC/分桶/統計分布等計算函式庫(factor_screening 的依賴)
+```
+
+**因子篩選平台**(2026-08-25拆成四支，各自單一職責，`factor_screening.py`是薄的
+orchestrator，其餘三支的函式會重新匯入它的命名空間，所以`import factor_screening as fs`
+之後`fs.score_to_position()`這種既有呼叫方式不用改)：
+
+```
+factor_screening.py    orchestrator：run_screening()串起下面三支、登記簿讀寫、對外入口
+screening_gates.py     五道關卡、回測(backtest_strategy)、部位規則(score_to_position)——
+                        純計算，不碰HTML/matplotlib，可獨立測試(tests/test_factor_screening.py)
+screening_charts.py    matplotlib畫圖轉base64
+screening_render.py    HTML字串模板(單一因子報告 + 登記簿一覽頁)
 ```
 
 ### 共用模組
@@ -126,6 +138,8 @@ scripts/run_partb_combination_backtest.py  Part B 組合爆破回測(產出 part
 ### 資料檔
 
 ```
+chart/dashboard_data.json       儀表板歷史資料(2026-08-25起，從dashboard.html內嵌搬出來，
+                                 頁面執行期用fetch()載入，見下方「架構檢討第4項」)
 factor_screening_registry.json  歷史測試登記簿(append-only，23 筆)
 promoted_candidate_factors.json 已升等的候選因子
 event_calendar.json             FOMC/CPI/NFP 事件行事曆
@@ -206,6 +220,20 @@ python3 scripts/check_consistency.py
 ---
 
 ## 7. 前人踩過的坑（照時間倒序）
+
+### 模板註解裡不能出現佔位符的字面字串
+
+`update_dashboard.py` 用 Python 的 `str.replace("__XXX__", ...)` 把資料填進
+`dashboard_template.html`——這是**全域替換**，不是只換第一個。2026-08-25 曾經在模板
+新加的說明註解裡剛好打到 `__NAV_BAR_JS__` 這個字面字串(單純想指稱它，不是要當佔位符)，
+結果被連著替換掉，把整段 `LANG_TOGGLE_JS` 硬塞進一行註解中間，直接把 `<script>` 語法
+弄壞(多宣告了一次 `I18N_DICT`)。
+
+是靠 `scripts/verify_dashboard.py` 的 `node --check` 這一關擋下來的——這正是這支腳本
+存在的目的。**現在**額外加了 `scripts/check_consistency.py` 裡的
+`check_template_placeholder_counts()`：檢查每個佔位符在模板裡剛好出現 1 次，
+多於 1 次就直接 fail，不用等到語法真的爆炸才發現。以後在模板的註解/文案裡要提到
+某個佔位符名稱，寫成不含雙底線相連的形式(例如拆開描述)，避開這個地雷。
 
 ### 資料管線曾經有兩份、互相不同步
 

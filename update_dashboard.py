@@ -564,12 +564,23 @@ def main():
                 rec["raw"][f"{pf['key']}_{aux_key}"] = safe(row[col])
         records.append(rec)
     data_json = json.dumps(records, ensure_ascii=False)
-    # 這裡曾經也把同一份data_json寫進chart/dashboard_v2_data.json,那是舊版
-    # (build_dashboard_v2.py/dashboard_v2.html)的殘留輸出,現在沒有任何被連結、
-    # 可觸及的頁面會讀它——但這個檔案是git追蹤的,每次CI跑完都留下一筆未加入
-    # git add清單的異動,擋住了update-and-deploy.yml裡的`git pull --rebase`步驟
-    # (2026-07-28發生過一次:CI連續跑失敗、正式站卡在舊版本沒更新)。
-    # 移除這行寫入,連同下面git rm掉這個檔案,徹底解決,不要只在CI腳本裡補git add。
+    # 【架構檢討第4項(2026-08-25)】DATA是這個頁面最大宗的資料(每天的完整歷史，
+    # 2429天累積起來佔dashboard.html八成以上的檔案大小)，以前直接內嵌進HTML的
+    # <script>裡；改成寫成獨立的 chart/dashboard_data.json，頁面改用fetch()在
+    # 執行期拿(見 chart/dashboard_template.html)。好處：dashboard.html本身不用
+    # 每天整份重新產生/重新commit，git diff只看得到真的變動的那部分；圖片/瀏覽器
+    # 都能各自快取這支JSON；HTML檔案大小大幅縮小。
+    #
+    # 【注意，別跟下面這段舊教訓搞混】這裡曾經還把同一份data_json寫進
+    # chart/dashboard_v2_data.json，那是舊版(build_dashboard_v2.py/dashboard_v2.html)
+    # 的殘留輸出，現在沒有任何被連結、可觸及的頁面會讀它——但那個檔案是git追蹤的，
+    # 每次CI跑完都留下一筆未加入git add清單的異動，擋住了update-and-deploy.yml裡的
+    # `git pull --rebase`步驟(2026-07-28發生過一次:CI連續跑失敗、正式站卡在舊版本
+    # 沒更新)。那行寫入已經移除、檔案也已經git rm掉了。
+    # 下面這支 chart/dashboard_data.json 不是同一個東西——它是現在正式頁面
+    # 真正會fetch、真正在用的資料，不是殘留輸出，要繼續寫、繼續commit。
+    with open("chart/dashboard_data.json", "w", encoding="utf-8") as f:
+        f.write(data_json)
 
     if regime_meta:
         regime_meta_out = {
@@ -621,14 +632,19 @@ def main():
 
     with open("chart/dashboard_template.html") as f:
         template = f.read()
-    for ph in ["__DATA_JSON__", "__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
+    for ph in ["__REGIME_META_JSON__", "__FACTOR_DEFS_JSON__",
                "__PROMOTED_FACTORS_JSON__", "__EVENT_CALENDAR_JSON__",
                "__NAV_BAR_CSS__", "__NAV_BAR_HTML__", "__NAV_BAR_JS__",
                "__ROOT_COLORS_CSS__", "__CONTENT_MAX_WIDTH__", "__BASE_LINE_HEIGHT__",
                "__H1_SIZE__", "__LEDE_MAX_WIDTH__"]:
         assert ph in template, f"模板缺少 {ph} 佔位符"
+    # __DATA_JSON__ 故意不在上面那份清單裡——DATA 現在是模板自己 fetch()
+    # chart/dashboard_data.json 拿的(見template)，不再走這裡的字串替換。
+    assert "__DATA_JSON__" not in template, (
+        "模板裡還留著 __DATA_JSON__ 佔位符，但這裡已經不會填它了——"
+        "如果模板真的需要它，代表 dashboard_template.html 沒有跟著改成fetch()版本。"
+    )
     out_html = (template
-                .replace("__DATA_JSON__", data_json)
                 .replace("__REGIME_META_JSON__", regime_meta_json)
                 .replace("__FACTOR_DEFS_JSON__", factor_defs_json)
                 .replace("__PROMOTED_FACTORS_JSON__", promoted_factors_json)
