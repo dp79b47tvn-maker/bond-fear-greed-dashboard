@@ -42,6 +42,12 @@ jobs:
       - name: 一致性檢查
         run: python3 scripts/check_consistency.py
 
+      # 核心計算邏輯的單元測試(分數轉換/IC/回測)，純合成資料、不打網路、幾秒跑完。
+      # 見 tests/ 目錄開頭說明——這些函式錯了不會有任何程式錯誤跳出來，只會讓
+      # 儀表板/因子篩選平台的數字悄悄失真，所以要在部署前擋下來。
+      - name: 單元測試
+        run: python3 -m pytest
+
       - name: 重新產生儀表板資料
         run: python3 update_dashboard.py
 
