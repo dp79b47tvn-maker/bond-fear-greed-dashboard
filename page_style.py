@@ -39,6 +39,12 @@ FONT_FAMILY = (
     '"Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 )
 
+# 分頁圖示。檔案是 chart/favicon.svg，而 GitHub Pages 部署的就是 chart/ 這層，
+# 所以所有產出頁面都跟它同一層，用相對路徑就好。SVG 內建 prefers-color-scheme，
+# 深色模式下指針會自己換成淺色。dashboard_template.html 是靜態檔沒辦法 import
+# 這裡，那邊是直接寫同一行 HTML。
+FAVICON_TAG = '<link rel="icon" type="image/svg+xml" href="favicon.svg">'
+
 # 儀表板/手冊/首頁三頁共用同一份色彩變數——這三頁都有深色模式支援，數值取自
 # 原本儀表板的版本(三頁裡最完整的一份)，手冊/首頁原本各自的--accent/--text等
 # 命名全部改叫這份的名稱，不再各自維護一套指向同樣顏色的不同變數名。

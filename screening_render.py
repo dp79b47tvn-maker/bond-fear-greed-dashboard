@@ -385,6 +385,7 @@ def render_screening_report(result):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{page_style.FAVICON_TAG}
 <title>因子篩選：{label}</title>
 <style>{fva.REPORT_CSS}
 {nav_bar.NAV_BAR_CSS}
@@ -711,6 +712,7 @@ def render_registry_index(registry):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{page_style.FAVICON_TAG}
 <title>因子開發與篩選平台 · 債券市場恐懼貪婪</title>
 <style>
   * {{ box-sizing: border-box; }}

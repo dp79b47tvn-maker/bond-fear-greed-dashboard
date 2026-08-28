@@ -29,6 +29,7 @@ link_dashboard = URLS.get("dashboard") or "dashboard.html"
 factor_count = len(DEFS["factors"])
 hub_html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{page_style.FAVICON_TAG}
 <title>債券市場恐懼貪婪 · 專案首頁</title>
 <style>
   {page_style.ROOT_COLORS_CSS}

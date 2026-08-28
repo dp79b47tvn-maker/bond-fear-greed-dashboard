@@ -196,6 +196,7 @@ def main():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{page_style.FAVICON_TAG}
 <title>多因子組合窮舉回測與樣本外穩健性驗證報告（11 因子、2,047 種組合）</title>
 <style>
   {page_style.ROOT_COLORS_CSS}

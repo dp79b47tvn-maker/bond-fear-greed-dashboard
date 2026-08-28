@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="債券市場恐懼貪婪指標">
+  <title>債券市場恐懼貪婪指標</title>
+  <style>
+    .fear { stroke: #2f6b4f; }
+    .mid  { stroke: #6b7280; }
+    .greed{ stroke: #a6362f; }
+    .needle { stroke: #1c1c1a; fill: #1c1c1a; }
+    @media (prefers-color-scheme: dark) {
+      .fear { stroke: #6fa080; }
+      .mid  { stroke: #a6adbc; }
+      .greed{ stroke: #d2726a; }
+      .needle { stroke: #f0efe9; fill: #f0efe9; }
+    }
+  </style>
+  <g fill="none" stroke-width="13">
+    <path class="fear"  d="M 8 44 A 24 24 0 0 1 23.17 21.68"/>
+    <path class="mid"   d="M 23.17 21.68 A 24 24 0 0 1 40.83 21.68"/>
+    <path class="greed" d="M 40.83 21.68 A 24 24 0 0 1 56 44"/>
+  </g>
+  <line class="needle" x1="32" y1="44" x2="41.99" y2="30.25" stroke-width="5.5" stroke-linecap="round"/>
+  <circle class="needle" cx="32" cy="44" r="6" stroke="none"/>
+</svg>
