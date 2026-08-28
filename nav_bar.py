@@ -16,9 +16,12 @@ CSS故意不吃各頁面自己的CSS變數——儀表板的變數命名(--serie
 完全沒有CSS變數、沒有深色模式支援。這裡自己帶一份獨立的淺色/深色配色(取自儀表板既有
 色票)，不管插進哪個頁面都長一樣、都能正常運作，不需要先把所有頁面的變數系統統一。
 
-nav本身固定own max-width、置中、四角全圓角、非sticky(跟著頁面內容捲動，不吸在頂端)——
-故意不吃各頁面`.wrap`/`.viz-root`自己的max-width，不然同一份nav在不同頁面上會看起來
-寬度不一致。
+2026-08-28：改成三段式排版(左logo＋品牌 / 中頁面導覽 / 右設定)，同時把原本的
+width:fit-content 置中膠囊改成 width:100%——三段要分得開就需要寬度。這等於推翻了
+先前「固定own max-width、不吃各頁面容器寬度」的決定：現在nav會跟著所在頁面的容器
+寬度走，所以在儀表板(1400px)跟首頁(1120px)上寬度不同，但各自都跟該頁內容切齊。
+四角全圓角、非sticky(跟著頁面內容捲動、不吸頂)維持不變。
+左側logo直接引用 chart/favicon.svg，產出頁面都在 chart/ 這層，相對路徑就到得了。
 
 用法：
     from nav_bar import render_nav_bar, NAV_BAR_CSS
@@ -35,32 +38,71 @@ PAGES = [
 ]
 
 NAV_BAR_CSS = """
+/* 三段式：左logo / 中導覽 / 右設定。三段要分得開就需要寬度，所以這裡改成
+   width:100%(吃各頁面容器的寬度)，不再是先前的 width:fit-content 置中膠囊。
+   代價是不同頁面的容器寬度不同，nav看起來也會跟著不同寬——但它會跟該頁內容
+   對齊，視覺上比「每頁一樣寬但都沒對齊」好。 */
+/* 長方形、鎖在頂端：position:fixed，捲頁完全不會跑掉。
+
+   為什麼不是 sticky：sticky 只能在「自己的父容器範圍內」吸附，而儀表板的 nav
+   包在 .nav-wrap 裡、那個 div 只有 90px 高——捲過去之後 nav 就跟著父容器一起
+   離開畫面了(實測捲到 900px 時 nav 已經在 -870px)。fixed 是相對視窗定位，沒有
+   這個限制。
+
+   fixed 用 left:0/right:0 撐滿，不用 100vw——vw 會把捲軸寬度算進去，導致多出
+   一條水平捲軸(這個坑先前用 -50vw 做滿版背景時踩過)。
+
+   fixed 會脫離文件流不佔位，所以下面補 body padding-top 把高度還回去，不然
+   內容會被蓋住。注意：任何祖先只要有 transform 就會讓 fixed 改成相對它定位，
+   所以 dashboard_template.html 的 .nav-wrap 已經拿掉 animate-in(那個動畫的
+   fill-mode:both 會留下 transform:translateY(0))。 */
+body { padding-top: 53px; }
 .site-topnav {
-  display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; align-items: center;
-  width: fit-content; margin: 0 auto 28px; padding: 6px 10px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #dfe2e8; box-shadow: 0 2px 8px rgba(22,26,35,0.05), 0 1px 2px rgba(22,26,35,0.03);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  margin: 0; padding: 8px 26px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: none; border-bottom: 1px solid #dfe2e8; border-radius: 0; box-shadow: none;
 }
-.site-topnav a, .site-topnav span.active {
+.nav-brand {
+  display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0;
+  text-decoration: none; padding: 4px 10px 4px 6px; border-radius: 999px;
+  transition: background-color 0.22s ease;
+}
+.nav-brand:hover { background: rgba(30,58,95,0.06); }
+.nav-logo { width: 27px; height: 27px; display: block; flex-shrink: 0; }
+.nav-brand-text {
+  font-size: 13.5px; font-weight: 700; color: #1e3a5f;
+  white-space: nowrap; letter-spacing: -0.01em;
+}
+/* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。
+   只用 justify-content:space-between 的話，中段位置會被左右兩側的實際寬度
+   推著跑——左邊品牌比右邊設定寬，中段就會偏右(實測偏了72px)。 */
+.nav-side { flex: 1 1 0; display: flex; align-items: center; min-width: 0; }
+.nav-side-end { justify-content: flex-end; }
+.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.nav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.nav-links a, .nav-links span.active {
   color: #4a5568; text-decoration: none; font-weight: 600; font-size: 13px;
-  padding: 7px 18px; border-radius: 999px; white-space: nowrap;
+  padding: 7px 16px; border-radius: 999px; white-space: nowrap;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex; align-items: center; justify-content: center;
 }
-.site-topnav a:hover {
+.nav-links a:hover {
   background: rgba(30,58,95,0.08); color: #1e3a5f;
   transform: translateY(-1px) scale(1.02);
 }
-.site-topnav a:active { transform: scale(0.97); }
-.site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); font-weight: 700; }
+.nav-links a:active { transform: scale(0.97); }
+.nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); font-weight: 700; }
 
 .lang-toggle-btn {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--surface-2, #f8f9fb); border: 1px solid var(--border, #dfe2e8);
   color: var(--text-secondary, #4a5568); font-size: 12px; font-weight: 700;
   padding: 5px 12px; border-radius: 999px; cursor: pointer;
-  margin-left: 6px; transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
 .lang-toggle-btn:hover {
@@ -70,25 +112,43 @@ NAV_BAR_CSS = """
 .lang-toggle-btn:active { transform: scale(0.96); }
 .lang-icon { font-size: 12px; }
 
+/* 窄螢幕：三段擠一行放不下(「因子開發與篩選平台」9個字就吃掉整排)，
+   改成兩行——第一行左logo右設定，導覽整條掉到第二行置中。
+   單純縮字級是不夠的，實測375px下會直接溢出被設定鈕蓋住。 */
+@media (max-width: 780px) {
+  body { padding-top: 95px; }  /* 兩行版實測 94px 高，多留 1px */
+  .site-topnav { flex-wrap: wrap; row-gap: 7px; gap: 8px; padding: 9px 14px; }
+  .nav-brand-text { display: none; }
+  .nav-side { flex: 0 0 auto; }
+  .nav-side-end { margin-left: auto; }
+  .nav-links { order: 3; flex-basis: 100%; min-width: 0; }
+  .nav-links a, .nav-links span.active { padding: 6px 11px; font-size: 12.5px; }
+}
+
 @media (prefers-color-scheme: dark) {
-  .site-topnav { background: rgba(23, 27, 36, 0.92); border-color: #2c313d; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
-  .site-topnav a, .site-topnav span.active { color: #b8c0cc; }
-  .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-  .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+  .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
+  .nav-links a, .nav-links span.active { color: #b8c0cc; }
+  .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
+  .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+  .nav-brand-text { color: #e4e8ee; }
+  .nav-brand:hover { background: rgba(126,163,207,0.10); }
   .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
   .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
 }
-:root[data-theme="dark"] .site-topnav { background: rgba(23, 27, 36, 0.92); border-color: #2c313d; box-shadow: 0 4px 16px rgba(0,0,0,0.30); }
-:root[data-theme="dark"] .site-topnav a, :root[data-theme="dark"] .site-topnav span.active { color: #b8c0cc; }
-:root[data-theme="dark"] .site-topnav a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="dark"] .site-topnav span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+:root[data-theme="dark"] .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
+:root[data-theme="dark"] .nav-links a, :root[data-theme="dark"] .nav-links span.active { color: #b8c0cc; }
+:root[data-theme="dark"] .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
+:root[data-theme="dark"] .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
+:root[data-theme="dark"] .nav-brand-text { color: #e4e8ee; }
+:root[data-theme="dark"] .nav-brand:hover { background: rgba(126,163,207,0.10); }
 :root[data-theme="dark"] .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
 :root[data-theme="dark"] .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
 
-:root[data-theme="light"] .site-topnav { background: rgba(255, 255, 255, 0.92); border-color: #dfe2e8; box-shadow: 0 2px 8px rgba(22,26,35,0.05); }
-:root[data-theme="light"] .site-topnav a, :root[data-theme="light"] .site-topnav span.active { color: #4a5568; }
-:root[data-theme="light"] .site-topnav a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="light"] .site-topnav span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); }
+:root[data-theme="light"] .site-topnav { background: rgba(255, 255, 255, 0.88); border-bottom-color: #dfe2e8; }
+:root[data-theme="light"] .nav-links a, :root[data-theme="light"] .nav-links span.active { color: #4a5568; }
+:root[data-theme="light"] .nav-links a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; transform: translateY(-1px) scale(1.02); }
+:root[data-theme="light"] .nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); }
+:root[data-theme="light"] .nav-brand-text { color: #1e3a5f; }
 :root[data-theme="light"] .lang-toggle-btn { background: #f8f9fb; border-color: #dfe2e8; color: #4a5568; }
 :root[data-theme="light"] .lang-toggle-btn:hover { background: #ffffff; color: #1e3a5f; border-color: #a7adb9; }
 """
@@ -96,6 +156,7 @@ NAV_BAR_CSS = """
 LANG_TOGGLE_JS = """
 const I18N_DICT = {
   zh: {
+    nav_brand: "債券恐懼貪婪",
     nav_hub: "首頁",
     nav_dashboard: "儀表板",
     nav_screening: "因子開發與篩選平台",
@@ -216,6 +277,7 @@ const I18N_DICT = {
     demote_btn: "退回"
   },
   en: {
+    nav_brand: "Bond Fear & Greed",
     nav_hub: "Home",
     nav_dashboard: "Dashboard",
     nav_screening: "Factor Platform",
@@ -391,22 +453,38 @@ def _load_link_overrides(base_dir="."):
 
 
 def render_nav_bar(active_key, base_dir="."):
-    """active_key: 'hub' | 'dashboard' | 'report' | 'manual' | 'screening'"""
+    """active_key: 'hub' | 'dashboard' | 'report' | 'manual' | 'screening'
+
+    三段式排版：左邊品牌(logo+名稱，點了回首頁)、中間頁面導覽、右邊設定區。
+    logo 直接用 chart/favicon.svg——產出頁面都在 chart/ 這層，相對路徑就到得了，
+    不需要另外再放一份。
+    """
     links = _load_link_overrides(base_dir)
+
     items = []
     for key, label, _ in PAGES:
         if key == active_key:
             items.append(f'<span class="active" aria-current="page" data-i18n="nav_{key}">{label}</span>')
         else:
             items.append(f'<a href="{links[key]}" data-i18n="nav_{key}">{label}</a>')
-    
-    # 加入中英切換按鈕
+
+    brand = (
+        f'<a class="nav-brand" href="{links["hub"]}">'
+        '<img class="nav-logo" src="favicon.svg" alt="" aria-hidden="true">'
+        '<span class="nav-brand-text" data-i18n="nav_brand">債券恐懼貪婪</span>'
+        '</a>'
+    )
     lang_btn = (
         '<button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()">'
         '<span class="lang-icon">🌐</span>'
         '<span class="lang-text" id="langToggleText">EN</span>'
         '</button>'
     )
-    items.append(lang_btn)
-    return f'<nav class="site-topnav">{"".join(items)}</nav>'
 
+    return (
+        '<nav class="site-topnav">'
+        f'<div class="nav-side">{brand}</div>'
+        f'<div class="nav-links">{"".join(items)}</div>'
+        f'<div class="nav-side nav-side-end"><div class="nav-actions">{lang_btn}</div></div>'
+        '</nav>'
+    )
