@@ -169,11 +169,11 @@
    內容會被蓋住。注意：任何祖先只要有 transform 就會讓 fixed 改成相對它定位，
    所以 dashboard_template.html 的 .nav-wrap 已經拿掉 animate-in(那個動畫的
    fill-mode:both 會留下 transform:translateY(0))。 */
-body { padding-top: 71px; }
+body { padding-top: 79px; }
 .site-topnav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  margin: 0; padding: 0 32px; min-height: 70px;
+  margin: 0; padding: 0 34px; min-height: 78px;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   border: none; border-bottom: 1px solid #dfe2e8; border-radius: 0; box-shadow: none;
@@ -184,9 +184,9 @@ body { padding-top: 71px; }
   transition: background-color 0.22s ease;
 }
 .nav-brand:hover { background: rgba(30,58,95,0.06); }
-.nav-logo { width: 32px; height: 32px; display: block; flex-shrink: 0; }
+.nav-logo { width: 34px; height: 34px; display: block; flex-shrink: 0; }
 .nav-brand-text {
-  font-size: 15px; font-weight: 700; color: #1e3a5f;
+  font-size: 17px; font-weight: 700; color: #1e3a5f;
   white-space: nowrap; letter-spacing: -0.01em;
 }
 /* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。
@@ -198,8 +198,8 @@ body { padding-top: 71px; }
 .nav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .nav-links a, .nav-links span.active {
-  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 14.5px;
-  padding: 9px 18px; border-radius: 999px; white-space: nowrap;
+  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 16px;
+  padding: 10px 19px; border-radius: 999px; white-space: nowrap;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex; align-items: center; justify-content: center;
 }
@@ -213,8 +213,8 @@ body { padding-top: 71px; }
 .lang-toggle-btn {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--surface-2, #f8f9fb); border: 1px solid var(--border, #dfe2e8);
-  color: var(--text-secondary, #4a5568); font-size: 13px; font-weight: 700;
-  padding: 7px 15px; border-radius: 999px; cursor: pointer;
+  color: var(--text-secondary, #4a5568); font-size: 14px; font-weight: 700;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
@@ -223,19 +223,19 @@ body { padding-top: 71px; }
   transform: translateY(-1px) scale(1.03); box-shadow: 0 2px 6px rgba(22,26,35,0.06);
 }
 .lang-toggle-btn:active { transform: scale(0.96); }
-.lang-icon { font-size: 13px; }
+.lang-icon { font-size: 14px; }
 
 /* 窄螢幕：三段擠一行放不下(「因子開發與篩選平台」9個字就吃掉整排)，
    改成兩行——第一行左logo右設定，導覽整條掉到第二行置中。
    單純縮字級是不夠的，實測375px下會直接溢出被設定鈕蓋住。 */
 @media (max-width: 780px) {
-  body { padding-top: 112px; }  /* 兩行版放大後的高度，實測後校正 */
+  body { padding-top: 120px; }  /* 兩行版實測 118px，多留 2px */
   .site-topnav { flex-wrap: wrap; row-gap: 8px; gap: 8px; padding: 11px 16px; min-height: 0; }
   .nav-brand-text { display: none; }
   .nav-side { flex: 0 0 auto; }
   .nav-side-end { margin-left: auto; }
   .nav-links { order: 3; flex-basis: 100%; min-width: 0; }
-  .nav-links a, .nav-links span.active { padding: 7px 13px; font-size: 13.5px; }
+  .nav-links a, .nav-links span.active { padding: 8px 14px; font-size: 14.5px; }
 }
 
 @media (prefers-color-scheme: dark) {
