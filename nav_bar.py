@@ -173,7 +173,7 @@ const I18N_DICT = {
     dash_method_th_source: "來源",
     dash_method_th_history: "可回溯到",
     dash_method_th_desc: "說明",
-    dash_method_no_future: "<b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。",
+    dash_method_no_future: "<b>禁止引用未來資料：</b>所有滾動計算（移動平均、區間報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。",
     dash_method_limits: "<b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。",
     dash_custom_weight_title: "自訂權重",
     dash_custom_weight_tag: "研究用",
@@ -189,7 +189,7 @@ const I18N_DICT = {
     dash_legend_custom: "自訂組合分數",
     dash_components_title: "分項拆解",
     dash_components_sub: "· 每項各自的計算方式與歷史時間軸",
-    dash_footnote: "資料來源：Yahoo Finance（ZN=F、HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
+    dash_footnote: "資料來源：Yahoo Finance（HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "拖曳時間軸選日期",
@@ -217,13 +217,13 @@ const I18N_DICT = {
     tier_extreme_greed: "極度貪婪",
     
     // Event Rail
-    event_rail_title: "📅 總經事件行事曆",
+    event_rail_title: "總經事件行事曆",
     event_rail_hint: "FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。",
     tab_all: "全部",
     
     // Hub Page
     hub_title: "債券市場恐懼貪婪 · 專案首頁",
-    hub_lede: "美債市場指標彙整成每日恐懼貪婪分數，配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。",
+    hub_lede: "美債市場指標彙整成每日恐懼貪婪分數，配套因子開發與篩選平台可持續擴充。每項分數的算法與資料來源都公開在儀表板的各分項說明裡，可自行驗算。",
     hub_intro_title: "這是什麼",
     hub_intro_p1: "「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這2項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。",
     hub_intro_p2: "每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。",
@@ -294,7 +294,7 @@ const I18N_DICT = {
     dash_method_th_source: "Source",
     dash_method_th_history: "History",
     dash_method_th_desc: "Description",
-    dash_method_no_future: "<b>No Look-Ahead Bias:</b> All rolling calculations (125D MA, 40D Return, 5Y Percentile) strictly rely on historical data up to today.",
+    dash_method_no_future: "<b>No Look-Ahead Bias:</b> All rolling calculations (moving averages, period returns, 5Y percentile) strictly rely on historical data up to today.",
     dash_method_limits: "<b>Limitations:</b> This is a relative 5-year positioning index, not a predictive model. Extreme historical events rolling out after 5 years will shift percentile scores.",
     dash_custom_weight_title: "Custom Weights",
     dash_custom_weight_tag: "Research Mode",
@@ -310,7 +310,7 @@ const I18N_DICT = {
     dash_legend_custom: "Custom Weight Composite Score",
     dash_components_title: "Factor Component Breakdown",
     dash_components_sub: "· Detailed calculation methodology & individual timeline charts",
-    dash_footnote: "Data sources: Yahoo Finance (ZN=F, HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
+    dash_footnote: "Data sources: Yahoo Finance (HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "Drag timeline to select date",
@@ -338,7 +338,7 @@ const I18N_DICT = {
     tier_extreme_greed: "Extreme Greed",
     
     // Event Rail
-    event_rail_title: "📅 Macro Event Calendar",
+    event_rail_title: "Macro Event Calendar",
     event_rail_hint: "FOMC, CPI, NFP & major release dates. Click to sync timeline chart.",
     tab_all: "ALL",
     

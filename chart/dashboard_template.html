@@ -380,7 +380,7 @@
         <tr><td class="mono">GC_futures</td><td class="mono">GC=F</td><td>Yahoo Finance</td><td>2000-09</td><td>金期貨收盤價，可與CME官網核對。</td></tr>
       </table>
       每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
-      <span data-i18n="dash_method_no_future" data-i18n-html><b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。</span><br>
+      <span data-i18n="dash_method_no_future" data-i18n-html><b>禁止引用未來資料：</b>所有滾動計算（移動平均、區間報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。</span><br>
       <span data-i18n="dash_method_limits" data-i18n-html><b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。</span>
       </div>
     </div>
@@ -478,18 +478,15 @@
   <div class="card" id="componentCards"></div>
 
   <p class="foot-note">
-    資料來源：Yahoo Finance（ZN=F、HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；
-    百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年（或滿125/40交易日）窗口，且所有計算僅使用當天以前的歷史資料，不引用未來資料。
-    Excel 資料輸入：把 ZN_futures、UST_10Yr 的歷史數據填入 <b>data_input.xlsx</b>（DataInput 分頁，你填的值優先於自動抓取；
-    分頁裡另外還有 NQ_futures/TLT/SHY/MOVE_index/UST_2Yr/put_call_ratio 等舊版七項分數留下的欄位，目前計算不會讀取），
-    執行 <b>python3 update_dashboard.py</b> 即自動重算並更新本頁。
+    資料來源：Yahoo Finance（HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；
+    所有計算僅使用當天以前的歷史資料，不引用未來資料。
   </p>
 </div>
 
 <aside class="event-rail animate-in animate-delay-2" id="eventRail">
   <div class="event-rail-header">
     <h3>
-      <span>📅 總經事件行事曆</span>
+      <span>總經事件行事曆</span>
       <span class="event-rail-count" id="eventRailCount">0 筆</span>
     </h3>
     <p class="event-rail-hint">FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。</p>
@@ -1538,9 +1535,7 @@ COMPONENTS.forEach(comp => {
       <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
     </div>` : `
     <div class="placeholder-box">
-      尚無歷史資料 — 等待 Put/Call 數據輸入<br>
-      打開 <b>data_input.xlsx</b>（DataInput 分頁），把歷史資料填入 Date 和 put_call_ratio 兩欄，<br>
-      存檔後執行 <b>python3 update_dashboard.py</b>，此分項會自動納入綜合分數。
+      這個分項目前沒有歷史資料
     </div>`}
     ${dataAvailable && comp.supplementary ? `<div class="comp-supplementary"></div>` : ""}
     <div class="logic-btn-row">

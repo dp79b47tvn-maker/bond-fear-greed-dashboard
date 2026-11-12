@@ -74,7 +74,7 @@ hub_html = f"""<meta charset="utf-8">
   {nav_bar.render_nav_bar("hub")}
   <div class="kicker animate-in">BOND MARKET FEAR &amp; GREED</div>
   <h1 class="animate-in animate-delay-1" data-i18n="hub_title">債券市場恐懼貪婪 · 專案首頁</h1>
-  <p class="lede animate-in animate-delay-1" data-i18n="hub_lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。</p>
+  <p class="lede animate-in animate-delay-1" data-i18n="hub_lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。每項分數的算法與資料來源都公開在儀表板的各分項說明裡，可自行驗算。</p>
   <section class="intro animate-in animate-delay-2">
     <h2 data-i18n="hub_intro_title">這是什麼</h2>
     <p data-i18n="hub_intro_p1" data-i18n-html>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這{factor_count}項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。</p>
@@ -93,7 +93,7 @@ hub_html = f"""<meta charset="utf-8">
       <p data-i18n="hub_platform_desc">整合線上回測與歷史測試登記，快速驗證新因子的增量價值與可行性，也能隨選產生因子相關係數矩陣。</p>
     </a>
   </div>
-  <p class="foot">更新方式:<span class="mono">python3 update_dashboard.py</span>(儀表板) · <span class="mono">python3 generate_hub.py</span>(本頁)。<br>生成日期 {date.today().isoformat()}。</p>
+  <p class="foot">生成日期 {date.today().isoformat()}。</p>
 </div>
 <script>
   {nav_bar.LANG_TOGGLE_JS}
