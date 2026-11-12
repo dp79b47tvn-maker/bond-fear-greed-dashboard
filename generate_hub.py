@@ -27,73 +27,143 @@ with open(f"{BASE}/artifact_urls.json", encoding="utf-8") as f:
 link_dashboard = URLS.get("dashboard") or "dashboard.html"
 
 factor_count = len(DEFS["factors"])
+
+# ---- 今日分數：讀儀表板已產生的 dashboard_data.json(CI 先跑 update_dashboard.py 再跑這支)。
+# 首頁第一屏直接給訪客看今天的分數跟近一年走勢，而不是只有文字介紹。檔案不存在就整段不顯示。
+TIER_KEYS = {"極度恐懼": ("tier_extreme_fear", "tier-extreme-fear"), "恐懼": ("tier_fear", "tier-fear"),
+             "中性": ("tier_neutral", "tier-neutral"), "貪婪": ("tier_greed", "tier-greed"),
+             "極度貪婪": ("tier_extreme_greed", "tier-extreme-greed")}
+
+
+def _tier_of(score):
+    if score < 25:
+        return "極度恐懼"
+    if score < 45:
+        return "恐懼"
+    if score < 56:
+        return "中性"
+    if score < 76:
+        return "貪婪"
+    return "極度貪婪"
+
+
+def _today_block():
+    try:
+        with open(f"{BASE}/chart/dashboard_data.json", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return ""
+    pts = [d for d in data if d.get("score") is not None]
+    if not pts:
+        return ""
+    last = pts[-1]
+    tier = last.get("label") or _tier_of(last["score"])
+    i18n_key, tier_var = TIER_KEYS.get(tier, ("tier_neutral", "tier-neutral"))
+    # 近一年(約 252 個交易日)的分數走勢小圖；y 軸固定 0–100，畫 50 分中線。
+    recent = pts[-252:]
+    W, H = 320, 72
+    n = len(recent)
+    xs = [i * W / max(1, n - 1) for i in range(n)]
+    ys = [H - d["score"] / 100 * H for d in recent]
+    path = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    first_date, last_date = recent[0]["date"], recent[-1]["date"]
+    return f"""
+  <section class="today" aria-labelledby="todayTitle">
+    <div class="today-score">
+      <h2 id="todayTitle" class="today-label" data-i18n="dash_latest_label">最新收盤日綜合分數</h2>
+      <div class="today-num" style="color:var(--{tier_var})">{last["score"]:.1f}</div>
+      <div class="today-tier" style="color:var(--{tier_var})" data-i18n="{i18n_key}">{tier}</div>
+      <div class="today-date">{last["date"]}</div>
+    </div>
+    <figure class="today-spark">
+      <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" role="img" aria-label="近一年綜合分數走勢，{first_date} 到 {last_date}">
+        <line x1="0" x2="{W}" y1="{H / 2}" y2="{H / 2}" class="spark-mid"/>
+        <path d="{path}" class="spark-line" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <figcaption><span>{first_date}</span><span data-i18n="hub_spark_caption">0–100，虛線為 50 分</span><span>{last_date}</span></figcaption>
+    </figure>
+    <a class="today-link" href="{link_dashboard}"><span data-i18n="hub_live_title">即時儀表板</span> →</a>
+  </section>"""
+
+
 hub_html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {page_style.FAVICON_TAG}
-<title>債券市場恐懼貪婪 · 專案首頁</title>
+<title>債券市場恐懼貪婪指數</title>
 <style>
   {page_style.ROOT_COLORS_CSS}
   {nav_bar.NAV_BAR_CSS}
   * {{ box-sizing:border-box; }}
-  body {{ margin:0; background:var(--page); color:var(--text-primary); line-height:{page_style.BASE_LINE_HEIGHT};
-    font-family:{page_style.FONT_FAMILY}; }}
-  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:44px 24px 70px; }}
-  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:.12em; color:var(--series-2); font-weight:700; margin-bottom:10px; }}
-  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 10px; letter-spacing:-.02em; }}
-  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 30px; }}
-  .intro {{ margin-bottom:36px; padding-bottom:32px; border-bottom:1px solid var(--border); }}
-  .intro h2 {{ font-size:15px; font-weight:700; margin:0 0 12px; color:var(--text-primary); }}
-  .intro p {{ font-size:14px; color:var(--text-secondary); line-height:1.8; margin:0 0 12px; }}
+  body {{ margin:0; line-height:{page_style.BASE_LINE_HEIGHT}; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:36px 24px 64px; }}
+  .site-topnav {{ max-width:{page_style.CONTENT_MAX_WIDTH}; }}
+  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 8px; letter-spacing:-.015em; line-height:1.25; }}
+  .lede {{ color:var(--text-secondary); max-width:{page_style.LEDE_MAX_WIDTH}; margin:0 0 28px; font-size:16px; }}
+
+  .today {{ display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; gap:8px 32px; align-items:end;
+    padding:20px 0 18px; border-top:2px solid var(--text-primary); border-bottom:1px solid var(--rule); margin-bottom:36px; }}
+  .today-score {{ grid-row:1 / span 2; }}
+  .today-label {{ font-size:13px; font-weight:600; color:var(--text-secondary); margin:0 0 2px; }}
+  .today-num {{ font-size:56px; font-weight:700; line-height:1; letter-spacing:-.02em; }}
+  .today-tier {{ font-size:17px; font-weight:700; margin-top:4px; }}
+  .today-date {{ font-size:12.5px; color:var(--text-muted); margin-top:2px; }}
+  .today-spark {{ margin:0; min-width:0; }}
+  .today-spark svg {{ width:100%; height:72px; display:block; overflow:visible; }}
+  .spark-line {{ fill:none; stroke:var(--series-1); stroke-width:1.6; stroke-linejoin:round; }}
+  .spark-mid {{ stroke:var(--axis); stroke-width:1; stroke-dasharray:3 3; vector-effect:non-scaling-stroke; }}
+  .today-spark figcaption {{ display:flex; justify-content:space-between; gap:8px; font-size:11.5px; color:var(--text-muted); margin-top:4px; }}
+  .today-link {{ justify-self:end; font-size:14px; font-weight:700; text-decoration:none; }}
+  .today-link:hover {{ text-decoration:underline; text-underline-offset:3px; }}
+
+  .intro {{ margin-bottom:32px; max-width:{page_style.LEDE_MAX_WIDTH}; }}
+  .intro h2 {{ font-size:19px; font-weight:700; margin:0 0 10px; }}
+  .intro p {{ font-size:15px; color:var(--text-secondary); line-height:1.8; margin:0 0 12px; }}
   .intro p:last-child {{ margin-bottom:0; }}
   .intro b {{ color:var(--text-primary); }}
-  .cards {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; }}
-  a.card {{ display:block; background:var(--surface-1); border:1px solid var(--border); border-radius:16px;
-    padding:24px 24px 20px; text-decoration:none; color:var(--text-primary); box-shadow:var(--shadow);
-    transition:transform .25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .25s ease, border-color .25s ease; }}
-  a.card:hover {{ transform:translateY(-3px) scale(1.005); box-shadow:var(--shadow-hover); border-color:var(--series-1); }}
-  a.card:active {{ transform:scale(0.98); }}
-  .card .ck {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:10.5px; letter-spacing:.1em; color:var(--series-1); font-weight:700; }}
-  .card h2 {{ font-size:18px; margin:6px 0 8px; }}
-  .card p {{ font-size:13px; color:var(--text-secondary); margin:0; }}
-  .foot {{ font-size:12px; color:var(--text-muted); margin-top:34px; line-height:1.7; }}
-  .mono {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; }}
 
-  /* 區塊漸進式入場動畫 */
-  @keyframes fadeUp {{
-    from {{ opacity: 0; transform: translateY(12px); }}
-    to   {{ opacity: 1; transform: translateY(0); }}
-  }}
-  .animate-in {{ animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }}
-  .animate-delay-1 {{ animation-delay: 0.08s; }}
-  .animate-delay-2 {{ animation-delay: 0.16s; }}
-  @media (prefers-reduced-motion: reduce) {{
-    * {{ transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }}
+  .entries {{ display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }}
+  a.entry {{ display:block; padding:18px 20px 18px 0; text-decoration:none; color:var(--text-primary); }}
+  a.entry + a.entry {{ padding-left:20px; border-left:1px solid var(--rule); }}
+  a.entry h2 {{ font-size:18px; margin:0 0 6px; color:var(--accent); }}
+  a.entry h2::after {{ content:" →"; }}
+  a.entry p {{ font-size:14px; color:var(--text-secondary); margin:0; }}
+  a.entry:hover h2 {{ text-decoration:underline; text-underline-offset:3px; }}
+  .foot {{ font-size:12.5px; color:var(--text-muted); margin-top:28px; }}
+
+  @media (max-width: 640px) {{
+    .wrap {{ padding:24px 16px 48px; }}
+    h1 {{ font-size:25px; }}
+    .today {{ grid-template-columns:1fr; }}
+    .today-score {{ grid-row:auto; }}
+    .today-num {{ font-size:48px; }}
+    .today-link {{ justify-self:start; }}
+    .entries {{ grid-template-columns:1fr; }}
+    a.entry {{ padding:16px 0; }}
+    a.entry + a.entry {{ padding-left:0; border-left:none; border-top:1px solid var(--rule); }}
   }}
 </style>
+{nav_bar.render_nav_bar("hub")}
 <div class="wrap">
-  {nav_bar.render_nav_bar("hub")}
-  <div class="kicker animate-in">BOND MARKET FEAR &amp; GREED</div>
-  <h1 class="animate-in animate-delay-1" data-i18n="hub_title">債券市場恐懼貪婪 · 專案首頁</h1>
-  <p class="lede animate-in animate-delay-1" data-i18n="hub_lede">{factor_count}項美債市場指標彙整成每日恐懼貪婪分數,配套因子開發與篩選平台可持續擴充。每項分數的算法與資料來源都公開在儀表板的各分項說明裡，可自行驗算。</p>
-  <section class="intro animate-in animate-delay-2">
+  <h1 data-i18n="hub_title">債券市場恐懼貪婪指數</h1>
+  <p class="lede" data-i18n="hub_lede">把美國公債市場的指標換算成每天 0 到 100 的恐懼貪婪分數，每個交易日收盤後更新。公式跟資料來源都寫在儀表板上，可以自己驗算。</p>
+  {_today_block()}
+  <section class="intro">
     <h2 data-i18n="hub_intro_title">這是什麼</h2>
-    <p data-i18n="hub_intro_p1" data-i18n-html>「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這{factor_count}項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。</p>
-    <p data-i18n="hub_intro_p2" data-i18n-html>每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。</p>
-    <p data-i18n="hub_intro_p3" data-i18n-html><b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。</p>
+    <p data-i18n="hub_intro_p1" data-i18n-html>恐懼貪婪指數的概念來自 CNN 的股市版：用一組市場指標算出 0 到 100 的分數。分數越低，市場越偏向避險；越高，越願意承擔風險。這裡把同一套做法用在<b>美國公債市場</b>，目前採用殖利率動能跟銅金比，每個交易日收盤後重算。</p>
+    <p data-i18n="hub_intro_p2" data-i18n-html>每項指標先換算成它在過去 5 年裡的百分位（0 到 100），再取平均。分數說的是跟近 5 年比，現在的情緒偏向哪一端。<b>它不是預測模型，也不是投資建議。</b></p>
+    <p data-i18n="hub_intro_p3" data-i18n-html>想看今天的分數跟歷史走勢，到「即時儀表板」。想測試某個新指標加進來對綜合分數有沒有幫助，到「因子開發與篩選平台」。</p>
   </section>
-  <div class="cards animate-in animate-delay-2">
-    <a class="card" href="{link_dashboard}">
-      <div class="ck">LIVE DASHBOARD</div>
+  <nav class="entries" aria-label="主要頁面">
+    <a class="entry" href="{link_dashboard}">
       <h2 data-i18n="hub_live_title">即時儀表板</h2>
-      <p data-i18n="hub_live_desc">今日綜合分數與{factor_count}項因子走勢,互動時間軸,每日收盤後更新。</p>
+      <p data-i18n="hub_live_desc">今天的綜合分數、各因子走勢跟可以拖曳的時間軸，每個交易日收盤後更新。</p>
     </a>
-    <a class="card" href="screening_index.html">
-      <div class="ck">FACTOR DISCOVERY &amp; SCREENING</div>
+    <a class="entry" href="screening_index.html">
       <h2 data-i18n="hub_platform_title">因子開發與篩選平台</h2>
-      <p data-i18n="hub_platform_desc">整合線上回測與歷史測試登記，快速驗證新因子的增量價值與可行性，也能隨選產生因子相關係數矩陣。</p>
+      <p data-i18n="hub_platform_desc">輸入新因子跑關卡檢驗跟回測，每次結果都留在登記簿；也可以產生因子之間的相關係數矩陣。</p>
     </a>
-  </div>
-  <p class="foot">生成日期 {date.today().isoformat()}。</p>
+  </nav>
+  <p class="foot">頁面更新於 {date.today().isoformat()}</p>
 </div>
 <script>
   {nav_bar.LANG_TOGGLE_JS}

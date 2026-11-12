@@ -1,91 +1,163 @@
 # -*- coding: utf-8 -*-
 """
-五個對外頁面(首頁/儀表板/驗證報告/定義手冊/因子篩選平台)共用的排版基準數值。
+三個對外頁面(首頁/儀表板/因子篩選平台，含各因子報告頁)共用的設計基準：字型、色彩、
+間距與字級。各頁的選擇器名稱不用一致(DOM 結構本來就不同)，但同一個概念一律用這裡的
+同一個值，不在各頁寫死 hex。
 
-背景：這五個頁面各自獨立寫了一份<style>，同一個概念(內容欄寬度、標題字級、
-本文行高、說明段落的可讀寬度)在五頁上長期各自漂移成五種不同數字，切頁面時
-畫面明顯不連貫；顏色更誇張——儀表板/手冊/首頁三頁其實是同一套品牌色，卻各自
-取了三種不同的CSS變數名稱(--series-1 vs --accent、--text-primary vs --text)。
+2026-11-12 視覺改版：路線是業界標準的金融資料工具(標竿 FRED、Koyfin、CNN Fear & Greed)。
+白底、細線分區、不用卡片陰影；字型自架 Public Sans(美國聯邦網站設計系統 USWDS 的標準字，
+數字等寬且齊高)＋Noto Sans TC 子集。設計紀錄見 DESIGN.md。
 
-這支模組不是要五頁共用同一份CSS選擇器——各頁DOM結構本來就不同，選擇器名稱
-不用強求一致。它解決的是「同一個概念要用同一個數字」，比照nav_bar.py已經
-驗證過的做法：色彩變數(ROOT_COLORS_CSS)是真的共用同一份定義(有dark mode的
-儀表板/手冊/首頁三頁一起用)；間距/字級/行高這些純量值，用同一個常數在四支
-產生腳本裡各自的CSS規則中插入，維持各頁選擇器名稱不變、只統一數字。
-
-範圍刻意限定：這次不幫驗證報告(factor_validation_analysis.py)、因子篩選平台
-(factor_screening.py)補上深色模式——它們目前完全沒有(純hex、無CSS變數)，
-維持現狀，這次只統一它們在亮色模式下的間距/字級/行高數字。
-
-依可讀性準則(每行65-75字元、行高1.5-1.75)校準的四個基準：
+色彩規則：
+- 台灣慣例：紅＝貪婪、綠＝恐懼。--tier-* 依「意義」命名，不依色相。
+- 紅綠色盲看不出紅綠差異，兩端用明度拉開(淺色模式：極度恐懼最深、極度貪婪較亮；
+  深色模式反過來)，而且每個分數旁邊都保留文字標籤。
+- --tier-* 會直接當文字顏色用(分數、分級標籤)，所以每一級都要對底色有 4.5:1 以上的對比。
+- 參考線(殖利率、均線、高低點)用 --series-*，不用 tier 色，因為它們本身不代表恐懼或貪婪。
 """
 
-# 內容欄寬度：儀表板原1180px / 手冊原1080px / 首頁原880px / 驗證報告&篩選平台原980px
-# → 統一取儀表板與手冊之間的數字
-CONTENT_MAX_WIDTH = "1120px"
+# ---------------------------------------------------------------- 間距與字級
+CONTENT_MAX_WIDTH = "1120px"   # 內容欄寬度
+BASE_LINE_HEIGHT = "1.6"       # 本文行高
+H1_SIZE = "30px"               # 主標題字級
+LEDE_MAX_WIDTH = "68ch"        # 說明段落可讀寬度(每行約 65–75 字元)
 
-# body基礎行高：儀表板原1.5 / 手冊&首頁原1.7 / 驗證報告&篩選平台原1.6 → 統一取中間值
-BASE_LINE_HEIGHT = "1.6"
-
-# 主標題字級：儀表板原34px / 手冊原30px / 首頁原32px / 驗證報告&篩選平台原30px → 統一
-H1_SIZE = "32px"
-
-# 說明段落/長句文字的可讀寬度(65-75字元準則)：手冊原70ch / 首頁原64ch /
-# 儀表板原860px(固定值，字級一變寬度就不對) / 驗證報告&篩選平台原本沒限制 → 統一成ch單位
-LEDE_MAX_WIDTH = "68ch"
-
+# ---------------------------------------------------------------- 字型
+# 拉丁字與數字用 Public Sans，漢字落到 Noto Sans TC 子集(只含專案用到的字，
+# 見 scripts/build_fonts.py)；子集沒收錄的字再落到系統黑體。
 FONT_FAMILY = (
-    '"Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", '
-    '"Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+    '"Public Sans", "Noto Sans TC Subset", "PingFang TC", "Microsoft JhengHei", '
+    '"Noto Sans TC", sans-serif'
+)
+FONT_MONO = 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace'  # 只給程式代號用
+
+_LATIN_RANGE = ("U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, "
+                "U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD")
+_CJK_RANGE = "U+2010-2027, U+2030-205E, U+3000-303F, U+4E00-9FFF, U+FF00-FFEF"
+
+FONT_FACE_CSS = "".join(
+    f'  @font-face {{ font-family: "Public Sans"; font-style: normal; font-weight: {w}; font-display: swap; '
+    f'src: url("fonts/public-sans-latin-{w}.woff2") format("woff2"); unicode-range: {_LATIN_RANGE}; }}\n'
+    for w in (400, 600, 700)
+) + "".join(
+    f'  @font-face {{ font-family: "Noto Sans TC Subset"; font-style: normal; font-weight: {w}; font-display: swap; '
+    f'src: url("fonts/noto-sans-tc-subset-{w}.woff2") format("woff2"); unicode-range: {_CJK_RANGE}; }}\n'
+    for w in (400, 700)
 )
 
-# 分頁圖示。檔案是 chart/favicon.svg，而 GitHub Pages 部署的就是 chart/ 這層，
-# 所以所有產出頁面都跟它同一層，用相對路徑就好。SVG 內建 prefers-color-scheme，
-# 深色模式下指針會自己換成淺色。dashboard_template.html 是靜態檔沒辦法 import
-# 這裡，那邊是直接寫同一行 HTML。
-FAVICON_TAG = '<link rel="icon" type="image/svg+xml" href="favicon.svg">'
+# ---------------------------------------------------------------- 色彩 token
+# 淺色：白底、暖中性灰的線與次要文字；主色是資料站常見的深藍(FRED 系)。
+LIGHT = {
+    "page": "#ffffff",
+    "surface-1": "#ffffff",
+    "surface-2": "#f4f4f1",       # 表頭、輸入框、選取列的淡底
+    "surface-3": "#e9eae6",       # 按下、hover
+    "text-primary": "#1b1d1f",
+    "text-secondary": "#45494d",
+    "text-muted": "#62676c",
+    "border": "#d5d7d2",          # 元件外框
+    "rule": "#e3e4e0",            # 區塊分隔線
+    "grid": "#ebece8",            # 圖表格線
+    "axis": "#8c9195",
+    "accent": "#1d5a96",          # 連結、目前頁、焦點、主要按鈕
+    "accent-ink": "#ffffff",      # 主要按鈕上的字
+    "series-1": "#1d5a96",        # 綜合分數線、各因子分數線
+    "series-2": "#9c5a0c",        # 10 年期殖利率參考線
+    "series-3": "#56606a",        # 原始資料圖的第二條參考線
+    "series-4": "#2b3136",        # 自訂權重虛線
+    "tier-extreme-fear": "#174f33",
+    "tier-fear": "#3b7654",
+    "tier-neutral": "#5c6166",
+    "tier-greed": "#b9452f",
+    "tier-extreme-greed": "#d1281c",
+    "gauge-inactive": "#e6e7e3",
+    "warn": "#8a5a00",            # 未發布、待確認之類的狀態字
+    "danger": "#b42318",          # 錯誤訊息
+    "selection": "#cfe0f2",
+    "focus": "#1d5a96",
+}
+DARK = {
+    "page": "#121416",
+    "surface-1": "#171a1d",
+    "surface-2": "#1d2124",
+    "surface-3": "#262b2f",
+    "text-primary": "#ecedea",
+    "text-secondary": "#c0c4c7",
+    "text-muted": "#969ca1",
+    "border": "#353b40",
+    "rule": "#2a2f33",
+    "grid": "#23282c",
+    "axis": "#6b7379",
+    "accent": "#8db8e8",
+    "accent-ink": "#0f1820",
+    "series-1": "#8db8e8",
+    "series-2": "#e3a35a",
+    "series-3": "#a9b2ba",
+    "series-4": "#e1e4e6",
+    "tier-extreme-fear": "#a3dcb8",
+    "tier-fear": "#6fb88d",
+    "tier-neutral": "#a6acb0",
+    "tier-greed": "#f19583",
+    "tier-extreme-greed": "#ff5e4a",
+    "gauge-inactive": "#272c30",
+    "warn": "#e3b45a",
+    "danger": "#ff8a7a",
+    "selection": "#28456a",
+    "focus": "#8db8e8",
+}
 
-# 儀表板/手冊/首頁三頁共用同一份色彩變數——這三頁都有深色模式支援，數值取自
-# 原本儀表板的版本(三頁裡最完整的一份)，手冊/首頁原本各自的--accent/--text等
-# 命名全部改叫這份的名稱，不再各自維護一套指向同樣顏色的不同變數名。
-# 【外觀優化】：所有顏色 Hex 碼 100% 保留現狀，僅調優 --shadow 的雙層柔和立體感。
-ROOT_COLORS_CSS = """
-  :root {
-    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
-    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
-    --grid: #e5e7eb; --axis: #a7adb9;
-    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8;
-    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
-    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
-      --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
-      --grid: #262b36; --axis: #4a5164;
-      --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-      --border: #2c313d;
-      --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
-      --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
-    }
-  }
-  :root[data-theme="dark"] {
-    --page: #0f1218; --surface-1: #171b24; --surface-2: #1e232d;
-    --text-primary: #f1f3f6; --text-secondary: #b8c0cc; --text-muted: #8b93a3;
-    --grid: #262b36; --axis: #4a5164;
-    --series-1: #7ea3cf; --series-2: #d9a860; --series-3: #a698d4; --series-4: #5fb8b8;
-    --border: #2c313d;
-    --shadow: 0 2px 8px rgba(0,0,0,0.30), 0 8px 24px rgba(0,0,0,0.40);
-    --shadow-hover: 0 6px 16px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50);
-  }
-  :root[data-theme="light"] {
-    --page: #f4f5f7; --surface-1: #ffffff; --surface-2: #f8f9fb;
-    --text-primary: #161a23; --text-secondary: #4a5568; --text-muted: #667085;
-    --grid: #e5e7eb; --axis: #a7adb9;
-    --series-1: #1e3a5f; --series-2: #a6742a; --series-3: #5b4f8a; --series-4: #1f7a7a;
-    --border: #dfe2e8;
-    --shadow: 0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
-    --shadow-hover: 0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
-  }
+
+def _decls(tokens):
+    return " ".join(f"--{k}: {v};" for k, v in tokens.items())
+
+
+# 深色模式跟著系統設定；:root[data-theme] 留給之後若加手動切換時覆寫用。
+ROOT_TOKENS_CSS = f"""
+  :root {{ color-scheme: light; {_decls(LIGHT)} }}
+  @media (prefers-color-scheme: dark) {{
+    :root:not([data-theme="light"]) {{ color-scheme: dark; {_decls(DARK)} }}
+  }}
+  :root[data-theme="dark"] {{ color-scheme: dark; {_decls(DARK)} }}
 """
+
+# 各頁共用的基礎規則：字型、選取文字、焦點框、捲軸、數字對齊、減少動態。
+BASE_CSS = f"""
+  html {{ -webkit-text-size-adjust: 100%; scrollbar-color: var(--border) transparent; }}
+  body {{ font-family: {FONT_FAMILY}; font-variant-numeric: lining-nums tabular-nums;
+    background: var(--page); color: var(--text-primary); }}
+  ::selection {{ background: var(--selection); color: var(--text-primary); }}
+  :focus-visible {{ outline: 2px solid var(--focus); outline-offset: 2px; }}
+  a {{ color: var(--accent); }}
+  .mono, code {{ font-family: {FONT_MONO}; font-size: 0.92em; }}
+  @media (prefers-reduced-motion: reduce) {{
+    *, *::before, *::after {{ transition: none !important; animation: none !important; scroll-behavior: auto !important; }}
+  }}
+"""
+
+# 沿用舊名稱：dashboard_template.html、generate_hub.py 等以這個名字注入。
+# 內容包含字型宣告、色彩 token 跟基礎規則。
+ROOT_COLORS_CSS = FONT_FACE_CSS + ROOT_TOKENS_CSS + BASE_CSS
+
+# ---------------------------------------------------------------- matplotlib 用的同一套顏色
+# 報告頁的圖是 PNG，沒辦法跟著深色模式換色，所以只用淺色版本，圖底維持白色。
+MPL = {
+    "ink": LIGHT["text-primary"],
+    "muted": LIGHT["text-muted"],
+    "grid": LIGHT["grid"],
+    "rule": LIGHT["rule"],
+    "axis": LIGHT["axis"],
+    "accent": LIGHT["accent"],
+    "series": [LIGHT["series-1"], LIGHT["series-2"], LIGHT["series-3"], LIGHT["series-4"]],
+    "fear": LIGHT["tier-extreme-fear"],
+    "fear_light": LIGHT["tier-fear"],
+    "neutral": LIGHT["tier-neutral"],
+    "greed_light": LIGHT["tier-greed"],
+    "greed": LIGHT["tier-extreme-greed"],
+    "fear_deep": "#0d3622",     # 七色分桶圖兩端加深用
+    "greed_deep": "#8f1a12",
+    "danger": LIGHT["danger"],  # 樣本數不足之類的警示
+    "white": "#ffffff",
+}
+
+# 分頁圖示。檔案是 chart/favicon.svg，產出頁面都在 chart/ 這層，用相對路徑即可。
+FAVICON_TAG = '<link rel="icon" type="image/svg+xml" href="favicon.svg">'

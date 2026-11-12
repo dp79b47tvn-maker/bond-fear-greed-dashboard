@@ -4,344 +4,242 @@
 <title>債券市場恐懼貪婪儀表板</title>
 <style>
   /*
-    ===== COLOR LOGIC NOTE =====
-    Taiwan market convention: RED = Greed (risk-on), GREEN = Fear (risk-off).
-    Colors are named by MEANING (--tier-extreme-fear ... --tier-extreme-greed),
-    never by hue, so the mapping from score to color can never drift out of sync
-    with the palette again. Auxiliary reference lines that are NOT the score
-    itself (e.g. 10Y yield overlay, 52-week high/low reference lines, moving
-    averages) intentionally use --series-1..4 (brand/treasury/structural tones),
-    NOT the tier colors, since they don't carry a Fear/Greed meaning on their own.
+    顏色、字型、焦點框、選取色都來自 page_style.py(由 update_dashboard.py 注入下一行)。
+    台灣慣例：紅＝貪婪、綠＝恐懼；--tier-* 依意義命名，分數用這組顏色，
+    參考線(殖利率、均線、高低點)用 --series-*，不帶恐懼／貪婪的意思。
+    視覺路線與規則見 DESIGN.md。
   */
   __ROOT_COLORS_CSS__
-  /* 分數情緒分級色階(--tier-*)是儀表板專屬、不跟其他頁面共用的概念，
-     不放進共用的page_style.ROOT_COLORS_CSS，維持這裡自己定義。 */
-  :root {
-    --tier-extreme-fear:  #2f6b4f;
-    --tier-fear:          #5c8a6e;
-    --tier-neutral:       #6b7280;
-    --tier-greed:         #b1592f;
-    --tier-extreme-greed: #a6362f;
-    --gauge-inactive:     #e3e6e2;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
-      --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-      --gauge-inactive: #262c29;
-    }
-  }
-  :root[data-theme="dark"] {
-    --tier-extreme-fear: #6fa080; --tier-fear: #8cb59a; --tier-neutral: #a6adbc;
-    --tier-greed: #d99a6c; --tier-extreme-greed: #d2726a;
-    --gauge-inactive: #262c29;
-  }
-  :root[data-theme="light"] {
-    --tier-extreme-fear: #2f6b4f; --tier-fear: #5c8a6e; --tier-neutral: #6b7280;
-    --tier-greed: #b1592f; --tier-extreme-greed: #a6362f;
-    --gauge-inactive: #e3e6e2;
-  }
 
   * { box-sizing: border-box; }
-  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-  body {
-    margin: 0; background: var(--page); line-height: __BASE_LINE_HEIGHT__;
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
-  .nav-wrap { max-width: 1400px; margin: 0 auto; padding: 44px 24px 0; }
-  .page-shell { display: flex; align-items: flex-start; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px 60px; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { margin: 0; line-height: __BASE_LINE_HEIGHT__; }
+  .nav-wrap { padding: 0; }
+  .page-shell { display: flex; align-items: flex-start; gap: 32px; max-width: 1400px; margin: 0 auto; padding: 28px 24px 64px; }
   .viz-root { max-width: __CONTENT_MAX_WIDTH__; margin: 0; padding: 0; flex: 1 1 auto; min-width: 0; color: var(--text-primary); }
-  .event-rail {
-    flex: 0 0 280px; position: sticky; top: 20px; margin-top: 0;
-    max-height: min(calc(100vh - 40px), 900px);
-    background: var(--surface-1); border-radius: 16px;
-    padding: 18px 16px; box-shadow: var(--shadow);
-    display: flex; flex-direction: column; min-height: 0;
-    transition: box-shadow 0.25s ease, border-color 0.25s ease;
-  }
-  .event-rail:hover { box-shadow: var(--shadow-hover); }
-  .event-rail-header { flex: 0 0 auto; }
-  .event-rail h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; justify-content: space-between; }
-  .event-rail-count { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 999px; }
-  .event-rail-hint { font-size: 11px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
-
-  .event-rail-tabs { display: flex; gap: 5px; margin-bottom: 12px; padding-bottom: 10px; flex-wrap: wrap; }
-  .event-tab-btn {
-    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: none;
-    background: var(--surface-2); color: var(--text-secondary); cursor: pointer; transition: all 0.18s ease;
-  }
-  .event-tab-btn:hover { background: var(--surface-1); color: var(--text-primary); }
-  .event-tab-btn.active { background: var(--series-1); color: #ffffff; }
-
-  .event-rail-list {
-    display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; overflow-y: auto; min-height: 0; padding-right: 2px;
-  }
-  .event-rail-list::-webkit-scrollbar { width: 4px; }
-  .event-rail-list::-webkit-scrollbar-track { background: transparent; }
-  .event-rail-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-  .event-rail-list::-webkit-scrollbar-thumb:hover { background: var(--axis); }
-
-  .event-item {
-    display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
-    background: var(--surface-2); border: 1px solid transparent; border-left: 3px solid transparent;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
-  }
-  .event-item:hover {
-    background: var(--surface-1); border-color: var(--border); transform: translateX(3px);
-    box-shadow: 0 2px 8px rgba(15,23,42,0.04);
-  }
-  .event-item.active {
-    background: var(--surface-1); border-color: var(--border); border-left-color: var(--series-1);
-    transform: translateX(3px); box-shadow: 0 3px 10px rgba(15,23,42,0.06);
-  }
-  .event-item-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-  .event-type-badge {
-    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.03em;
-    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
-  }
-  .event-type-badge.type-fomc { color: var(--series-1); background: color-mix(in srgb, var(--series-1) 14%, transparent); }
-  .event-type-badge.type-cpi { color: var(--series-2); background: color-mix(in srgb, var(--series-2) 14%, transparent); }
-  .event-type-badge.type-nfp { color: var(--series-4); background: color-mix(in srgb, var(--series-4) 14%, transparent); }
-  .event-type-badge.type-other { color: var(--text-secondary); background: var(--border); }
-  
-  .event-date-str { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace; }
-  .event-title-str { font-size: 12.5px; font-weight: 600; color: var(--text-primary); line-height: 1.4; display: flex; align-items: center; gap: 6px; }
-  .event-future-tag { font-size: 10px; font-weight: 600; color: var(--series-2); background: color-mix(in srgb, var(--series-2) 12%, transparent); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
-
-  @media (max-width: 900px) {
-    .nav-wrap { padding: 30px 16px 0; }
-    .page-shell { flex-direction: column; padding: 0 16px 40px; }
-    .viz-root { max-width: 100%; }
-    .event-rail { position: static; width: 100%; max-height: 340px; margin-top: 20px; flex: none; }
-  }
   __NAV_BAR_CSS__
-  h1 { font-size: __H1_SIZE__; font-weight: 700; margin: 0 0 9px; letter-spacing: -0.025em; line-height: 1.2; }
-  h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.005em; }
-  .subtitle { font-size: 16.5px; color: var(--text-secondary); margin: 0 0 9px; font-weight: 400; letter-spacing: -0.005em; }
-  .caption { font-size: 12.5px; color: var(--text-muted); margin: 0 0 34px; line-height: 1.65; max-width: __LEDE_MAX_WIDTH__; }
-  .card {
-    background: var(--surface-1); border-radius: 16px;
-    box-shadow: var(--shadow);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-  }
-  .card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-  }
-  a, button, input, .logic-btn, .jump-today, .zoom-reset-btn {
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
-  }
-  button:active, .jump-today:active, .zoom-reset-btn:active { transform: scale(0.97); }
-  :focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
 
-  /* 區塊漸進式入場動畫 */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .animate-in {
-    animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .animate-delay-1 { animation-delay: 0.08s; }
-  .animate-delay-2 { animation-delay: 0.16s; }
-  .animate-delay-3 { animation-delay: 0.24s; }
+  /* ---- 標題 ---- */
+  h1 { font-size: __H1_SIZE__; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.015em; line-height: 1.25; }
+  h2 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle:empty { display: none; }
+  .subtitle { font-size: 15px; color: var(--text-secondary); margin: 0 0 6px; }
+  .caption { font-size: 13px; color: var(--text-muted); margin: 0 0 8px; line-height: 1.65; max-width: __LEDE_MAX_WIDTH__; }
+  .section-heading { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    font-size: 19px; font-weight: 700; color: var(--text-primary); margin: 36px 0 0; padding-top: 22px; border-top: 2px solid var(--text-primary); }
+  .section-heading .bar { display: none; }
+  .section-heading .count { font-size: 13px; color: var(--text-muted); font-weight: 400; }
 
-  @media (prefers-color-scheme: dark) {
-    .animate-in { animation: none !important; opacity: 1 !important; transform: none !important; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
-  }
+  /* ---- 區塊：白底細線分區，不用卡片陰影 ---- */
+  .card { background: transparent; border-top: 1px solid var(--rule); }
 
-  /* ---- gauge ---- */
-  .gauge-card { padding: 8px 28px 30px; margin-bottom: 20px; text-align: center; border: none; box-shadow: none; background: transparent; }
-  .gauge-wrap { max-width: 460px; margin: 0 auto; position: relative; }
-  .gauge-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+  /* ---- 共用控制項 ---- */
+  button, input, select { font: inherit; }
+  .jump-today, .zoom-reset-btn, .cw-preset-apply, .cw-preset-delete, .cw-regime-preset-btn {
+    font-size: 12.5px; font-weight: 600; padding: 5px 12px; min-height: 32px;
+    border: 1px solid var(--border); border-radius: 4px; background: var(--surface-1); color: var(--text-primary); cursor: pointer;
+  }
+  .jump-today:hover, .zoom-reset-btn:hover, .cw-preset-apply:hover, .cw-preset-delete:hover, .cw-regime-preset-btn:hover { background: var(--surface-2); }
+  .zoom-reset-btn.active { color: var(--accent); border-color: var(--accent); }
+  .date-input, .cw-preset-save input[type="text"] {
+    font-size: 12.5px; padding: 5px 8px; min-height: 32px; border: 1px solid var(--border); border-radius: 4px;
+    background: var(--surface-1); color: var(--text-primary);
+  }
+  .range-btns { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .range-btn { font-size: 12px; font-weight: 600; padding: 5px 11px; min-height: 30px; border: none; border-left: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-secondary); cursor: pointer; white-space: nowrap; }
+  .range-btn:first-child { border-left: none; }
+  .range-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+  .range-btn.active { background: var(--accent); color: var(--accent-ink); }
+  .overlay-toggle { font-size: 12.5px; color: var(--text-secondary); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; user-select: none;
+    padding: 8px 4px; margin: -4px -4px -8px; }
+  .overlay-toggle input { accent-color: var(--accent); cursor: pointer; width: 16px; height: 16px; }
+  .inline-msg { font-size: 12.5px; color: var(--text-secondary); margin: 8px 0 0; min-height: 1em; }
+  .inline-msg.is-error { color: var(--danger); }
+  .inline-msg:empty { display: none; }
+  .inline-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-primary);
+    margin-top: 8px; padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; }
+  .inline-confirm button { font-size: 12px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; }
+  .inline-confirm button.is-danger { color: var(--danger); }
+  .na { color: var(--text-muted); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* ---- 儀表 ---- */
+  .gauge-card { padding: 24px 0 28px; text-align: center; }
+  .gauge-wrap { max-width: 420px; margin: 0 auto; position: relative; }
+  .gauge-label { font-size: 13px; color: var(--text-secondary); margin: 0 0 4px; font-weight: 600; }
   .gauge-svg { width: 100%; height: auto; display: block; }
-  .gauge-score { font-size: 60px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; margin-top: -20px; letter-spacing: -0.02em; }
-  .gauge-tag { display: inline-flex; align-items: center; padding: 5px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; margin-top: 10px; }
-  .gauge-date { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-  .compare-row { display: flex; justify-content: center; gap: 34px; margin-top: 22px; padding-top: 20px; flex-wrap: wrap; }
-  .compare-item { text-align: center; min-width: 78px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
-  .compare-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
-  .compare-badge {
-    width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
-    background: color-mix(in srgb, currentColor 13%, transparent);
-  }
-  .compare-tag { font-size: 11px; font-weight: 600; }
+  .gauge-score { font-size: 56px; font-weight: 700; line-height: 1; margin-top: -18px; letter-spacing: -0.02em; }
+  .gauge-tag { display: block; font-size: 16px; font-weight: 700; margin-top: 8px; }
+  .gauge-date { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+  .compare-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 560px; margin: 22px auto 4px;
+    border: 1px solid var(--rule); border-radius: 6px; }
+  .compare-item { text-align: center; padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; border-left: 1px solid var(--rule); }
+  .compare-item:first-child { border-left: none; }
+  .compare-label { font-size: 12px; color: var(--text-muted); }
+  .compare-badge { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .compare-tag { font-size: 12px; font-weight: 700; }
 
-  /* ---- main composite chart ---- */
-  .chart-card { padding: 20px 20px 12px; margin-bottom: 16px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 14px; }
+  /* ---- 主圖 ---- */
+  .chart-card { padding: 22px 0 14px; }
+  .chart-card > h2 { display: inline-block; margin-right: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--text-secondary); margin: 10px 0 12px; }
   .legend-item { display: flex; align-items: center; gap: 6px; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-  .swatch-line { width: 16px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+  .swatch { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+  .swatch-line { width: 18px; height: 2px; flex-shrink: 0; }
+  .swatch-line.is-dashed { background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 7px) !important; }
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   .main-chart-svg, .comp-svg, .raw-chart-svg { cursor: crosshair; }
-  .axis-label { font-size: 11px; fill: var(--text-muted); }
-  .gauge-cat-label { font-size: 13px; font-weight: 700; fill: var(--text-muted); letter-spacing: 0.03em; }
+  .main-chart-svg:focus-visible, .comp-svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  .axis-label { font-size: 11px; fill: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .gauge-cat-label { font-size: 12.5px; font-weight: 700; fill: var(--text-secondary); }
   .axis-title { font-size: 11px; fill: var(--text-muted); font-weight: 600; }
   .grid-line { stroke: var(--grid); stroke-width: 1; }
-  .series-line { fill: none; stroke: var(--series-1); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-  .ust-line { fill: none; stroke: var(--series-2); stroke-width: 1.6; stroke-linejoin: round; stroke-dasharray: none; }
-  .selected-line { stroke: var(--text-primary); stroke-width: 1.4; }
+  .series-line { fill: none; stroke: var(--series-1); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .ust-line { fill: none; stroke: var(--series-2); stroke-width: 1.4; stroke-linejoin: round; }
+  .selected-line { stroke: var(--text-primary); stroke-width: 1.2; }
   .chart-wrap { position: relative; }
-  .selected-readout { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; padding: 6px 4px 2px; font-size: 13px; color: var(--text-secondary); }
-  .selected-readout b { font-size: 17px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
-
-  .controls { display: flex; align-items: center; gap: 14px; padding: 8px 4px 0; flex-wrap: wrap; }
-  .controls label { font-size: 12px; color: var(--text-secondary); }
-  .timeline { flex: 1; min-width: 220px; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--grid); outline: none; }
-  .timeline::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--series-1);
-    cursor: pointer; box-shadow: var(--shadow);
-    transition: transform 0.15s ease;
-  }
-  .timeline::-webkit-slider-thumb:hover { transform: scale(1.15); }
-  .timeline::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%; background: var(--series-1); cursor: pointer; transition: transform 0.15s ease; }
-  .date-input { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: none; background: var(--surface-2); color: var(--text-primary); font-family: inherit; }
-  .jump-today {
-    font-size: 12px; font-weight: 600; padding: 6px 15px; border-radius: 999px; border: none;
-    background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-family: inherit;
-  }
-  .jump-today:hover { background: var(--grid); }
-  .jump-today:active { transform: scale(0.97); }
-  .foot-note { font-size: 11.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.65; }
-
-  /* ---- zoom controls (shared across all charts) ---- */
-  .chart-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-  .zoom-reset-btn { font-size: 11px; padding: 4px 10px; }
-  .zoom-reset-btn.active { color: var(--series-1); font-weight: 600; }
-  .zoom-hint { font-size: 11px; color: var(--text-muted); }
-  .range-btns { display: inline-flex; gap: 4px; }
-  .range-btn {
-    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: none;
-    background: var(--surface-2); color: var(--text-secondary);
-    cursor: pointer; font-family: inherit; white-space: nowrap;
-  }
-  .range-btn:hover { color: var(--text-primary); }
-  .range-btn.active { color: var(--series-1); background: color-mix(in srgb, var(--series-1) 8%, var(--surface-2)); }
+  .selected-readout { display: flex; align-items: baseline; gap: 6px 20px; flex-wrap: wrap; padding: 8px 0 2px; font-size: 13px; color: var(--text-secondary); }
+  .selected-readout b { font-size: 17px; color: var(--text-primary); }
+  .controls { display: flex; align-items: center; gap: 10px 14px; padding: 10px 0 0; flex-wrap: wrap; }
+  .controls label { font-size: 12.5px; color: var(--text-secondary); }
+  .timeline { flex: 1; min-width: 200px; accent-color: var(--accent); height: 24px; }
+  .foot-note { font-size: 12px; color: var(--text-muted); margin: 12px 0 0; line-height: 1.7; max-width: 90ch; }
+  .chart-toolbar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-top: 10px; }
+  .zoom-hint { font-size: 12px; color: var(--text-muted); }
+  .rail-jump { display: none; font-size: 12.5px; font-weight: 600; }
   svg.zoomed { cursor: grab; touch-action: none; }
   svg.panning { cursor: grabbing; }
 
-  /* ---- component cards ---- */
-  #componentCards { overflow: hidden; }
-  .comp-card { padding: 26px 28px 22px; margin-bottom: 16px; border: none; border-radius: 0; box-shadow: none; background: transparent; transition: background-color 0.3s ease; }
-  .comp-card:hover { background: var(--surface-2); }
-  .comp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
-  .comp-title-block { flex: 1; min-width: 220px; }
-  .comp-kicker { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--accent, var(--series-1)); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+  /* ---- 分項卡片 ---- */
+  .comp-card { padding: 24px 0 22px; border-top: 1px solid var(--rule); }
+  .comp-card:first-child { border-top: none; }
+  .comp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .comp-title-block { flex: 1; min-width: 220px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+  .comp-title-block h2 { flex-basis: 100%; }
   .comp-score-block { text-align: right; }
-  .comp-score-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
-  .comp-score-tag {
-    font-size: 11.5px; font-weight: 800; margin-top: 6px; letter-spacing: 0.02em;
-    display: inline-flex; padding: 3px 11px; border-radius: 999px;
-    background: color-mix(in srgb, currentColor 15%, transparent);
-  }
-  .comp-raw { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .comp-score-value { font-size: 30px; font-weight: 700; line-height: 1; }
+  .comp-score-tag { font-size: 13px; font-weight: 700; margin-top: 4px; }
+  .comp-raw { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
   .comp-body { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: stretch; }
-  @media (max-width: 640px) { .comp-body { grid-template-columns: 1fr; } .comp-vdist { display:none; } }
+  @media (max-width: 640px) { .comp-body { grid-template-columns: 1fr; } .comp-vdist { display: none; } }
   .comp-vdist { position: relative; }
   .comp-vdist svg { height: 100%; }
   .comp-svg-wrap { position: relative; }
   .comp-tooltip {
-    position: absolute; pointer-events: none; background: var(--surface-1);
-    border-radius: 6px; padding: 5px 8px;
-    font-size: 11px; color: var(--text-primary); box-shadow: var(--shadow);
+    position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 8px; font-size: 11.5px; color: var(--text-primary);
     white-space: nowrap; opacity: 0; transition: opacity 0.08s; z-index: 5;
   }
-  .overlay-toggle { font-size: 12px; color: var(--text-secondary); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; user-select: none;
-    padding: 10px 6px; margin: -4px -6px -10px; border-radius: 6px; }
-  .overlay-toggle input { accent-color: var(--series-2); cursor: pointer; width: 16px; height: 16px; }
+  .exp-tag { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+    border: 1px solid var(--border); border-radius: 3px; padding: 0 6px; margin-left: 8px; vertical-align: 2px; }
 
-  .exp-tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--series-4);
-    background: color-mix(in srgb, var(--series-4) 14%, transparent); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: middle; }
-  .cw-panel { margin-top: 14px; padding-top: 14px; }
+  /* ---- 自訂權重 ---- */
+  .cw-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--rule); }
   .cw-regime-preset { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .cw-regime-preset-btn { padding: 8px 14px; border: none; border-radius: 8px; background: color-mix(in srgb, var(--series-3) 12%, transparent);
-    color: var(--series-3); font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  .cw-regime-preset-btn:hover { background: color-mix(in srgb, var(--series-3) 20%, transparent); }
-  .cw-regime-preset-hint { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
-  .cw-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
-  .cw-row { display: grid; grid-template-columns: 150px 1fr 34px; align-items: center; gap: 12px; }
-  .cw-check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-primary); cursor: pointer; user-select: none; }
-  .cw-check input { accent-color: var(--series-4); cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+  .cw-regime-preset-hint { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .cw-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+  .cw-row { display: grid; grid-template-columns: 160px 1fr 40px; align-items: center; gap: 12px; }
+  .cw-check { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-primary); cursor: pointer; user-select: none; }
+  .cw-check input { accent-color: var(--accent); cursor: pointer; width: 16px; height: 16px; flex-shrink: 0; }
   .cw-row.cw-excluded .cw-check { color: var(--text-muted); }
-  .cw-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: var(--grid); outline: none; }
-  .cw-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--series-4); cursor: pointer; }
-  .cw-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--series-4); cursor: pointer; }
-  .cw-row.cw-excluded .cw-slider { opacity: 0.35; }
-  .cw-value { font-size: 12px; color: var(--text-muted); text-align: right; font-variant-numeric: tabular-nums; }
-  .cw-readout { font-size: 12.5px; color: var(--text-secondary); margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; line-height: 1.7; }
-  .cw-readout b { font-variant-numeric: tabular-nums; }
-
-  .cw-presets { margin-top: 16px; padding-top: 14px; }
-  .cw-preset-save { display: flex; gap: 8px; margin-bottom: 10px; }
-  .cw-preset-save input[type="text"] { flex: 1; padding: 8px 10px; border: none; border-radius: 8px;
-    background: var(--surface-2); color: var(--text-primary); font-size: 12.5px; outline: none; }
-  .cw-preset-save-btn { padding: 8px 14px; border: none; border-radius: 8px; background: var(--series-4); color: #fff;
+  .cw-slider { width: 100%; accent-color: var(--accent); }
+  .cw-row.cw-excluded .cw-slider { opacity: 0.4; }
+  .cw-value { font-size: 12.5px; color: var(--text-secondary); text-align: right; }
+  .cw-readout { font-size: 13px; color: var(--text-secondary); margin-top: 12px; padding: 10px 12px; background: var(--surface-2); border-radius: 4px; line-height: 1.7; }
+  .cw-presets { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--rule); }
+  .cw-preset-save { display: flex; gap: 8px; margin-bottom: 4px; }
+  .cw-preset-save input[type="text"] { flex: 1; min-width: 0; }
+  .cw-preset-save-btn { padding: 5px 14px; min-height: 32px; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: var(--accent-ink);
     font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  .cw-preset-save-btn:hover { opacity: 0.9; }
-  .cw-preset-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-  .cw-preset-row { display: flex; align-items: center; gap: 10px; font-size: 12.5px; padding: 8px 10px;
-    background: var(--surface-2); border-radius: 8px; }
-  .cw-preset-name { font-weight: 600; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cw-preset-date { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
-  .cw-preset-apply, .cw-preset-delete { border: none; border-radius: 6px; background: var(--surface-1);
-    color: var(--text-secondary); font-size: 11.5px; padding: 4px 10px; cursor: pointer; white-space: nowrap; }
-  .cw-preset-apply:hover { color: var(--series-4); }
-  .cw-preset-delete:hover { color: var(--tier-extreme-greed); }
-  .cw-preset-hint { font-size: 11px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+  .cw-preset-save-btn:hover { filter: brightness(1.08); }
+  .cw-preset-list { display: flex; flex-direction: column; margin: 8px 0 10px; border-top: 1px solid var(--rule); }
+  .cw-preset-list:empty { border-top: none; }
+  .cw-preset-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; font-size: 13px; padding: 8px 2px; border-bottom: 1px solid var(--rule); }
+  .cw-preset-name { font-weight: 600; color: var(--text-primary); flex: 1; min-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cw-preset-date { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+  .cw-preset-delete:hover { color: var(--danger); }
+  .cw-preset-hint { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
+  /* ---- 說明面板 ---- */
   .logic-btn {
-    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600;
-    padding: 2px 0; border: none; border-bottom: 1px solid transparent;
-    background: transparent; color: var(--series-1); cursor: pointer; white-space: nowrap;
-    margin-top: 8px; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+    padding: 4px 0; border: none; background: transparent; color: var(--accent); cursor: pointer; white-space: nowrap; margin-top: 8px;
   }
-  .logic-btn:hover { border-bottom-color: currentColor; }
-  .logic-btn .i-dot { width: 13px; height: 13px; border-radius: 50%; background: color-mix(in srgb, currentColor 15%, transparent); color: var(--series-1); font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-style: normal; }
-  .logic-btn.open { border-bottom-color: currentColor; }
-  /* === Plan 001: logic-panel grid-template-rows 動畫（取代 max-height:2400px hack）===
-     原因：max-height:2400px 讓過渡效果計算從0→2400px，但內容只有~200px，
-     動畫在8%的時間就結束了，產生「瞬間彈出後卡住」的錯誤感。
-     grid-template-rows: 0fr→1fr 直接動畫實際內容高度，完全消除這個問題。
-     限制：每個 .logic-panel 的直接子元素必須有 min-height:0 才能正確 collapse。 */
+  .logic-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .logic-btn .i-dot { width: 15px; height: 15px; border-radius: 50%; border: 1px solid currentColor; font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; font-style: normal; line-height: 1; }
   .logic-panel {
-    font-size: 12.5px; color: var(--text-secondary); line-height: 1.75; padding: 0 14px; border-radius: 10px;
-    background: var(--surface-2); text-align: left;
+    font-size: 13px; color: var(--text-secondary); line-height: 1.75; padding: 0 14px; border-radius: 4px;
+    background: var(--surface-2); text-align: left; max-width: 100%;
     display: grid; grid-template-rows: 0fr; opacity: 0; overflow: hidden; margin-top: 0;
-    transition: grid-template-rows 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, padding 0.35s ease, margin-top 0.35s ease;
+    transition: grid-template-rows 0.25s ease, opacity 0.2s ease, padding 0.25s ease, margin-top 0.25s ease;
   }
   .logic-panel > div { min-height: 0; }
-  .logic-panel.open { grid-template-rows: 1fr; opacity: 1; padding: 12px 14px; margin-top: 12px; }
+  .logic-panel.open { grid-template-rows: 1fr; opacity: 1; padding: 12px 14px; margin-top: 10px; }
   .logic-panel b { color: var(--text-primary); }
-  .method-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 8px 0; }
-  .method-table th, .method-table td { text-align: left; padding: 5px 8px; }
+  .method-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+  .method-table th, .method-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); }
   .method-table th { color: var(--text-muted); font-weight: 600; }
   .method-table td.mt-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
-  .comp-explain { font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; margin: 10px 0 0; padding-top: 10px; }
+  .comp-explain { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin: 10px 0 0; padding-top: 10px; }
   .comp-explain b { color: var(--text-primary); }
-  .comp-supplementary { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
-  .logic-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .comp-supplementary { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .logic-btn-row { display: flex; gap: 4px 16px; flex-wrap: wrap; }
   .logic-btn-row .logic-btn { margin-top: 0; }
   a.logic-btn { text-decoration: none; }
-  .raw-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 11.5px; color: var(--text-secondary); margin-bottom: 10px; }
+  .raw-chart-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
   .raw-chart-legend .legend-item { display: flex; align-items: center; gap: 6px; }
   .raw-chart-wrap { position: relative; }
-  .placeholder-box {
-    border-radius: 10px; padding: 26px 20px;
-    text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.8;
-    background: var(--surface-2);
+  .placeholder-box { border: 1px dashed var(--border); border-radius: 4px; padding: 24px 20px;
+    text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.8; }
+
+  /* ---- 事件行事曆 ---- */
+  .event-rail {
+    flex: 0 0 290px; position: sticky; top: 16px; margin-top: 0;
+    max-height: min(calc(100vh - 32px), 900px);
+    background: var(--surface-1); border: 1px solid var(--rule); border-radius: 8px;
+    display: flex; flex-direction: column; min-height: 0;
   }
-  .section-heading {
-    font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 40px 0 16px;
-    display: flex; align-items: center; gap: 11px; letter-spacing: 0.01em;
+  .event-rail-header { flex: 0 0 auto; padding: 14px 14px 10px; border-bottom: 1px solid var(--rule); }
+  .event-rail h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: baseline; justify-content: space-between; }
+  .event-rail-count { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+  .event-rail-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.55; }
+  .event-rail-tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .event-tab-btn { font-size: 12px; font-weight: 600; padding: 4px 10px; min-height: 28px; border: none; border-left: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-secondary); cursor: pointer; }
+  .event-tab-btn:first-child { border-left: none; }
+  .event-tab-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+  .event-tab-btn.active { background: var(--accent); color: var(--accent-ink); }
+  .event-rail-list { display: flex; flex-direction: column; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+  .event-item { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; padding: 9px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--rule); background: transparent; }
+  .event-item:hover { background: var(--surface-2); }
+  .event-item.active { background: var(--selection); }
+  .event-item.future .event-title-str { color: var(--text-secondary); font-weight: 400; }
+  .event-item-header { display: contents; }
+  .event-date-str { grid-column: 1; grid-row: 1; font-size: 12.5px; color: var(--text-primary); font-weight: 600; }
+  .event-type-badge { grid-column: 1; grid-row: 2; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+  .event-type-badge.type-fomc { color: var(--accent); }
+  .event-type-badge.type-cpi { color: var(--series-2); }
+  .event-type-badge.type-nfp { color: var(--series-3); }
+  .event-title-str { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.4;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; }
+  .event-future-tag { font-size: 11px; font-weight: 600; color: var(--warn); white-space: nowrap; }
+  .event-item.active .event-future-tag { color: var(--text-primary); }
+
+  @media (max-width: 900px) {
+    .page-shell { flex-direction: column; padding: 20px 16px 40px; gap: 24px; }
+    .viz-root { max-width: 100%; width: 100%; }
+    .event-rail { position: static; width: 100%; max-height: 420px; flex: none; }
+    .rail-jump { display: inline-block; }
   }
-  .section-heading .bar { width: 5px; height: 20px; background: var(--series-1); border-radius: 2px; flex-shrink: 0; }
-  .section-heading .count { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--text-muted); font-weight: 600; margin-left: 4px; }
+  @media (max-width: 520px) {
+    h1 { font-size: 24px; }
+    .compare-badge { font-size: 19px; }
+    .gauge-score { font-size: 48px; }
+    .zoom-hint { flex-basis: 100%; }
+  }
 </style>
 
 <div class="nav-wrap">
@@ -349,12 +247,12 @@
 </div>
 <div class="page-shell">
 <div class="viz-root">
-  <h1 class="animate-in animate-delay-1" data-i18n="dash_title">債券市場恐懼貪婪儀表板</h1>
-  <p class="subtitle animate-in animate-delay-1" data-i18n="dash_subtitle">A Quantitative Sentiment Framework for U.S. Treasury Markets</p>
-  <p class="caption animate-in animate-delay-1" data-i18n="dash_caption">動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯</p>
+  <h1  data-i18n="dash_title">債券市場恐懼貪婪儀表板</h1>
+  <p class="subtitle" data-i18n="dash_subtitle"></p>
+  <p class="caption" data-i18n="dash_caption">綜合分數是各因子 0 到 100 分的等權重平均，當天缺資料的因子不列入。往下依序是總分、歷史走勢跟各因子拆解。</p>
 
   <!-- ===== 1. 總體指數：儀表 ===== -->
-  <div class="gauge-card animate-in animate-delay-2">
+  <div class="gauge-card">
     <p class="gauge-label" data-i18n="dash_latest_label">最新收盤日綜合分數</p>
     <div class="gauge-wrap">
       <svg id="gaugeSvg" class="gauge-svg" viewBox="0 0 320 190" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -365,13 +263,11 @@
       <div class="gauge-date" id="gaugeDate"></div>
     </div>
     <div class="compare-row" id="compareRow"></div>
-    <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_logic_btn">綜合分數的計算邏輯與可信度</span></button>
+    <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_logic_btn">計算方式與限制</span></button>
     <div class="logic-panel">
       <div>
-      <span data-i18n="dash_method_how" data-i18n-html><b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；
-      某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。</span><br>
-      <span data-i18n="dash_method_percentile" data-i18n-html><b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。
-      公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。</span><br>
+      <span data-i18n="dash_method_how" data-i18n-html><b>怎麼算：</b>綜合分數是各分項 0 到 100 分的等權重算術平均。某個分項當天沒有資料就不列入，由其餘分項平均，不用假數字填補。分級：0–24 極度恐懼、25–44 恐懼、45–55 中性、56–75 貪婪、76–100 極度貪婪，區間跟 CNN Fear &amp; Greed Index 相同。</span><br>
+      <span data-i18n="dash_method_percentile" data-i18n-html><b>為什麼每項都是 0 到 100：</b>把當天的原始數值放進過去 5 年（1825 天）的分佈取百分位，分數 98 代表比過去 5 年 98% 的日子都高。公式：分數 =（視窗內數值 ≤ 今天的天數）÷ 1825 × 100。這樣單位不同的指標（%、點數、指數）可以直接平均，比的是相對位置，市場整體水位改變也不影響。</span><br>
       <span data-i18n="dash_method_sources_title" data-i18n-html><b>資料來源明細：</b></span>
       <table class="method-table">
         <tr><th data-i18n="dash_method_th_field">欄位</th><th data-i18n="dash_method_th_code">代號</th><th data-i18n="dash_method_th_source">來源</th><th data-i18n="dash_method_th_history">可回溯到</th><th data-i18n="dash_method_th_desc">說明</th></tr>
@@ -379,27 +275,26 @@
         <tr><td class="mono">HG_futures</td><td class="mono">HG=F</td><td>Yahoo Finance</td><td>2000-09</td><td>銅期貨收盤價，可與CME官網核對。</td></tr>
         <tr><td class="mono">GC_futures</td><td class="mono">GC=F</td><td>Yahoo Finance</td><td>2000-09</td><td>金期貨收盤價，可與CME官網核對。</td></tr>
       </table>
-      每日收盤後執行 update_dashboard.py 重算，非盤中即時。<br>
-      <span data-i18n="dash_method_no_future" data-i18n-html><b>禁止引用未來資料：</b>所有滾動計算（移動平均、區間報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。</span><br>
-      <span data-i18n="dash_method_limits" data-i18n-html><b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。</span>
+      每個交易日收盤後重算，不是盤中即時。<br>
+      <span data-i18n="dash_method_no_future" data-i18n-html><b>不使用未來資料：</b>所有滾動計算（移動平均、區間報酬、5 年百分位）都只用當天和以前的資料。</span><br>
+      <span data-i18n="dash_method_limits" data-i18n-html><b>限制：</b>這是跟過去 5 年比的位置指標，不是預測模型。極端事件滿 5 年移出視窗後，同樣的原始數值會算出不同分數。週末跟假日沿用前一個交易日的數值。</span>
       </div>
     </div>
   </div>
 
   <!-- ===== 1.5 自訂權重（研究用，不影響上方官方分數） ===== -->
-  <div class="card chart-card animate-in animate-delay-3">
+  <div class="card chart-card">
     <h2><span data-i18n="dash_custom_weight_title">自訂權重</span><span class="exp-tag" data-i18n="dash_custom_weight_tag">研究用</span></h2>
     <button class="logic-btn" type="button" data-target="logic-custom-weight"><span class="i-dot">i</span><span data-i18n="dash_custom_weight_explain">這是什麼</span></button>
     <div class="logic-panel" id="logic-custom-weight">
       <div>
-      <span data-i18n="dash_custom_weight_desc" data-i18n-html>給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。
-      <b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。</span>
+      <span data-i18n="dash_custom_weight_desc" data-i18n-html>勾選要納入的因子、拖曳權重，看看不同組合下的歷史走勢跟今天的分數。結果只會在下方走勢圖多畫一條虛線，上方的官方分數維持等權重平均，不受影響。</span>
       <div id="regimePresetExplain"></div>
       </div>
     </div>
     <label class="overlay-toggle" id="customModeToggleWrap">
       <input type="checkbox" id="customModeToggle">
-      <span data-i18n="dash_custom_mode_label">啟用自訂模式（在下方走勢圖疊加一條虛線）</span>
+      <span data-i18n="dash_custom_mode_label">在走勢圖加上自訂權重的虛線</span>
     </label>
     <div class="cw-panel" id="customWeightPanel" style="display:none">
       <div class="cw-regime-preset" id="cwRegimePresetWrap" style="display:none">
@@ -411,10 +306,12 @@
       <div class="cw-presets">
         <div class="cw-preset-save">
           <input type="text" id="cwPresetName" placeholder="幫這組設定取個名字，例如「重視銅金比」" maxlength="40">
-          <button class="cw-preset-save-btn" type="button" id="cwPresetSaveBtn">儲存目前設定</button>
+          <button class="cw-preset-save-btn" type="button" id="cwPresetSaveBtn" data-i18n="cw_preset_save">儲存目前設定</button>
         </div>
+        <p class="inline-msg" id="cwMsg" role="status" aria-live="polite"></p>
+        <div id="cwConfirmSlot"></div>
         <div class="cw-preset-list" id="cwPresetList"></div>
-        <p class="cw-preset-hint">設定僅存於<b>目前這台裝置的這個瀏覽器</b>（localStorage）——換裝置、換瀏覽器、清瀏覽器資料、或用無痕視窗，都不會看到已儲存的設定；不會上傳到任何伺服器。</p>
+        <p class="cw-preset-hint" data-i18n="cw_preset_hint">設定只存在這台裝置的這個瀏覽器（localStorage），不會上傳。換裝置、換瀏覽器、清除瀏覽資料或用無痕視窗都看不到。</p>
       </div>
     </div>
   </div>
@@ -425,10 +322,7 @@
     <button class="logic-btn" type="button"><span class="i-dot">i</span><span data-i18n="dash_history_explain">這張圖怎麼讀</span></button>
     <div class="logic-panel">
       <div>
-      <b>藍線</b>是綜合恐懼貪婪分數（左軸0–100），背景五色橫帶對應五個分級區間，線落在哪個顏色就是哪個情緒等級。
-      <b>橘線</b>是美國10年期公債殖利率（右軸，%），資料來自Treasury.gov官方每日殖利率曲線——它<b>只是參考疊圖，不參與分數計算</b>，
-      放在一起是為了讓你對照情緒指標與利率水準的走勢關係（例如2022年殖利率急升期間，分數長期處於恐懼區）。<br>
-      <b>互動：</b>直接在圖上點擊或拖下方滑桿、用日期選單，都會連動整頁（含下方各分項卡片）跳到同一天，方便還原「那一天所有指標各自在說什麼」。
+      實線是綜合分數（左軸 0 到 100），背景色帶對應五個分級。另一條線是美國 10 年期公債殖利率（右軸，%），資料來自 Treasury.gov 每日殖利率曲線，只是參考，不參與分數計算。放在一起可以對照情緒跟利率，例如 2022 年殖利率急升時，分數長時間落在恐懼區。點圖上任一天、拖下方滑桿或選日期，整頁的分項卡片都會跳到同一天。
       </div>
     </div>
     <div class="legend">
@@ -442,7 +336,7 @@
     </div>
     <label class="overlay-toggle" id="mainEventsToggleWrap" style="display:none">
       <input type="checkbox" id="mainEventsToggle" checked>
-      顯示事件標記線（FOMC／CPI／NFP）
+      <span data-i18n="ctrl_show_events">顯示事件標記線（FOMC／CPI／NFP）</span>
     </label>
     <div class="chart-wrap">
       <svg id="mainChart" class="main-chart-svg" viewBox="0 0 1140 440" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -456,21 +350,19 @@
         <button class="range-btn" data-range="2Y">2Y</button>
         <button class="range-btn active" data-range="ALL">ALL</button>
       </div>
-      <button class="jump-today zoom-reset-btn" id="mainZoomReset" type="button">回到全部時間範圍</button>
-      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
+      <button class="jump-today zoom-reset-btn" id="mainZoomReset" type="button" data-i18n="ctrl_reset_zoom">回到全部時間範圍</button>
+      <a class="rail-jump" href="#eventRail" data-i18n="ctrl_rail_jump">事件行事曆 ↓</a>
+      <span class="zoom-hint" data-i18n="ctrl_zoom_hint">滾輪縮放／Shift＋拖曳框選放大／拖曳平移／雙擊重置；鍵盤：←→ 移動、＋− 縮放、Esc 重置</span>
     </div>
     <div class="selected-readout" id="mainReadout"></div>
     <div class="controls">
-      <label>拖曳時間軸選日期</label>
+      <label for="timelineSlider" data-i18n="ctrl_drag_slider">拖曳時間軸選日期</label>
       <input type="range" class="timeline" id="timelineSlider" min="0" max="1" value="1" step="1">
-      <label>跳至日期</label>
+      <label for="dateJump" data-i18n="ctrl_jump_date">跳至日期</label>
       <input type="date" class="date-input" id="dateJump">
-      <button class="jump-today" id="jumpToday">回到最新</button>
+      <button class="jump-today" id="jumpToday" type="button" data-i18n="ctrl_jump_latest">回到最新</button>
     </div>
-    <p class="foot-note">
-      分數為每日收盤資料計算，非盤中即時。點擊任何圖表（含下方各分項小圖）會連動整頁的選定日期；
-      縮放與平移所有圖表同步聯動，也可用 1M/3M/6M/1Y/2Y/ALL 按鈕快速切換時間範圍。殖利率線只是價格參考疊圖，不參與分數計算。
-    </p>
+    <p class="foot-note" data-i18n="dash_history_hint">分數用每日收盤資料計算，不是盤中即時。點任一張圖，整頁會跳到同一天；縮放跟平移會同步到所有圖表，也可以用 1M／3M／6M／1Y／2Y／ALL 切換範圍。殖利率線只是參考，不參與分數計算。</p>
   </div>
 
   <!-- ===== 3. 各分項拆解 ===== -->
@@ -483,15 +375,15 @@
   </p>
 </div>
 
-<aside class="event-rail animate-in animate-delay-2" id="eventRail">
+<aside class="event-rail" id="eventRail">
   <div class="event-rail-header">
     <h3>
-      <span>總經事件行事曆</span>
+      <span data-i18n="event_rail_title">總經事件行事曆</span>
       <span class="event-rail-count" id="eventRailCount">0 筆</span>
     </h3>
-    <p class="event-rail-hint">FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。</p>
+    <p class="event-rail-hint" data-i18n="event_rail_hint">FOMC 決議、CPI 跟非農的公布日。點一筆事件，圖表會跳到那一天。</p>
     <div class="event-rail-tabs" id="eventRailTabs">
-      <button class="event-tab-btn active" data-type="all" type="button">全部</button>
+      <button class="event-tab-btn active" data-type="all" type="button" data-i18n="tab_all">全部</button>
       <button class="event-tab-btn" data-type="fomc" type="button">FOMC</button>
       <button class="event-tab-btn" data-type="cpi" type="button">CPI</button>
       <button class="event-tab-btn" data-type="nfp" type="button">NFP</button>
@@ -557,7 +449,7 @@ try {
   const msg = location.protocol === "file:"
     ? "無法載入資料：用 file:// 直接開啟本檔案時瀏覽器會擋下 fetch()，請改用本機伺服器" +
       "(例如 python3 -m http.server)開啟，或直接看正式站。"
-    : `無法載入資料(dashboard_data.json)：${err.message}。請重新整理頁面，若持續發生請回報。`;
+    : `資料載入失敗（${err.message}）。請重新整理；如果還是失敗，可能是網站正在更新，稍後再試。`;
   const scoreEl = document.getElementById("gaugeScore");
   if (scoreEl) { scoreEl.textContent = "—"; scoreEl.style.fontSize = "16px"; }
   const dateEl = document.getElementById("gaugeDate");
@@ -629,11 +521,11 @@ function el(tag, attrs) {
 }
 
 const ZONES = [
-  { lo: 0, hi: 25, color: "var(--tier-extreme-fear)", opacity: 0.13 },
-  { lo: 25, hi: 45, color: "var(--tier-fear)", opacity: 0.11 },
-  { lo: 45, hi: 56, color: "var(--tier-neutral)", opacity: 0.35 },
-  { lo: 56, hi: 76, color: "var(--tier-greed)", opacity: 0.13 },
-  { lo: 76, hi: 100, color: "var(--tier-extreme-greed)", opacity: 0.13 },
+  { lo: 0, hi: 25, color: "var(--tier-extreme-fear)", opacity: 0.09 },
+  { lo: 25, hi: 45, color: "var(--tier-fear)", opacity: 0.07 },
+  { lo: 45, hi: 56, color: "var(--tier-neutral)", opacity: 0.12 },
+  { lo: 56, hi: 76, color: "var(--tier-greed)", opacity: 0.08 },
+  { lo: 76, hi: 100, color: "var(--tier-extreme-greed)", opacity: 0.09 },
 ];
 
 // ================================================================
@@ -663,6 +555,7 @@ function buildChart(cfg) {
   let viewLo = 0, viewHi = n - 1;
   let secondaryVisible = true;
   let eventsVisible = true;
+  const EVENT_FULL_LINE_MAX_SPAN = 260;  // 約一年的交易日數
   const seriesVisible = series.map(s => s.visible !== false);
   let yMin = 0, yMax = 100;
   let secMin = secondary ? secondary.min : 0, secMax = secondary ? secondary.max : 1;
@@ -805,12 +698,18 @@ function buildChart(cfg) {
     const iEnd = Math.min(n - 1, Math.ceil(viewHi));
 
     if (events && eventsVisible) {
+      // 看全部時間時，2025 年後事件密到整片虛線、蓋住分數線。範圍超過約一年
+      // (EVENT_FULL_LINE_MAX_SPAN 個交易日)只在日期軸上畫短刻度，縮到一年內才畫整條線。
+      const fullLines = (viewHi - viewLo) <= EVENT_FULL_LINE_MAX_SPAN;
       events.forEach(ev => {
         if (ev.idx < iStart || ev.idx > iEnd) return;
         const x = xScale(ev.idx);
-        const line = el("line", {
+        const line = el("line", fullLines ? {
           x1: x, x2: x, y1: M.top, y2: H - M.bottom,
-          stroke: ev.color, "stroke-width": 1.3, "stroke-dasharray": "2 3", opacity: 0.75,
+          stroke: ev.color, "stroke-width": 1, "stroke-dasharray": "2 3", opacity: 0.7,
+        } : {
+          x1: x, x2: x, y1: H - M.bottom - 7, y2: H - M.bottom,
+          stroke: ev.color, "stroke-width": 1.2, opacity: 0.9,
         });
         const title = document.createElementNS(SVGNS, "title");
         title.textContent = `${ev.title}（${dateAt(ev.idx)}）`;
@@ -993,6 +892,36 @@ function buildChart(cfg) {
   }, { passive: false });
   overlay.addEventListener("touchend", () => { dragMode = null; });
 
+  // 鍵盤操作(滑鼠滾輪、Shift 框選、雙擊的替代方式)：圖表可以 Tab 聚焦，
+  // ←／→ 前後一天，PageUp／PageDown 前後約一個月，Home／End 跳到頭尾，
+  // ＋／− 以選定日為中心放大縮小，Esc 回到全部時間範圍。
+  svgEl.setAttribute("tabindex", "0");
+  svgEl.setAttribute("role", "application");
+  svgEl.setAttribute("aria-label", "走勢圖。←／→ 移動選定日期，PageUp／PageDown 移動約一個月，＋／− 縮放，Esc 回到全部時間範圍。");
+  svgEl.addEventListener("keydown", (e) => {
+    const cur = markerIdx == null ? n - 1 : markerIdx;
+    const step = { ArrowLeft: -1, ArrowRight: 1, PageUp: -21, PageDown: 21 }[e.key];
+    if (step != null || e.key === "Home" || e.key === "End") {
+      const target = e.key === "Home" ? 0 : e.key === "End" ? n - 1 : Math.max(0, Math.min(n - 1, cur + step));
+      if (onScrub) onScrub(target);
+      if (target < viewLo || target > viewHi) {
+        const span = viewHi - viewLo;
+        const lo = Math.max(0, Math.min(n - 1 - span, target - span / 2));
+        setView(lo, lo + span);
+      }
+      e.preventDefault();
+    } else if (e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_") {
+      const factor = (e.key === "+" || e.key === "=") ? 1 / 1.5 : 1.5;
+      const span = viewHi - viewLo;
+      const newSpan = Math.max(minSpan, Math.min(n - 1, span * factor));
+      const lo = cur - (cur - viewLo) * (newSpan / span);
+      setView(lo, lo + newSpan);
+      e.preventDefault();
+    } else if (e.key === "Escape") {
+      resetView();
+    }
+  });
+
   function setSecondaryVisible(v) { secondaryVisible = v; secondaryGroup.style.display = v ? "" : "none"; }
   function setSeriesVisible(idx, v) { seriesVisible[idx] = v; redraw(); }
   function setEventsVisible(v) { eventsVisible = v; redraw(); }
@@ -1003,7 +932,7 @@ function buildChart(cfg) {
 
 // ============ 1. Gauge ============
 const gaugeSvg = document.getElementById("gaugeSvg");
-const GCX = 160, GCY = 165, GR = 128, GSTROKE = 26;
+const GCX = 160, GCY = 165, GR = 128, GSTROKE = 20;
 function gAngle(s) { return Math.PI - (Math.PI * s) / 100; }
 function gPoint(score, r) {
   const a = gAngle(score);
@@ -1031,9 +960,10 @@ const GAUGE_ZONES = [
 // CNN-style gauge: only the zone the score currently sits in gets colored in;
 // the other four stay a neutral gray track, redrawn per-render in renderGauge().
 const gaugeZonePaths = GAUGE_ZONES.map(z => {
-  const lo = z.lo === 0 ? z.lo : z.lo + 0.8;
-  const hi = z.hi === 100 ? z.hi : z.hi - 0.8;
-  const path = el("path", { d: gArc(lo, hi, GR), fill: "none", stroke: "var(--gauge-inactive)", "stroke-width": GSTROKE, "stroke-linecap": "round" });
+  // 區段之間留 0.6 分的間隙、方頭線端，讀起來是五個分級而不是一條連續色帶
+  const lo = z.lo === 0 ? z.lo : z.lo + 0.6;
+  const hi = z.hi === 100 ? z.hi : z.hi - 0.6;
+  const path = el("path", { d: gArc(lo, hi, GR), fill: "none", stroke: "var(--gauge-inactive)", "stroke-width": GSTROKE, "stroke-linecap": "butt" });
   gaugeSvg.appendChild(path);
   return path;
 });
@@ -1043,25 +973,29 @@ const gaugeZonePaths = GAUGE_ZONES.map(z => {
   t.textContent = v;
   gaugeSvg.appendChild(t);
 });
-[
-  { lo: 0, hi: 45, text: "恐懼" },
-  { lo: 45, hi: 56, text: "中性" },
-  { lo: 56, hi: 100, text: "貪婪" },
-].forEach(g => {
-  const p = gPoint((g.lo + g.hi) / 2, 100);
+// 儀表內圈的三個大分類文字。切換語言時由 renderGauge() 依 currentLang 重寫
+// (之前寫死中文，切到英文仍顯示中文)。
+const GAUGE_CAT_LABELS = [
+  { lo: 0, hi: 45, zh: "恐懼", en: "Fear" },
+  { lo: 45, hi: 56, zh: "中性", en: "Neutral" },
+  { lo: 56, hi: 100, zh: "貪婪", en: "Greed" },
+].map(g => {
+  const p = gPoint((g.lo + g.hi) / 2, 98);
   const t = el("text", { x: p.x, y: p.y + 4, "text-anchor": "middle", class: "gauge-cat-label" });
-  t.textContent = g.text;
   gaugeSvg.appendChild(t);
+  return { el: t, zh: g.zh, en: g.en };
 });
 const needleGroup = el("g", {});
-needleGroup.appendChild(el("line", { x1: GCX, y1: GCY, x2: GCX, y2: GCY - (GR - GSTROKE / 2 - 6), stroke: "var(--text-primary)", "stroke-width": 3, "stroke-linecap": "round" }));
-needleGroup.appendChild(el("circle", { cx: GCX, cy: GCY, r: 7, fill: "var(--text-primary)" }));
+needleGroup.appendChild(el("line", { x1: GCX, y1: GCY, x2: GCX, y2: GCY - (GR - GSTROKE / 2 - 4), stroke: "var(--text-primary)", "stroke-width": 2.5, "stroke-linecap": "butt" }));
+needleGroup.appendChild(el("circle", { cx: GCX, cy: GCY, r: 5, fill: "var(--text-primary)" }));
 gaugeSvg.appendChild(needleGroup);
 
 function renderGauge(pt) {
   const s = pt.score == null ? 50 : pt.score;
   const deg = 90 - (gAngle(s) * 180) / Math.PI;
   needleGroup.setAttribute("transform", `rotate(${deg} ${GCX} ${GCY})`);
+  const lang = typeof currentLang !== "undefined" ? currentLang : "zh";
+  GAUGE_CAT_LABELS.forEach(g => { g.el.textContent = lang === "en" ? g.en : g.zh; });
   const activeIdx = zoneIndex(pt.score);
   gaugeZonePaths.forEach((path, i) => {
     path.setAttribute("stroke", i === activeIdx ? GAUGE_ZONES[i].color : "var(--gauge-inactive)");
@@ -1073,7 +1007,6 @@ function renderGauge(pt) {
   document.getElementById("gaugeScore").style.fontSize = "";
   const tag = document.getElementById("gaugeTag");
   tag.textContent = translateTier(pt.label || zoneLabel(pt.score));
-  tag.style.background = `color-mix(in srgb, ${zoneColor(pt.score)} 16%, transparent)`;
   tag.style.color = zoneColor(pt.score);
   document.getElementById("gaugeDate").textContent = pt.date;
 }
@@ -1247,7 +1180,7 @@ function refreshCustomWeight() {
   mainChartHandle.setView(v.lo, v.hi, true);
   const latest = CUSTOM_SCORES[latestIdx];
   if (latest == null) {
-    customWeightReadout.innerHTML = `<span class="na">目前設定下沒有可用資料（可能全部未勾選，或當天所有勾選的因子都缺資料）</span>`;
+    customWeightReadout.innerHTML = `<span class="na">沒有可以計算的資料：可能沒有勾選任何因子，或勾選的因子當天都缺資料。</span>`;
   } else {
     const officialScore = DATA[latestIdx].score;
     customWeightReadout.innerHTML = `依你目前的設定，${DATA[latestIdx].date} 的自訂分數為 ` +
@@ -1291,7 +1224,7 @@ function applyRegimePreset() {
   if (!REGIME_META) return;
   const regime = DATA[latestIdx].regimeFed;
   const table = regime ? REGIME_META.weight_by_regime[regime] : null;
-  if (!table) { alert("目前日期沒有對應的情境權重資料，無法套用。"); return; }
+  if (!table) { showCwMsg("目前日期沒有對應的情境權重資料，無法套用。", true); return; }
   const officialFractions = Object.values(table);
   const floorFraction = Math.min(...officialFractions);
   CUSTOM_WEIGHT_FACTORS.forEach(f => {
@@ -1359,9 +1292,32 @@ function loadCwPresets() {
 function saveCwPresets(presets) {
   try {
     localStorage.setItem(CW_STORAGE_KEY, JSON.stringify(presets));
+    return true;
   } catch (e) {
-    alert("儲存失敗（可能是瀏覽器封鎖了本機儲存空間）：" + e.message);
+    showCwMsg("儲存失敗，瀏覽器可能封鎖了本機儲存空間（" + e.message + "）。", true);
+    return false;
   }
+}
+
+// 自訂權重的提示與確認都用行內訊息，不用會擋住整頁的 alert()/confirm()。
+const cwMsgEl = document.getElementById("cwMsg");
+const cwConfirmSlot = document.getElementById("cwConfirmSlot");
+let cwMsgTimer = null;
+function showCwMsg(text, isError) {
+  cwMsgEl.textContent = text;
+  cwMsgEl.classList.toggle("is-error", !!isError);
+  clearTimeout(cwMsgTimer);
+  if (!isError) cwMsgTimer = setTimeout(() => { cwMsgEl.textContent = ""; }, 4000);
+}
+function askCwConfirm(text, yesLabel, onYes, danger) {
+  cwConfirmSlot.innerHTML = `<div class="inline-confirm" role="alertdialog" aria-live="assertive">
+    <span>${escapeHtml(text)}</span>
+    <button type="button" class="cw-confirm-yes${danger ? " is-danger" : ""}">${escapeHtml(yesLabel)}</button>
+    <button type="button" class="cw-confirm-no">取消</button></div>`;
+  const yes = cwConfirmSlot.querySelector(".cw-confirm-yes");
+  yes.addEventListener("click", () => { cwConfirmSlot.innerHTML = ""; onYes(); });
+  cwConfirmSlot.querySelector(".cw-confirm-no").addEventListener("click", () => { cwConfirmSlot.innerHTML = ""; });
+  yes.focus();
 }
 
 function applyCwPreset(preset) {
@@ -1393,7 +1349,7 @@ const cwPresetListEl = document.getElementById("cwPresetList");
 function renderCwPresetList() {
   const presets = loadCwPresets();
   if (!presets.length) {
-    cwPresetListEl.innerHTML = `<p class="na" style="font-size:12px;margin:0;">尚未儲存任何設定</p>`;
+    cwPresetListEl.innerHTML = `<p class="na" style="font-size:12.5px;margin:8px 0 0;">還沒有儲存的設定。</p>`;
     return;
   }
   cwPresetListEl.innerHTML = presets.map((p, i) => `
@@ -1405,17 +1361,26 @@ function renderCwPresetList() {
     </div>
   `).join("");
   cwPresetListEl.querySelectorAll(".cw-preset-apply").forEach(btn => {
-    btn.addEventListener("click", () => applyCwPreset(loadCwPresets()[parseInt(btn.dataset.idx, 10)]));
+    btn.addEventListener("click", () => {
+      const preset = loadCwPresets()[parseInt(btn.dataset.idx, 10)];
+      if (!preset) return;
+      applyCwPreset(preset);
+      showCwMsg(`已套用「${preset.name}」。`);
+    });
   });
   cwPresetListEl.querySelectorAll(".cw-preset-delete").forEach(btn => {
     btn.addEventListener("click", () => {
       const presetsNow = loadCwPresets();
       const idx = parseInt(btn.dataset.idx, 10);
       if (!presetsNow[idx]) return;
-      if (!confirm(`確定要刪除「${presetsNow[idx].name}」這組設定嗎？`)) return;
-      presetsNow.splice(idx, 1);
-      saveCwPresets(presetsNow);
-      renderCwPresetList();
+      const name = presetsNow[idx].name;
+      askCwConfirm(`刪除「${name}」這組設定？`, "刪除", () => {
+        const latest = loadCwPresets();
+        const j = latest.findIndex(p => p.name === name);
+        if (j < 0) return;
+        latest.splice(j, 1);
+        if (saveCwPresets(latest)) { renderCwPresetList(); showCwMsg(`已刪除「${name}」。`); }
+      }, true);
     });
   });
 }
@@ -1423,21 +1388,24 @@ function renderCwPresetList() {
 document.getElementById("cwPresetSaveBtn").addEventListener("click", () => {
   const nameInput = document.getElementById("cwPresetName");
   const name = nameInput.value.trim();
-  if (!name) { alert("請先幫這組設定取個名字"); nameInput.focus(); return; }
+  if (!name) { showCwMsg("請先幫這組設定取個名字。", true); nameInput.focus(); return; }
   const presets = loadCwPresets();
   const weights = {};
   CUSTOM_WEIGHT_FACTORS.forEach(f => { weights[f.key] = { ...customState[f.key] }; });
   const entry = { name, weights, savedAt: new Date().toISOString() };
   const existingIdx = presets.findIndex(p => p.name === name);
+  const commit = () => {
+    if (existingIdx >= 0) presets[existingIdx] = entry; else presets.push(entry);
+    if (!saveCwPresets(presets)) return;
+    nameInput.value = "";
+    renderCwPresetList();
+    showCwMsg(`已儲存「${name}」。`);
+  };
   if (existingIdx >= 0) {
-    if (!confirm(`已經有一組叫「${name}」的設定，要覆蓋它嗎？`)) return;
-    presets[existingIdx] = entry;
+    askCwConfirm(`已經有一組叫「${name}」的設定，要覆蓋嗎？`, "覆蓋", commit, false);
   } else {
-    presets.push(entry);
+    commit();
   }
-  saveCwPresets(presets);
-  nameInput.value = "";
-  renderCwPresetList();
 });
 
 renderCwPresetList();
@@ -1511,7 +1479,6 @@ COMPONENTS.forEach(comp => {
   card.innerHTML = `
     <div class="comp-head">
       <div class="comp-title-block">
-        <div class="comp-kicker">${def.kicker}</div>
         <h2>${def.name}</h2>
         ${dataAvailable ? `<label class="overlay-toggle"><input type="checkbox" class="score-line-toggle" checked><span class="swatch-line" style="background:var(--series-1)"></span>顯示${def.name}分數線</label>` : ""}
         ${dataAvailable ? `<label class="overlay-toggle"><input type="checkbox" class="ust-toggle" checked>疊加美國10年期公債殖利率（右軸，%）</label>` : ""}
@@ -1531,8 +1498,8 @@ COMPONENTS.forEach(comp => {
       </div>
     </div>
     <div class="chart-toolbar">
-      <button class="jump-today zoom-reset-btn score-zoom-reset" type="button">回到全部時間範圍</button>
-      <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
+      <button class="jump-today zoom-reset-btn score-zoom-reset" type="button" data-i18n="ctrl_reset_zoom">回到全部時間範圍</button>
+      <span class="zoom-hint" data-i18n="ctrl_zoom_hint">滾輪縮放／Shift＋拖曳框選放大／拖曳平移／雙擊重置；鍵盤：←→ 移動、＋− 縮放、Esc 重置</span>
     </div>` : `
     <div class="placeholder-box">
       這個分項目前沒有歷史資料
@@ -1560,7 +1527,7 @@ COMPONENTS.forEach(comp => {
       </div>
       <div class="chart-toolbar">
         <button class="jump-today zoom-reset-btn raw-zoom-reset" type="button">回到全部時間範圍</button>
-        <span class="zoom-hint">滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置</span>
+        <span class="zoom-hint" data-i18n="ctrl_zoom_hint">滾輪縮放／Shift＋拖曳框選放大／拖曳平移／雙擊重置；鍵盤：←→ 移動、＋− 縮放、Esc 重置</span>
       </div>
       </div>
     </div>` : ""}

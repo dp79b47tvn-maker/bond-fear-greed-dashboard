@@ -244,7 +244,8 @@ append-only，**每次測試都會寫進去，不只是成功的**——這是�
   `factor_validation_analysis.py`的`REPORT_CSS`跟`factor_screening.py`的
   `render_registry_index()`各自有獨立的`<style>`區塊（後者**沒有**共用`REPORT_CSS`，
   是這次踩到的一個坑：一開始以為改`REPORT_CSS`會連動過去，實測才發現沒有，兩處都要記得改）。
-  因子篩選平台目前沒有深色模式，這是刻意的，還沒補（使用者2026-07-29明確說先不補）。
+  2026-11-12視覺改版後，顏色與字型也收斂到這裡(`LIGHT`/`DARK`/`MPL`/`ROOT_COLORS_CSS`)，三個頁面
+  (含因子篩選平台，使用者2026-11-12決定補上深色模式)都用同一套 token，不再各自寫死 hex。設計規則見`DESIGN.md`。
 - `transform_modes.py`：六種因子轉換模式、資料來源解析(`_resolve_source`)、候選分數計算
   (`build_candidate_score`)——原本定義在`factor_screening.py`裡，2026-07-29抽出來獨立成模組。
   **原因**：`update_dashboard.py`要用同一套邏輯重算「升等候選因子」的分數（見下方），但
