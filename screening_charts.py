@@ -11,11 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import factor_validation_analysis as fva
+import page_style
 import update_dashboard as ud
 from transform_modes import _resolve_source
 
 # 跟儀表板一致的情緒分級色階(淺色模式)，用在分數走勢圖的背景色帶
-TIER_COLORS = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"]
+C = page_style.MPL  # 圖表顏色跟網頁共用同一套 token(page_style.py)
+TIER_COLORS = [C["fear"], C["fear_light"], C["neutral"], C["greed_light"], C["greed"]]
 
 
 # ================================================================ 熱力圖
@@ -40,7 +42,7 @@ def heatmap_chart_base64(heatmap_data, title, cmap="RdBu_r"):
     for i in range(grid.shape[0]):
         for j in range(grid.shape[1]):
             if np.isfinite(grid[i, j]):
-                ax.text(j, i, f"{grid[i, j]:.1f}", ha="center", va="center", fontsize=6, color="#1a1a1a")
+                ax.text(j, i, f"{grid[i, j]:.1f}", ha="center", va="center", fontsize=6, color=C["ink"])
     unit_str = "殖利率變動 (bp)" if fva.TARGET == "UST_10Yr" else "報酬 (%)"
     fig.colorbar(im, ax=ax, shrink=0.8, label=unit_str)
     fig.tight_layout()
@@ -54,14 +56,14 @@ def backtest_chart_base64(bt, label):
     if bt is None:
         return None
     fig, ax = plt.subplots(figsize=(7.6, 3.6), dpi=140)
-    ax.plot(bt["curve"].index, bt["curve"], color="#1e3a5f", linewidth=1.4,
+    ax.plot(bt["curve"].index, bt["curve"], color=C["series"][0], linewidth=1.4,
             label="因子策略（累積價格報酬 bp）")
-    ax.plot(bt["curve_bh"].index, bt["curve_bh"], color="#a6742a", linewidth=1.1,
+    ax.plot(bt["curve_bh"].index, bt["curve_bh"], color=C["series"][1], linewidth=1.1,
             linestyle="--", alpha=0.85, label="對照：無條件買進持有")
     ax.axhline(0, color="#888", linewidth=0.8)
-    ax.axvline(bt["split_date"], color="#a6362f", linewidth=1.0, linestyle=":", alpha=0.8)
+    ax.axvline(bt["split_date"], color=C["muted"], linewidth=1.0, linestyle=":", alpha=0.8)
     ax.text(bt["split_date"], ax.get_ylim()[1], " 樣本外起點 ", fontsize=7.5,
-            color="#a6362f", va="top", ha="left")
+            color=C["muted"], va="top", ha="left")
     ax.set_ylabel("累積報酬 (bp)", fontsize=9)
     ax.tick_params(labelsize=8)
     ax.legend(fontsize=8, loc="upper left", frameon=False)
@@ -89,16 +91,16 @@ def score_trend_chart_base64(main_df, key, label):
         hi = min(th["lt"], 100)
         ax.axhspan(prev, hi, color=TIER_COLORS[i % len(TIER_COLORS)], alpha=0.10, zorder=0)
         prev = th["lt"]
-    ax.plot(main_df.index, main_df[key], color="#1e3a5f", linewidth=1.2, label=label, zorder=3)
+    ax.plot(main_df.index, main_df[key], color=C["series"][0], linewidth=1.2, label=label, zorder=3)
     ax.set_ylim(0, 100)
     ax.set_ylabel("分數 (0–100)", fontsize=9)
     ax.tick_params(labelsize=8)
     if "UST_10Yr" in main_df.columns:
         ax2 = ax.twinx()
-        ax2.plot(main_df.index, main_df["UST_10Yr"], color="#a6742a", linewidth=1.0,
+        ax2.plot(main_df.index, main_df["UST_10Yr"], color=C["series"][1], linewidth=1.0,
                   linestyle="--", alpha=0.75, zorder=2)
-        ax2.set_ylabel("10年期公債殖利率 (%，僅供對照)", fontsize=9, color="#a6742a")
-        ax2.tick_params(labelsize=8, colors="#a6742a")
+        ax2.set_ylabel("10年期公債殖利率 (%，僅供對照)", fontsize=9, color=C["series"][1])
+        ax2.tick_params(labelsize=8, colors=C["series"][1])
     ax.set_title(f"{label}：分數走勢（疊加美國10年期公債殖利率，僅供對照）", fontsize=10)
     for spine in ["top"]:
         ax.spines[spine].set_visible(False)
@@ -127,18 +129,18 @@ def fear_greed_overlay_chart_base64(main_df, key, label, fear_threshold=25, gree
     fig, ax = plt.subplots(figsize=(7.6, 3.6), dpi=140)
 
     # 底層：ZN期貨價格線
-    ax.plot(price.index, price.values, color="#888888", linewidth=0.9, alpha=0.6, zorder=1)
+    ax.plot(price.index, price.values, color=C["axis"], linewidth=0.9, alpha=0.6, zorder=1)
 
     # 恐懼散點（綠色）
     if n_fear > 0:
         fear_dates = price.index[fear_mask.reindex(price.index, fill_value=False)]
-        ax.scatter(fear_dates, price.loc[fear_dates], color="#2f6b4f", s=12, alpha=0.7,
+        ax.scatter(fear_dates, price.loc[fear_dates], color=C["fear"], s=12, alpha=0.7,
                    edgecolors="none", zorder=3, label=f"分數<{fear_threshold} 極度恐懼（{n_fear}天）")
 
     # 貪婪散點（紅色）
     if n_greed > 0:
         greed_dates = price.index[greed_mask.reindex(price.index, fill_value=False)]
-        ax.scatter(greed_dates, price.loc[greed_dates], color="#a6362f", s=12, alpha=0.7,
+        ax.scatter(greed_dates, price.loc[greed_dates], color=C["greed"], s=12, alpha=0.7,
                    edgecolors="none", zorder=3, label=f"分數>{greed_threshold} 極度貪婪（{n_greed}天）")
 
     y_label = "10年期美債殖利率 (%)" if target == "UST_10Yr" else "ZN期貨價格"
@@ -167,19 +169,19 @@ def raw_data_chart_base64(config, main_df, label):
             series = series.reindex(main_df.index)
             ma = series.rolling(window, min_periods=window).mean() if window else None
             fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
-            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            ax.plot(main_df.index, series, color=C["series"][0], linewidth=1.1, label="原始數列")
             if ma is not None:
-                ax.plot(main_df.index, ma, color="#a6742a", linewidth=1.1, label=f"{window}日移動平均")
+                ax.plot(main_df.index, ma, color=C["series"][1], linewidth=1.1, label=f"{window}日移動平均")
         elif mode == "range_position":
             series, _ = _resolve_source(sources["series"], main_df)
             series = series.reindex(main_df.index)
             hi = series.rolling(window, min_periods=window).max() if window else None
             lo = series.rolling(window, min_periods=window).min() if window else None
             fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
-            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            ax.plot(main_df.index, series, color=C["series"][0], linewidth=1.1, label="原始數列")
             if hi is not None:
-                ax.plot(main_df.index, hi, color="#a6362f", linewidth=0.9, alpha=0.75, label=f"{window}日滾動高點")
-                ax.plot(main_df.index, lo, color="#2f6b4f", linewidth=0.9, alpha=0.75, label=f"{window}日滾動低點")
+                ax.plot(main_df.index, hi, color=C["series"][1], linewidth=0.9, alpha=0.75, label=f"{window}日滾動高點")
+                ax.plot(main_df.index, lo, color=C["series"][2], linewidth=0.9, alpha=0.75, label=f"{window}日滾動低點")
         elif mode == "return_spread":
             series_a, _ = _resolve_source(sources["a"], main_df)
             series_b, _ = _resolve_source(sources["b"], main_df)
@@ -188,26 +190,26 @@ def raw_data_chart_base64(config, main_df, label):
                 series_b.dropna().iloc[0] if series_b.dropna().size else None
             fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
             if base_a:
-                ax.plot(main_df.index, series_a / base_a * 100, color="#1e3a5f", linewidth=1.1,
+                ax.plot(main_df.index, series_a / base_a * 100, color=C["series"][0], linewidth=1.1,
                         label="數列A（指數化，起點=100）")
             if base_b:
-                ax.plot(main_df.index, series_b / base_b * 100, color="#a6742a", linewidth=1.1,
+                ax.plot(main_df.index, series_b / base_b * 100, color=C["series"][1], linewidth=1.1,
                         label="數列B（指數化，起點=100）")
         elif mode == "value_spread":
             series_a, _ = _resolve_source(sources["a"], main_df)
             series_b, _ = _resolve_source(sources["b"], main_df)
             series_a, series_b = series_a.reindex(main_df.index), series_b.reindex(main_df.index)
             fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
-            ax.plot(main_df.index, series_a, color="#1e3a5f", linewidth=1.1, label="數列A")
-            ax.plot(main_df.index, series_b, color="#a6742a", linewidth=1.1, label="數列B")
+            ax.plot(main_df.index, series_a, color=C["series"][0], linewidth=1.1, label="數列A")
+            ax.plot(main_df.index, series_b, color=C["series"][1], linewidth=1.1, label="數列B")
         elif mode == "rolling_stat":
             series, _ = _resolve_source(sources["series"], main_df)
             series = series.reindex(main_df.index)
             med = series.rolling(window, min_periods=window).median() if window else None
             fig, ax = plt.subplots(figsize=(7.6, 3.2), dpi=140)
-            ax.plot(main_df.index, series, color="#1e3a5f", linewidth=1.1, label="原始數列")
+            ax.plot(main_df.index, series, color=C["series"][0], linewidth=1.1, label="原始數列")
             if med is not None:
-                ax.plot(main_df.index, med, color="#a6742a", linewidth=1.1, label=f"{window}日滾動中位數")
+                ax.plot(main_df.index, med, color=C["series"][1], linewidth=1.1, label=f"{window}日滾動中位數")
         else:
             return None
     except Exception:

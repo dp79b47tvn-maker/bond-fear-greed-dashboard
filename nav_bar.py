@@ -22,6 +22,8 @@ width:fit-content 置中膠囊改成 width:100%——三段要分得開就需要
 寬度走，所以在儀表板(1400px)跟首頁(1120px)上寬度不同，但各自都跟該頁內容切齊。
 同日稍後再改成長方形滿版吸頂列(position:fixed)，圓角與「不吸頂」都不再成立，
 尺寸比照 MacroMicro 的比例(列高約為導覽字級的5倍、logo約佔列高45%)。
+2026-11-12：作者重申導覽列要「不吸頂、置中固定寬度、四角圓角」，改回這個做法，
+顏色改用 page_style.py 的共用 token。
 左側logo直接引用 chart/favicon.svg，產出頁面都在 chart/ 這層，相對路徑就到得了。
 
 用法：
@@ -39,115 +41,52 @@ PAGES = [
 ]
 
 NAV_BAR_CSS = """
-/* 三段式(左logo / 中導覽 / 右設定)、長方形、鎖在頂端：position:fixed，捲頁完全不會跑掉。
-
-   為什麼不是 sticky：sticky 只能在「自己的父容器範圍內」吸附，而儀表板的 nav
-   包在 .nav-wrap 裡、那個 div 只有 90px 高——捲過去之後 nav 就跟著父容器一起
-   離開畫面了(實測捲到 900px 時 nav 已經在 -870px)。fixed 是相對視窗定位，沒有
-   這個限制。
-
-   fixed 用 left:0/right:0 撐滿，不用 100vw——vw 會把捲軸寬度算進去，導致多出
-   一條水平捲軸(這個坑先前用 -50vw 做滿版背景時踩過)。
-
-   fixed 會脫離文件流不佔位，所以下面補 body padding-top 把高度還回去，不然
-   內容會被蓋住。注意：任何祖先只要有 transform 就會讓 fixed 改成相對它定位，
-   所以 dashboard_template.html 的 .nav-wrap 已經拿掉 animate-in(那個動畫的
-   fill-mode:both 會留下 transform:translateY(0))。 */
-body { padding-top: 79px; }
+/* 2026-11-12：照作者明確要求改回「不吸頂、置中、固定最大寬度、四角圓角」。
+   (2026-08-28 曾改成 position:fixed 的滿版長方形列，與作者的要求不符。)
+   顏色全部用 page_style.py 的 token，各頁都有注入 ROOT_COLORS_CSS。 */
 .site-topnav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  margin: 0; padding: 0 34px; min-height: 78px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: none; border-bottom: 1px solid #dfe2e8; border-radius: 0; box-shadow: none;
+  position: static; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: calc(100% - 48px); max-width: 1400px; margin: 16px auto 0; padding: 8px 12px 8px 14px; min-height: 56px;
+  background: var(--surface-1); border: 1px solid var(--rule); border-radius: 10px;
 }
 .nav-brand {
   display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0;
-  text-decoration: none; padding: 5px 12px 5px 7px; border-radius: 999px;
-  transition: background-color 0.22s ease;
+  text-decoration: none; padding: 4px 6px; border-radius: 6px;
 }
-.nav-brand:hover { background: rgba(30,58,95,0.06); }
-.nav-logo { width: 34px; height: 34px; display: block; flex-shrink: 0; }
-.nav-brand-text {
-  font-size: 17px; font-weight: 700; color: #1e3a5f;
-  white-space: nowrap; letter-spacing: -0.01em;
-}
-/* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。
-   只用 justify-content:space-between 的話，中段位置會被左右兩側的實際寬度
-   推著跑——左邊品牌比右邊設定寬，中段就會偏右(實測偏了72px)。 */
+.nav-brand:hover { background: var(--surface-2); }
+.nav-logo { width: 28px; height: 28px; display: block; flex-shrink: 0; }
+.nav-brand-text { font-size: 16px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+/* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。 */
 .nav-side { flex: 1 1 0; display: flex; align-items: center; min-width: 0; }
 .nav-side-end { justify-content: flex-end; }
-.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.nav-links { display: flex; align-items: stretch; gap: 2px; flex-wrap: wrap; justify-content: center; }
 .nav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
 .nav-links a, .nav-links span.active {
-  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 16px;
-  padding: 10px 19px; border-radius: 999px; white-space: nowrap;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 15px;
+  padding: 8px 14px; border-radius: 6px; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 -2px 0 transparent;
 }
-.nav-links a:hover {
-  background: rgba(30,58,95,0.08); color: #1e3a5f;
-  transform: translateY(-1px) scale(1.02);
-}
-.nav-links a:active { transform: scale(0.97); }
-.nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); font-weight: 700; }
-
+.nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
+.nav-links span.active { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 6px 6px 0 0; }
 .lang-toggle-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: var(--surface-2, #f8f9fb); border: 1px solid var(--border, #dfe2e8);
-  color: var(--text-secondary, #4a5568); font-size: 14px; font-weight: 700;
-  padding: 8px 16px; border-radius: 999px; cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  outline: none;
+  display: inline-flex; align-items: center; min-height: 36px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
 }
-.lang-toggle-btn:hover {
-  background: var(--surface-1, #ffffff); color: var(--series-1, #1e3a5f); border-color: var(--axis, #a7adb9);
-  transform: translateY(-1px) scale(1.03); box-shadow: 0 2px 6px rgba(22,26,35,0.06);
-}
-.lang-toggle-btn:active { transform: scale(0.96); }
-.lang-icon { font-size: 14px; }
-
-/* 窄螢幕：三段擠一行放不下(「因子開發與篩選平台」9個字就吃掉整排)，
-   改成兩行——第一行左logo右設定，導覽整條掉到第二行置中。
-   單純縮字級是不夠的，實測375px下會直接溢出被設定鈕蓋住。 */
+.lang-toggle-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+/* 窄螢幕：三段擠一行放不下，改兩行——第一行品牌＋語言，第二行頁面導覽。
+   品牌文字保留(之前在手機上被隱藏，只剩 logo，訪客看不出這是什麼網站)。 */
 @media (max-width: 780px) {
-  body { padding-top: 120px; }  /* 兩行版實測 118px，多留 2px */
-  .site-topnav { flex-wrap: wrap; row-gap: 8px; gap: 8px; padding: 11px 16px; min-height: 0; }
-  .nav-brand-text { display: none; }
-  .nav-side { flex: 0 0 auto; }
-  .nav-side-end { margin-left: auto; }
-  .nav-links { order: 3; flex-basis: 100%; min-width: 0; }
-  .nav-links a, .nav-links span.active { padding: 8px 14px; font-size: 14.5px; }
+  .site-topnav { flex-wrap: wrap; row-gap: 4px; width: calc(100% - 32px); margin: 10px auto 0; padding: 8px 10px; }
+  .nav-side { flex: 1 1 auto; }
+  .nav-side-end { flex: 0 0 auto; }
+  .nav-brand-text { font-size: 15px; }
+  .nav-links { order: 3; flex-basis: 100%; min-width: 0; justify-content: flex-start; border-top: 1px solid var(--rule); padding-top: 4px; }
+  .nav-links a, .nav-links span.active { padding: 8px 10px; font-size: 14px; min-height: 40px; }
 }
-
-@media (prefers-color-scheme: dark) {
-  .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
-  .nav-links a, .nav-links span.active { color: #b8c0cc; }
-  .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-  .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
-  .nav-brand-text { color: #e4e8ee; }
-  .nav-brand:hover { background: rgba(126,163,207,0.10); }
-  .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
-  .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
-}
-:root[data-theme="dark"] .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
-:root[data-theme="dark"] .nav-links a, :root[data-theme="dark"] .nav-links span.active { color: #b8c0cc; }
-:root[data-theme="dark"] .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="dark"] .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
-:root[data-theme="dark"] .nav-brand-text { color: #e4e8ee; }
-:root[data-theme="dark"] .nav-brand:hover { background: rgba(126,163,207,0.10); }
-:root[data-theme="dark"] .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
-:root[data-theme="dark"] .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
-
-:root[data-theme="light"] .site-topnav { background: rgba(255, 255, 255, 0.88); border-bottom-color: #dfe2e8; }
-:root[data-theme="light"] .nav-links a, :root[data-theme="light"] .nav-links span.active { color: #4a5568; }
-:root[data-theme="light"] .nav-links a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="light"] .nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); }
-:root[data-theme="light"] .nav-brand-text { color: #1e3a5f; }
-:root[data-theme="light"] .lang-toggle-btn { background: #f8f9fb; border-color: #dfe2e8; color: #4a5568; }
-:root[data-theme="light"] .lang-toggle-btn:hover { background: #ffffff; color: #1e3a5f; border-color: #a7adb9; }
 """
 
 LANG_TOGGLE_JS = """
@@ -161,43 +100,44 @@ const I18N_DICT = {
     
     // Dashboard Page
     dash_title: "債券市場恐懼貪婪儀表板",
-    dash_subtitle: "A Quantitative Sentiment Framework for U.S. Treasury Markets",
-    dash_caption: "動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯",
+    dash_subtitle: "",
+    dash_caption: "綜合分數是各因子 0 到 100 分的等權重平均，當天缺資料的因子不列入。往下依序是總分、歷史走勢跟各因子拆解。",
     dash_latest_label: "最新收盤日綜合分數",
-    dash_logic_btn: "綜合分數的計算邏輯與可信度",
-    dash_method_how: "<b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。",
-    dash_method_percentile: "<b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。",
+    dash_logic_btn: "計算方式與限制",
+    dash_method_how: "<b>怎麼算：</b>綜合分數是各分項 0 到 100 分的等權重算術平均。某個分項當天沒有資料就不列入，由其餘分項平均，不用假數字填補。分級：0–24 極度恐懼、25–44 恐懼、45–55 中性、56–75 貪婪、76–100 極度貪婪，區間跟 CNN Fear &amp; Greed Index 相同。",
+    dash_method_percentile: "<b>為什麼每項都是 0 到 100：</b>把當天的原始數值放進過去 5 年（1825 天）的分佈取百分位，分數 98 代表比過去 5 年 98% 的日子都高。公式：分數 =（視窗內數值 ≤ 今天的天數）÷ 1825 × 100。這樣單位不同的指標（%、點數、指數）可以直接平均，比的是相對位置，市場整體水位改變也不影響。",
     dash_method_sources_title: "<b>資料來源明細：</b>",
     dash_method_th_field: "欄位",
     dash_method_th_code: "代號",
     dash_method_th_source: "來源",
     dash_method_th_history: "可回溯到",
     dash_method_th_desc: "說明",
-    dash_method_no_future: "<b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。",
-    dash_method_limits: "<b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。",
+    dash_method_no_future: "<b>不使用未來資料：</b>所有滾動計算（移動平均、區間報酬、5 年百分位）都只用當天和以前的資料。",
+    dash_method_limits: "<b>限制：</b>這是跟過去 5 年比的位置指標，不是預測模型。極端事件滿 5 年移出視窗後，同樣的原始數值會算出不同分數。週末跟假日沿用前一個交易日的數值。",
     dash_custom_weight_title: "自訂權重",
     dash_custom_weight_tag: "研究用",
     dash_custom_weight_explain: "這是什麼",
-    dash_custom_weight_desc: "給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。<b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。",
-    dash_custom_mode_label: "啟用自訂模式（在下方走勢圖疊加一條虛線）",
+    dash_custom_weight_desc: "勾選要納入的因子、拖曳權重，看看不同組合下的歷史走勢跟今天的分數。結果只會在下方走勢圖多畫一條虛線，上方的官方分數維持等權重平均，不受影響。",
+    dash_custom_mode_label: "在走勢圖加上自訂權重的虛線",
     dash_history_title: "綜合指數歷史時間軸",
-    dash_history_sub: "· 觀察2020年至今美債情緒高低點變化，點圖表可切換各收盤日細節",
-    dash_history_hint: "分數為每日收盤資料計算，非盤中即時。點擊任何圖表（含下方各分項小圖）會連動整頁的選定日期；縮放與平移所有圖表同步聯動，也可用 1M/3M/6M/1Y/2Y/ALL 按鈕快速切換時間範圍。殖利率線只是價格參考疊圖，不參與分數計算。",
+    dash_history_sub: "2020 年至今。點圖表可以看那一天的細節。",
+    dash_history_hint: "分數用每日收盤資料計算，不是盤中即時。點任一張圖，整頁會跳到同一天；縮放跟平移會同步到所有圖表，也可以用 1M／3M／6M／1Y／2Y／ALL 切換範圍。殖利率線只是參考，不參與分數計算。",
     dash_legend_score: "綜合分數 (等權重)",
     dash_legend_neutral: "50分中性基準線",
     dash_legend_ust10: "10年期公債殖利率 (%)",
     dash_legend_custom: "自訂組合分數",
     dash_components_title: "分項拆解",
     dash_components_sub: "· 每項各自的計算方式與歷史時間軸",
-    dash_footnote: "資料來源：Yahoo Finance（ZN=F、HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
+    dash_footnote: "資料來源：Yahoo Finance（HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "拖曳時間軸選日期",
     ctrl_jump_date: "跳至日期",
     ctrl_jump_latest: "回到最新",
     ctrl_reset_zoom: "回到全部時間範圍",
-    ctrl_zoom_hint: "滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置",
+    ctrl_zoom_hint: "滾輪縮放／Shift＋拖曳框選放大／拖曳平移／雙擊重置；鍵盤：←→ 移動、＋− 縮放、Esc 重置",
     ctrl_show_events: "顯示事件標記線（FOMC／CPI／NFP）",
+    ctrl_rail_jump: "事件行事曆 ↓",
     comp_prev_day: "前一交易日",
     comp_1w: "一週前",
     comp_1m: "一個月前",
@@ -206,7 +146,7 @@ const I18N_DICT = {
     // Custom Weights
     cw_preset_placeholder: "幫這組設定取個名字，例如「重視銅金比」",
     cw_preset_save: "儲存目前設定",
-    cw_preset_hint: "設定僅存於<b>目前這台裝置的這個瀏覽器</b>（localStorage）——換裝置、換瀏覽器、清瀏覽器資料、或用無痕視窗，都不會看到已儲存的設定；不會上傳到任何伺服器。",
+    cw_preset_hint: "設定只存在這台裝置的這個瀏覽器（localStorage），不會上傳。換裝置、換瀏覽器、清除瀏覽資料或用無痕視窗都看不到。",
     cw_apply_regime: "套用目前情境動態權重",
 
     // Emotion Tiers
@@ -217,45 +157,47 @@ const I18N_DICT = {
     tier_extreme_greed: "極度貪婪",
     
     // Event Rail
-    event_rail_title: "📅 總經事件行事曆",
-    event_rail_hint: "FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。",
+    event_rail_title: "總經事件行事曆",
+    event_rail_hint: "FOMC 決議、CPI 跟非農的公布日。點一筆事件，圖表會跳到那一天。",
     tab_all: "全部",
     
     // Hub Page
-    hub_title: "債券市場恐懼貪婪 · 專案首頁",
-    hub_lede: "美債市場指標彙整成每日恐懼貪婪分數，配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。",
+    hub_title: "債券市場恐懼貪婪指數",
+    hub_lede: "把美國公債市場的指標換算成每天 0 到 100 的恐懼貪婪分數，每個交易日收盤後更新。公式跟資料來源都寫在儀表板上，可以自己驗算。",
     hub_intro_title: "這是什麼",
-    hub_intro_p1: "「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這2項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。",
-    hub_intro_p2: "每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。",
-    hub_intro_p3: "<b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。",
+    hub_spark_caption: "0–100，虛線為 50 分",
+    hub_intro_p1: "恐懼貪婪指數的概念來自 CNN 的股市版：用一組市場指標算出 0 到 100 的分數。分數越低，市場越偏向避險；越高，越願意承擔風險。這裡把同一套做法用在<b>美國公債市場</b>，目前採用殖利率動能跟銅金比，每個交易日收盤後重算。",
+    hub_intro_p2: "每項指標先換算成它在過去 5 年裡的百分位（0 到 100），再取平均。分數說的是跟近 5 年比，現在的情緒偏向哪一端。<b>它不是預測模型，也不是投資建議。</b>",
+    hub_intro_p3: "想看今天的分數跟歷史走勢，到「即時儀表板」。想測試某個新指標加進來對綜合分數有沒有幫助，到「因子開發與篩選平台」。",
     hub_live_title: "即時儀表板",
-    hub_live_desc: "今日綜合分數與因子走勢，互動時間軸，每日收盤後更新。",
+    hub_live_desc: "今天的綜合分數、各因子走勢跟可以拖曳的時間軸，每個交易日收盤後更新。",
     hub_platform_title: "因子開發與篩選平台",
-    hub_platform_desc: "整合線上回測與歷史測試登記，快速驗證新因子的增量價值與可行性。",
+    hub_platform_desc: "輸入新因子跑關卡檢驗跟回測，每次結果都留在登記簿；也可以產生因子之間的相關係數矩陣。",
 
     // Screening Page
-    screening_title: "因子開發與篩選平台 · 債券市場恐懼貪婪",
-    screening_card1_title: "➕ 輸入新因子進行驗證",
-    form_token_summary: "🔑 設定 GitHub Personal Access Token (第一次使用必填)",
-    form_token_hint: "填入授權 Token (具備 repo/workflow 權限)，安全儲存於本機瀏覽器 (localStorage)。",
-    form_key_label: "因子英文代號 (Key)",
+    screening_title: "因子開發與篩選平台",
+    screening_card1_title: "測試新因子",
+    form_token_summary: "GitHub Personal Access Token（第一次使用要填）",
+    form_token_hint: "需要 repo 跟 workflow 權限。Token 只存在這個瀏覽器的 localStorage，不會進 git。",
+    form_key_label: "因子代號（英文，會當檔名）",
     form_key_placeholder: "例: vix_ma_dev",
-    form_label_label: "因子中文名稱 (Label)",
+    form_label_label: "因子名稱",
     form_label_placeholder: "例: VIX 125日均線乖離率",
-    form_mode_label: "轉換模式 (Mode)",
-    form_window_label: "滾動視窗 (Window 天數)",
+    form_mode_label: "轉換模式",
+    form_window_label: "滾動視窗（天）",
     form_source_a_label: "資料來源 (Source A)",
     form_source_placeholder: "打字搜尋，例如：十年期公債 / DGS10 / VIX",
     form_manual_toggle: "找不到？手動輸入類型與代號",
-    form_invert_label: "數值反轉 (Invert Score) —— 勾選時數值越高得分越低（反向指標）",
-    form_submit_btn: "🚀 提交驗證並即時呈現分析報告圖表",
-    corr_card_title: "🔗 產生因子相關係數矩陣",
-    corr_card_desc: "勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。",
-    corr_submit_btn: "📊 產生相關係數矩陣",
+    form_invert_label: "數值越高代表越恐懼時勾選，分數會反轉。",
+    form_submit_btn: "送出並產生報告",
+    corr_card_title: "產生因子相關係數矩陣",
+    corr_card_desc: "勾選要比較的因子，產生兩兩相關係數熱力圖。相關係數太高，代表兩個因子在講同一件事，加進來的幫助有限。算完會顯示在下方。",
+    corr_submit_btn: "產生相關係數矩陣",
+    corr_token_summary: "GitHub Personal Access Token（跟上面表單共用同一組）",
     reg_title: "歷史測試紀錄登記簿",
-    reg_sub: "(點擊因子名稱可直接在下方展開報告圖表)",
+    reg_sub: "點因子名稱可以展開報告",
     th_date: "測試日期",
-    th_factor: "因子 (點擊名稱展開報告)",
+    th_factor: "因子",
     th_mode: "轉換模式",
     th_ic: "IC(20日,重疊取樣)",
     th_flags: "型態標記",
@@ -282,43 +224,44 @@ const I18N_DICT = {
     
     // Dashboard Page
     dash_title: "U.S. Bond Fear & Greed Dashboard",
-    dash_subtitle: "A Quantitative Sentiment Framework for U.S. Treasury Markets",
-    dash_caption: "Momentum, Copper/Gold — Equal-weighted average of 0–100 scores. View composite index first, then break down individual factor components below.",
+    dash_subtitle: "Daily sentiment score for the U.S. Treasury market",
+    dash_caption: "The composite score is the equal-weighted average of each factor's 0–100 score; factors with no data that day are left out. Below: the total, its history, then each factor.",
     dash_latest_label: "Latest Composite Sentiment Score",
-    dash_logic_btn: "Calculation Methodology & Credibility",
-    dash_method_how: "<b>Calculation Methodology:</b> Composite Score = <b>equal-weighted arithmetic mean</b> of individual 0–100 factor scores. Missing items are automatically excluded. Sentiment Tiers: 0–24 Extreme Fear / 25–44 Fear / 45–55 Neutral / 56–75 Greed / 76–100 Extreme Greed.",
-    dash_method_percentile: "<b>Rolling Percentiles (0–100 Scale):</b> Scores place today's raw value into a <b>rolling 5-year (1825-day) distribution</b>. A score of 98 indicates higher than 98% of trading days in the past 5 years. Formula: Score = (Days with Value ≤ Today) ÷ 1825 × 100.",
+    dash_logic_btn: "How it's calculated & limits",
+    dash_method_how: "<b>How it's calculated:</b> the composite is the equal-weighted mean of each factor's 0–100 score. A factor with no data that day is left out rather than filled in. Tiers: 0–24 Extreme Fear, 25–44 Fear, 45–55 Neutral, 56–75 Greed, 76–100 Extreme Greed, the same ranges as CNN's Fear &amp; Greed Index.",
+    dash_method_percentile: "<b>Why every factor is 0–100:</b> today's raw value is ranked within the past 5 years (1825 days); a score of 98 means it is higher than 98% of those days. Formula: Score = (days in window with value ≤ today) ÷ 1825 × 100. Indicators in different units (%, points, index levels) can then be averaged, and a shift in the overall level of the market does not distort the score.",
     dash_method_sources_title: "<b>Data Sources Detail:</b>",
     dash_method_th_field: "Field",
     dash_method_th_code: "Ticker",
     dash_method_th_source: "Source",
     dash_method_th_history: "History",
     dash_method_th_desc: "Description",
-    dash_method_no_future: "<b>No Look-Ahead Bias:</b> All rolling calculations (125D MA, 40D Return, 5Y Percentile) strictly rely on historical data up to today.",
-    dash_method_limits: "<b>Limitations:</b> This is a relative 5-year positioning index, not a predictive model. Extreme historical events rolling out after 5 years will shift percentile scores.",
+    dash_method_no_future: "<b>No look-ahead:</b> every rolling calculation (moving averages, period returns, 5-year percentiles) uses only data up to that day.",
+    dash_method_limits: "<b>Limits:</b> this measures position relative to the past 5 years; it is not a forecasting model. When an extreme event rolls out of the 5-year window, the same raw value produces a different score. Weekends and holidays carry the previous trading day's value.",
     dash_custom_weight_title: "Custom Weights",
     dash_custom_weight_tag: "Research Mode",
     dash_custom_weight_explain: "What is this",
-    dash_custom_weight_desc: "An interactive research tool: check factors & adjust sliders to explore custom weight combinations. <b>Does not override official equal-weighted scores</b>.",
-    dash_custom_mode_label: "Enable Custom Mode (Overlays dashed line on timeline chart)",
+    dash_custom_weight_desc: "Choose factors and drag their weights to see how a different mix changes the history and today's score. The result only adds a dashed line to the chart below; the official equal-weighted score above stays unchanged.",
+    dash_custom_mode_label: "Show custom-weight line on the chart",
     dash_history_title: "Composite Index Historical Timeline",
-    dash_history_sub: "· Track U.S. Treasury sentiment peaks & troughs from 2020 to present. Click chart to inspect daily details.",
-    dash_history_hint: "Daily closing calculations (not intraday). Click any chart to sync date across all components. Panning & zooming syncs synchronously across all charts.",
+    dash_history_sub: "2020 to today. Click the chart to see that day's details.",
+    dash_history_hint: "Scores use daily closes, not intraday data. Click any chart to move the whole page to that day. Zoom and pan apply to every chart; the 1M–ALL buttons switch the range. The yield line is for reference only and is not part of the score.",
     dash_legend_score: "Composite Score (Equal-Weighted)",
     dash_legend_neutral: "50 Neutral Baseline",
     dash_legend_ust10: "10-Year Treasury Yield (%)",
     dash_legend_custom: "Custom Weight Composite Score",
     dash_components_title: "Factor Component Breakdown",
     dash_components_sub: "· Detailed calculation methodology & individual timeline charts",
-    dash_footnote: "Data sources: Yahoo Finance (ZN=F, HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
+    dash_footnote: "Data sources: Yahoo Finance (HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "Drag timeline to select date",
     ctrl_jump_date: "Jump to date",
     ctrl_jump_latest: "Jump to Latest",
     ctrl_reset_zoom: "Reset Time Range",
-    ctrl_zoom_hint: "Scroll to zoom / Shift+drag to box-select / Drag to pan / Double-click to reset",
+    ctrl_zoom_hint: "Scroll to zoom / Shift+drag to box-select / Drag to pan / Double-click to reset; keyboard: ←→ move, +− zoom, Esc reset",
     ctrl_show_events: "Show Event Lines (FOMC / CPI / NFP)",
+    ctrl_rail_jump: "Event calendar ↓",
     comp_prev_day: "1 Day Ago",
     comp_1w: "1 Week Ago",
     comp_1m: "1 Month Ago",
@@ -327,7 +270,7 @@ const I18N_DICT = {
     // Custom Weights
     cw_preset_placeholder: "Preset name, e.g. 'Copper-Gold Focus'",
     cw_preset_save: "Save Preset",
-    cw_preset_hint: "Presets are saved locally in your browser storage (localStorage).",
+    cw_preset_hint: "Presets are kept only in this browser on this device (localStorage) and are never uploaded. They won't appear on another device or browser, after clearing site data, or in a private window.",
     cw_apply_regime: "Apply Current Regime Weights",
 
     // Emotion Tiers
@@ -338,45 +281,47 @@ const I18N_DICT = {
     tier_extreme_greed: "Extreme Greed",
     
     // Event Rail
-    event_rail_title: "📅 Macro Event Calendar",
-    event_rail_hint: "FOMC, CPI, NFP & major release dates. Click to sync timeline chart.",
+    event_rail_title: "Macro Event Calendar",
+    event_rail_hint: "FOMC decisions and CPI and payroll release dates. Click an event to jump the chart to that day.",
     tab_all: "ALL",
     
     // Hub Page
-    hub_title: "U.S. Bond Fear & Greed · Home",
-    hub_lede: "Quantifying U.S. Treasury market sentiment into daily 0–100 scores with continuous factor discovery.",
+    hub_title: "U.S. Treasury Fear & Greed Index",
+    hub_lede: "Daily 0–100 fear & greed score for the U.S. Treasury market, updated after each close. Every formula and data source is on the dashboard.",
     hub_intro_title: "About This Project",
-    hub_intro_p1: "Inspired by CNN's stock market Fear & Greed Index, this quantitative framework applies sentiment analysis to the <b>U.S. Treasury Market</b>. Integrating Treasury yield momentum and Copper/Gold ratios, daily scores range from 0 (Extreme Fear / Risk-Off) to 100 (Extreme Greed / Risk-On).",
-    hub_intro_p2: "Indicators are normalized to rolling 5-year percentiles (0–100) and averaged. This provides a historical sentiment baseline rather than a predictive trading model.",
-    hub_intro_p3: "<b>Getting Started:</b> Explore live sentiment trends on the <b>Live Dashboard</b>, or test new quant factors on the <b>Factor Discovery Platform</b>.",
+    hub_spark_caption: "0–100, dashed line at 50",
+    hub_intro_p1: "The idea comes from CNN's stock-market Fear & Greed Index: a set of market indicators turned into a 0–100 score. Lower means the market leans risk-off; higher means it is more willing to take risk. This project applies the same approach to the <b>U.S. Treasury market</b>, currently using yield momentum and the copper/gold spread, recalculated after each trading day.",
+    hub_intro_p2: "Each indicator is converted to its percentile over the past 5 years (0–100), then averaged. The score tells you which way sentiment leans compared with the last 5 years. <b>It is not a forecasting model and not investment advice.</b>",
+    hub_intro_p3: "For today's score and its history, go to the Live Dashboard. To test whether a new indicator would help the composite score, go to the Factor Platform.",
     hub_live_title: "Live Dashboard",
-    hub_live_desc: "Daily composite score, factor component trends & interactive timeline.",
+    hub_live_desc: "Today's composite score, each factor's history and a draggable timeline, updated after each trading day.",
     hub_platform_title: "Factor Discovery Platform",
-    hub_platform_desc: "Backtesting & registry framework for verifying incremental factor value.",
+    hub_platform_desc: "Run a new factor through the screening gates and a backtest; every result stays in the registry. You can also generate a correlation matrix between factors.",
 
     // Screening Page
     screening_title: "Factor Discovery & Screening Platform",
-    screening_card1_title: "➕ Submit New Candidate Factor for Verification",
-    form_token_summary: "🔑 Set GitHub Personal Access Token (PAT Required)",
-    form_token_hint: "Enter authorized PAT (repo/workflow permissions). Saved securely in local browser storage.",
-    form_key_label: "Factor Key (English)",
+    screening_card1_title: "Test a new factor",
+    form_token_summary: "GitHub Personal Access Token (required the first time)",
+    form_token_hint: "Needs repo and workflow scopes. The token is kept only in this browser's localStorage and never goes into git.",
+    form_key_label: "Factor key (English, used as the file name)",
     form_key_placeholder: "e.g. vix_ma_dev",
-    form_label_label: "Factor Name (Display Label)",
+    form_label_label: "Factor name",
     form_label_placeholder: "e.g. VIX 125D MA Deviation",
-    form_mode_label: "Transformation Mode",
-    form_window_label: "Rolling Window (Days)",
+    form_mode_label: "Transformation mode",
+    form_window_label: "Rolling window (days)",
     form_source_a_label: "Data Source A",
     form_source_placeholder: "Search name or symbol, e.g. 10Y Treasury / DGS10 / VIX",
     form_manual_toggle: "Can't find? Enter type & symbol manually",
-    form_invert_label: "Invert Score (Check when higher raw value indicates Fear)",
-    form_submit_btn: "🚀 Submit Factor Verification & Render Report",
-    corr_card_title: "🔗 Generate Factor Correlation Matrix",
-    corr_card_desc: "Select factors to calculate pairwise correlation heatmaps and evaluate information overlap.",
-    corr_submit_btn: "📊 Generate Correlation Matrix",
+    form_invert_label: "Check this if higher values mean more fear; the score will be inverted.",
+    form_submit_btn: "Submit and build report",
+    corr_card_title: "Generate Factor Correlation Matrix",
+    corr_card_desc: "Select factors to build a pairwise correlation heatmap. A high correlation means two factors say the same thing, so adding both helps little. The result appears below.",
+    corr_submit_btn: "Generate Correlation Matrix",
+    corr_token_summary: "GitHub Personal Access Token (shared with the form above)",
     reg_title: "Historical Factor Test Registry",
-    reg_sub: "(Click factor name to expand analysis report below)",
+    reg_sub: "Click a factor name to open its report",
     th_date: "Test Date",
-    th_factor: "Factor (Click to Expand)",
+    th_factor: "Factor",
     th_mode: "Mode",
     th_ic: "IC (20D Rolling)",
     th_flags: "Pattern Tags",
@@ -408,7 +353,7 @@ function updatePageLanguage(lang) {
 
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
-    if (dict[key]) {
+    if (key in dict) {
       // data-i18n-html：字典值本身帶<b>等標籤(粗體強調)，要當HTML插入，
       // 不能用textContent——那樣會把<b>字面印出來，不會真的變粗體
       // (2026-08-25發現：EN切換這幾格一直是壞的，因為原本只有textContent這條路)。
@@ -472,8 +417,7 @@ def render_nav_bar(active_key, base_dir="."):
         '</a>'
     )
     lang_btn = (
-        '<button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()">'
-        '<span class="lang-icon">🌐</span>'
+        '<button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()" aria-label="切換語言 / Switch language">'
         '<span class="lang-text" id="langToggleText">EN</span>'
         '</button>'
     )

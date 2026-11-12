@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T06:56:34",
+  "title": "Design System: 債券市場恐懼貪婪",
+  "extensions": {
+    "colorMeta": {
+      "page": {
+        "role": "neutral",
+        "displayName": "page",
+        "dark": "#121416"
+      },
+      "surface-1": {
+        "role": "neutral",
+        "displayName": "surface-1",
+        "dark": "#171a1d"
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "surface-2",
+        "dark": "#1d2124"
+      },
+      "surface-3": {
+        "role": "neutral",
+        "displayName": "surface-3",
+        "dark": "#262b2f"
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "text-primary",
+        "dark": "#ecedea"
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "text-secondary",
+        "dark": "#c0c4c7"
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "text-muted",
+        "dark": "#969ca1"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "border",
+        "dark": "#353b40"
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "rule",
+        "dark": "#2a2f33"
+      },
+      "grid": {
+        "role": "neutral",
+        "displayName": "grid",
+        "dark": "#23282c"
+      },
+      "axis": {
+        "role": "neutral",
+        "displayName": "axis",
+        "dark": "#6b7379"
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "accent",
+        "dark": "#8db8e8"
+      },
+      "accent-ink": {
+        "role": "neutral",
+        "displayName": "accent-ink",
+        "dark": "#0f1820"
+      },
+      "series-1": {
+        "role": "neutral",
+        "displayName": "series-1",
+        "dark": "#8db8e8"
+      },
+      "series-2": {
+        "role": "neutral",
+        "displayName": "series-2",
+        "dark": "#e3a35a"
+      },
+      "series-3": {
+        "role": "neutral",
+        "displayName": "series-3",
+        "dark": "#a9b2ba"
+      },
+      "series-4": {
+        "role": "neutral",
+        "displayName": "series-4",
+        "dark": "#e1e4e6"
+      },
+      "tier-extreme-fear": {
+        "role": "semantic",
+        "displayName": "tier-extreme-fear",
+        "dark": "#a3dcb8"
+      },
+      "tier-fear": {
+        "role": "semantic",
+        "displayName": "tier-fear",
+        "dark": "#6fb88d"
+      },
+      "tier-neutral": {
+        "role": "semantic",
+        "displayName": "tier-neutral",
+        "dark": "#a6acb0"
+      },
+      "tier-greed": {
+        "role": "semantic",
+        "displayName": "tier-greed",
+        "dark": "#f19583"
+      },
+      "tier-extreme-greed": {
+        "role": "semantic",
+        "displayName": "tier-extreme-greed",
+        "dark": "#ff5e4a"
+      },
+      "gauge-inactive": {
+        "role": "neutral",
+        "displayName": "gauge-inactive",
+        "dark": "#272c30"
+      },
+      "warn": {
+        "role": "neutral",
+        "displayName": "warn",
+        "dark": "#e3b45a"
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "danger",
+        "dark": "#ff8a7a"
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "selection",
+        "dark": "#28456a"
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "focus",
+        "dark": "#8db8e8"
+      }
+    },
+    "typographyMeta": {
+      "h1": {
+        "displayName": "Page title",
+        "purpose": "每頁一個"
+      },
+      "score-hero": {
+        "displayName": "Score",
+        "purpose": "今日綜合分數"
+      }
+    },
+    "shadows": [
+      {
+        "name": "popover",
+        "value": "0 6px 18px rgba(0,0,0,0.12)",
+        "purpose": "只用在資料來源下拉選單"
+      }
+    ],
+    "motion": [
+      {
+        "name": "panel",
+        "value": "0.25s ease",
+        "purpose": "說明面板展開；prefers-reduced-motion 時關閉"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rail-stack",
+        "value": "900px"
+      },
+      {
+        "name": "nav-two-row",
+        "value": "780px"
+      },
+      {
+        "name": "mobile",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "表單送出、儲存設定",
+      "html": "<button class=\"ds-btn\">產生相關係數矩陣</button>",
+      "css": ".ds-btn{background:#1d5a96;color:#fff;border:1px solid #1d5a96;border-radius:4px;padding:9px 18px;font:700 14px 'Public Sans',sans-serif}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segmented-active",
+      "description": "範圍鈕、事件類別、登記簿篩選",
+      "html": "<div class=\"ds-seg\"><button>1M</button><button class=\"on\">ALL</button></div>",
+      "css": ".ds-seg{display:inline-flex;border:1px solid #d5d7d2;border-radius:4px;overflow:hidden}.ds-seg button{border:0;border-left:1px solid #d5d7d2;background:#fff;padding:5px 11px;font:600 12px 'Public Sans',sans-serif}.ds-seg button:first-child{border-left:0}.ds-seg .on{background:#1d5a96;color:#fff}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "文字與數字輸入",
+      "html": "<input class=\"ds-in\" placeholder=\"例: vix_ma_dev\">",
+      "css": ".ds-in{border:1px solid #d5d7d2;border-radius:4px;padding:7px 10px;min-height:36px;font:14px 'Public Sans',sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "有判斷力的人做的研究工具",
+    "overview": "業界標準的金融資料工具，標竿 FRED、Koyfin、CNN Fear & Greed；白底細線、數字對齊、圖表優先。",
+    "rules": [
+      {
+        "name": "台灣紅綠規則",
+        "body": "紅＝貪婪、綠＝恐懼，兩端用明度拉開並保留文字標籤",
+        "section": "colors"
+      },
+      {
+        "name": "tier 色即文字色",
+        "body": "每級對底色 ≥ 4.5:1",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "顏色一律來自 page_style.py"
+    ],
+    "donts": [
+      "不用 kicker、emoji、藥丸按鈕、卡片陰影"
+    ]
+  }
+}

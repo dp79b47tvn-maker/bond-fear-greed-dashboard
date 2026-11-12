@@ -33,24 +33,22 @@ plt = fva.plt
 # 產品定位聲明(2026-07-28product framework)：這個平台是輔助交易員判斷氛圍的研究工具，
 # 不是策略、不是投資建議——每個對外頁面的頁首都要看得到這句話。
 POSITIONING_STATEMENT = (
-    "本平台是輔助債券交易者判斷美債市場目前整體氛圍的研究工具，"
-    "非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，"
-    "不產出即時部位建議或操作指令。"
+    "這是研究工具，呈現美債市場情緒指標的歷史統計特徵。"
+    "不是交易策略，也不是投資建議，不提供部位或操作建議。"
 )
 
 # 單一因子報告頁「升等為可選因子」按鈕用的CSS——render_screening_report()用的是
 # fva.REPORT_CSS，沒有.token-box/.btn-submit這些class(那些只在render_registry_index()
 # 自己的<style>裡定義)，這裡補一份自成一體的、視覺語言跟登記簿頁一致。
 PROMOTE_UI_CSS = """
-  .promote-card .token-box { background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px;
-    padding:14px 16px; margin:12px 0; font-size:12.5px; }
-  .promote-card .token-box summary { font-weight:700; color:#a6742a; cursor:pointer; }
-  .promote-card input[type="password"] { width:100%; padding:9px 12px; margin-top:8px; border:1px solid #dfe2e8;
-    border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none; }
-  .promote-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 20px; background:#1e3a5f; color:#fff;
-    border:none; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; }
-  .promote-btn:hover { opacity:.92; }
-  .promote-btn:disabled { opacity:.55; cursor:not-allowed; }
+  .promote-card .token-box { border:1px solid var(--border); border-radius:4px; padding:10px 14px; margin:12px 0; font-size:13px; background:var(--surface-2); }
+  .promote-card .token-box summary { font-weight:600; color:var(--text-primary); cursor:pointer; }
+  .promote-card input[type="password"] { width:100%; padding:7px 10px; min-height:36px; margin-top:8px; border:1px solid var(--border);
+    border-radius:4px; background:var(--surface-1); color:var(--text-primary); font:inherit; font-size:14px; }
+  .promote-btn { display:inline-flex; align-items:center; padding:9px 18px; min-height:40px; background:var(--accent); color:var(--accent-ink);
+    border:1px solid var(--accent); border-radius:4px; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+  .promote-btn:hover { filter:brightness(1.08); }
+  .promote-btn:disabled { opacity:.6; cursor:not-allowed; }
 """
 
 # ================================================================ 資料來源候選清單（給表單搜尋框用）
@@ -232,7 +230,7 @@ def render_screening_report(result):
             )
             sections.append(f"""
     <section class="card">
-      <h2><span class="bar"></span>統計分布與極端兩端檢視 (未來20日持倉)</h2>
+      <h2><span class="bar"></span>統計分布與極端兩端檢視（未來 20 日持有）</h2>
       <p class="hint">包含箱型圖 (Boxplot/IQR)、勝率 %、小提琴密度形狀與全分數對報酬之非線性趨勢線。特別檢視極度恐懼 (0-24) 與極度貪婪 (76-100) 兩端是否有逆勢勾回/反轉跡象。</p>
       <img class="chart" src="data:image/png;base64,{dist_chart_b64}"/>
       <table class="data-table mini">
@@ -387,15 +385,16 @@ def render_screening_report(result):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {page_style.FAVICON_TAG}
 <title>因子篩選：{label}</title>
-<style>{fva.REPORT_CSS}
+<style>{page_style.ROOT_COLORS_CSS}
+{fva.REPORT_CSS}
 {nav_bar.NAV_BAR_CSS}
+.site-topnav {{ max-width:{page_style.CONTENT_MAX_WIDTH}; }}
 {PROMOTE_UI_CSS}</style>
 </head>
 <body>
+{nav_bar.render_nav_bar("screening")}
 <div class="wrap">
-  {nav_bar.render_nav_bar("screening")}
   <header>
-    <div class="kicker">FACTOR SCREENING</div>
     <h1>因子篩選：{label}</h1>
     <p class="meta">key：{key}　·　轉換模式：{mode_label}　·　測試日期：{result["test_date"]}　·　關卡通過：{gp}</p>
     <p class="disclaimer">{POSITIONING_STATEMENT}</p>
@@ -405,16 +404,14 @@ def render_screening_report(result):
   <section class="card promote-card">
     <h2><span class="bar"></span>升等為儀表板可選因子</h2>
     <p class="hint">
-      覺得這個因子值得留著探索？升等後會在<b>儀表板</b>多一張分項卡片（標示「候選因子」，<b>不計入官方綜合分數</b>），
-      也可以在儀表板「自訂權重」區塊選用它。不論上面幾道關卡通過與否都可以升等——這個平台只提供研究建議，
-      最終要不要留著由你決定。升等後大約幾分鐘內會反映在正式儀表板上。
+      升等後，儀表板會多一張這個因子的分項卡片，標示「候選因子」，不計入官方綜合分數；自訂權重也能選用它。關卡沒全過也可以升等，要不要留由你決定。大約幾分鐘後會出現在正式站。
     </p>
     <details class="token-box" id="promoteTokenDetails">
-      <summary>🔑 設定 GitHub Personal Access Token（跟因子篩選登記簿共用同一組）</summary>
+      <summary>設定 GitHub Personal Access Token（跟因子篩選登記簿共用同一組）</summary>
       <input type="password" id="promoteGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </details>
-    <button class="promote-btn" type="button" id="promoteBtn">🚀 升等為可選因子</button>
-    <p class="hint" id="promoteStatus" style="margin-top:10px;"></p>
+    <button class="promote-btn" type="button" id="promoteBtn">升等為可選因子</button>
+    <p class="hint" id="promoteStatus" role="status" aria-live="polite"></p>
   </section>
 </div>
 <script>
@@ -435,7 +432,7 @@ def render_screening_report(result):
     const statusEl = document.getElementById("promoteStatus");
     const btn = document.getElementById("promoteBtn");
     if (!token) {{
-      alert("請先填寫 GitHub Personal Access Token（PAT）！");
+      statusEl.textContent = "請先填寫 GitHub Personal Access Token（PAT）。";
       document.getElementById("promoteTokenDetails").open = true;
       promoteTokenInput.focus();
       return;
@@ -556,7 +553,7 @@ def _build_partb_section_html():
             out = ""
             for r in sub_df.itertuples():
                 is_robust = (r.oos_sharpe >= 1.5) or (r.sharpe_decay >= 0.7)
-                decay_badge = "<span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span>" if is_robust else "<span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span>"
+                decay_badge = "<span class='verdict-keep'>樣本外優秀</span>" if is_robust else "<span class='verdict-cut'>衰退/偏弱</span>"
                 out += f"""
                 <tr>
                   <td><b>{r.combo_label}</b></td>
@@ -576,7 +573,7 @@ def _build_partb_section_html():
 
         return f"""
   <!-- 多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合） -->
-  <section class="card" style="margin-top:28px;">
+  <section class="card partb-section">
     <h2><span class="bar"></span>多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合）</h2>
     <p class="hint">
       測試期間：<b>2020-01-01 ~ 2026-08-04</b> (共 2,408 交易日)　·　
@@ -584,14 +581,14 @@ def _build_partb_section_html():
       樣本外 (OOS): 2025~2026 (581天)
     </p>
 
-    <div style="background:rgba(47,107,79,0.08);border-left:4px solid #2f6b4f;padding:12px 16px;border-radius:6px;margin:14px 0;font-size:13px;line-height:1.6;">
-      <b>💡 Mentor 觀點驗證與核心發現：</b><br>
+    <div class="callout">
+      <b>Mentor 觀點驗證與核心發現：</b><br>
       1. <b>尾端反轉效果</b>：爆破出的最佳組合在「極度恐懼 (0-24)」後 20 日平均能獲得顯著正超額報酬，而在「極度貪婪 (76-100)」後出現負超額報酬！<br>
       2. <b>過度配適防護 (Walk-Forward)</b>：多數 7~10 個因子的複雜組合出現<b>樣本外 (OOS) 衰退或負夏普</b>；限制 <b>因子數 ≤ 4 個</b> 的精簡組合在樣本外表現最為穩健，夏普比率高達 +1.9 ~ +2.1！
     </div>
 
-    <h3>🏆 尾端反轉效果最強 Top 10 組合</h3>
-    <table class="data-table mini" style="margin-bottom:24px;">
+    <h3>尾端反轉效果最強 Top 10 組合</h3>
+    <table class="data-table mini">
       <thead>
         <tr>
           <th>組合名稱</th><th>規模</th><th>尾端反轉得分 (20日)</th><th>恐懼端(0-24)超額</th>
@@ -601,7 +598,7 @@ def _build_partb_section_html():
       <tbody>{top_tail_rows}</tbody>
     </table>
 
-    <h3>🛡️ 樣本外最穩健且精簡組合 Top 10 (因子數 ≤ 4，防過度配適)</h3>
+    <h3>樣本外最穩健且精簡組合 Top 10 (因子數 ≤ 4，防過度配適)</h3>
     <table class="data-table mini">
       <thead>
         <tr>
@@ -612,23 +609,23 @@ def _build_partb_section_html():
       <tbody>{robust_rows}</tbody>
     </table>
 
-    <div style="background:rgba(30,58,95,0.04);border:1px solid rgba(30,58,95,0.12);padding:16px;border-radius:8px;margin-top:16px;">
-      <h4 style="margin:0 0 10px 0;color:var(--series-1);font-size:14px;">💡 Top 10 個別組合金融邏輯與選擇原因解析 (從 2,047 種組合中勝出之背後原因)</h4>
-      <ol style="margin:0;padding-left:20px;font-size:12.5px;line-height:1.65;color:#333;">
-        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + SOFR-3M利差 (OOS夏普 +2.14)</b>：【黃金三核：趨勢 + 總經循環 + 貨幣流動性】。動能提供中期價格趨勢，殖利率曲線捕捉美聯儲降息/升息循環脈絡，SOFR 利差精確反映隔夜資金緊縮度。三者互補性極強，在大考中勇奪全場冠軍。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 + SOFR-3M利差 (OOS夏普 +1.97)</b>：【價格趨勢 + 長短債避險 + 隔夜資金利差】。TLT vs SHY 的相對表現直接反映機構法人在長短天期美債間轉移資金的避險偏好，結合 SOFR 利差能有效避免在市場流動性轉折點踩空。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 曲線 + SOFR利差 (OOS夏普 +1.93)</b>：【全方位四維平滑組合】。兼具趨勢、期限結構、長短天期相對價值與貨幣市場利差，是 4 因子組合中穩定度最高、抗震能力最強的全能防守隊伍。</li>
-        <li style="margin-bottom:6px;"><b>動能 + SOFR-3M利差 (OOS夏普 +1.92)</b>：【極簡雙核衝鋒隊】。僅靠「中期價格趨勢」與「隔夜貨幣利差」兩個核心因子，結構極度簡潔，有效避免雜訊干擾，在 2 因子組合中績效冠絕全場。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.59)</b>：【跨資產避險強化組合】。引入「銅金比（工業 vs 避險金屬）」作為跨資產情緒錨，能第一時間捕捉全球景氣風險偏好轉變，是大考通過的組合中唯一具備大宗商品跨資產視角的隊伍。</li>
-        <li style="margin-bottom:6px;"><b>動能 (10Y-SMA125) (OOS夏普 +1.52)</b>：【單因子基準基石】。單憑 125 日均線價差的中期趨勢跟蹤，展現了美債市場強烈的趨勢延續性，為所有多因子組合提供不可或缺的主方向支撐。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 (OOS夏普 +1.48)</b>：【經典價格-避險雙因子】。公債期貨價格動能搭配 TLT/SHY 長短債強弱差，是華爾街最經典的雙因子債券趨勢跟蹤模型。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 (OOS夏普 +1.47)</b>：【商品情緒與長短債雙重避險】。結合了債券市場自身的長短天期資金流向（TLT-SHY）與商品市場的避險情緒（銅金比），雙重驗證市場避險偏好。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.35)</b>：【多維度總經與商品綜合體】。同時考慮殖利率曲線陡峭化與銅金比風險偏好，適合關注總經大循環與大宗商品聯動的策略。</li>
+    <div class="callout">
+      <h4>Top 10 個別組合金融邏輯與選擇原因解析 (從 2,047 種組合中勝出之背後原因)</h4>
+      <ol>
+        <li><b>動能 + 殖利率曲線 + SOFR-3M利差 (OOS夏普 +2.14)</b>：【黃金三核：趨勢 + 總經循環 + 貨幣流動性】。動能提供中期價格趨勢，殖利率曲線捕捉美聯儲降息/升息循環脈絡，SOFR 利差精確反映隔夜資金緊縮度。三者互補性極強，在大考中勇奪全場冠軍。</li>
+        <li><b>動能 + 存續期間避險 + SOFR-3M利差 (OOS夏普 +1.97)</b>：【價格趨勢 + 長短債避險 + 隔夜資金利差】。TLT vs SHY 的相對表現直接反映機構法人在長短天期美債間轉移資金的避險偏好，結合 SOFR 利差能有效避免在市場流動性轉折點踩空。</li>
+        <li><b>動能 + 存續避險 + 曲線 + SOFR利差 (OOS夏普 +1.93)</b>：【全方位四維平滑組合】。兼具趨勢、期限結構、長短天期相對價值與貨幣市場利差，是 4 因子組合中穩定度最高、抗震能力最強的全能防守隊伍。</li>
+        <li><b>動能 + SOFR-3M利差 (OOS夏普 +1.92)</b>：【極簡雙核衝鋒隊】。僅靠「中期價格趨勢」與「隔夜貨幣利差」兩個核心因子，結構極度簡潔，有效避免雜訊干擾，在 2 因子組合中績效冠絕全場。</li>
+        <li><b>動能 + 存續避險 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.59)</b>：【跨資產避險強化組合】。引入「銅金比（工業 vs 避險金屬）」作為跨資產情緒錨，能第一時間捕捉全球景氣風險偏好轉變，是大考通過的組合中唯一具備大宗商品跨資產視角的隊伍。</li>
+        <li><b>動能 (10Y-SMA125) (OOS夏普 +1.52)</b>：【單因子基準基石】。單憑 125 日均線價差的中期趨勢跟蹤，展現了美債市場強烈的趨勢延續性，為所有多因子組合提供不可或缺的主方向支撐。</li>
+        <li><b>動能 + 存續期間避險 (OOS夏普 +1.48)</b>：【經典價格-避險雙因子】。公債期貨價格動能搭配 TLT/SHY 長短債強弱差，是華爾街最經典的雙因子債券趨勢跟蹤模型。</li>
+        <li><b>動能 + 存續避險 + 銅金比報酬差 (OOS夏普 +1.47)</b>：【商品情緒與長短債雙重避險】。結合了債券市場自身的長短天期資金流向（TLT-SHY）與商品市場的避險情緒（銅金比），雙重驗證市場避險偏好。</li>
+        <li><b>動能 + 殖利率曲線 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.35)</b>：【多維度總經與商品綜合體】。同時考慮殖利率曲線陡峭化與銅金比風險偏好，適合關注總經大循環與大宗商品聯動的策略。</li>
         <li><b>動能 + 銅金比報酬差 (OOS夏普 +1.33)</b>：【債券-商品極簡跨資產雙核】。用美債價格動能結合銅金比情緒，是建構跨資產避險模型時最簡潔有效的雙因子範本。</li>
       </ol>
     </div>
 
-    <p class="hint" style="margin-top:12px;">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
+    <p class="hint">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
   </section>"""
     except Exception as e:
         return f"<!-- Part B section build error: {e} -->"
@@ -677,10 +674,10 @@ def render_registry_index(registry):
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：{e['label']} ({e['key']})</span>
+                <span class="inline-report-title">因子體檢報告：{e['label']} ({e['key']})</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="{report_url}" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('{row_id}')">✕ 關閉報告</button>
+                  <a class="inline-link" href="{report_url}" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('{row_id}')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-{row_id}" class="inline-iframe" data-src="{report_url}"></iframe>
@@ -715,225 +712,162 @@ def render_registry_index(registry):
 {page_style.FAVICON_TAG}
 <title>因子開發與篩選平台 · 債券市場恐懼貪婪</title>
 <style>
-  * {{ box-sizing: border-box; }}
-  body {{ margin:0; background:#f4f5f7; color:#161a23; font-family:"Inter",-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:{page_style.BASE_LINE_HEIGHT}; }}
-  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:44px 24px 80px; }}
-  header {{ margin-bottom:28px; }}
-  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }}
-  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }}
-  .meta {{ font-size:13px; color:#4a5568; margin:0 0 14px; }}
-  .disclaimer {{ font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; box-shadow:0 1px 3px rgba(22,26,35,0.03); }}
-  .card {{
-    background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px;
-    box-shadow:0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
-    transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-  }}
-  .card:hover {{
-    transform:translateY(-2px);
-    box-shadow:0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
-  }}
-  .card h2 {{ font-size:18px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:8px; }}
-  .bar {{ width:4px; height:18px; background:#1e3a5f; border-radius:2px; display:inline-block; }}
+  {page_style.ROOT_COLORS_CSS}
+  {nav_bar.NAV_BAR_CSS}
+  * {{ box-sizing:border-box; }}
+  body {{ margin:0; line-height:{page_style.BASE_LINE_HEIGHT}; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:32px 24px 72px; }}
+  .site-topnav {{ max-width:{page_style.CONTENT_MAX_WIDTH}; }}
+  header {{ margin-bottom:24px; }}
+  .kicker {{ display:none; }}
+  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 8px; letter-spacing:-0.015em; line-height:1.25; }}
+  .meta {{ font-size:14px; color:var(--text-secondary); margin:0 0 12px; }}
+  .disclaimer {{ font-size:13px; color:var(--text-secondary); line-height:1.7; margin:0 0 10px; max-width:{page_style.LEDE_MAX_WIDTH};
+    padding:10px 14px; background:var(--surface-2); border-radius:4px; }}
+  .card {{ padding:24px 0; border-top:1px solid var(--rule); }}
+  .card h2 {{ font-size:18px; font-weight:700; margin:0 0 14px; display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }}
+  .card h2 .sub {{ font-size:12.5px; font-weight:400; color:var(--text-muted); }}
+  .bar {{ display:none; }}
   .data-table {{ width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }}
-  .data-table th, .data-table td {{ text-align:left; padding:8px 12px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; transition:background-color 0.15s ease; }}
-  .data-table th {{ color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }}
-  .data-table tbody tr:hover td {{ background:#f8fafc; }}
+  .data-table th, .data-table td {{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--rule); vertical-align:top; }}
+  .data-table th {{ color:var(--text-muted); font-weight:600; font-size:12px; background:var(--surface-2); border-bottom-color:var(--border); }}
+  .data-table tbody tr:hover td {{ background:var(--surface-2); }}
   .data-table td.fname {{ font-weight:600; white-space:nowrap; }}
-  .verdict-keep {{ color:#2f6b4f; font-weight:700; }}
-  .verdict-watch {{ color:#a6742a; font-weight:700; }}
-  .verdict-cut {{ color:#a6362f; font-weight:700; }}
-  .na {{ color:#a7adb9; font-style:italic; }}
-  .promoted-badge {{ display:inline-block; font-size:11px; font-weight:700; color:#2f6b4f;
-    background:rgba(47,107,79,0.1); border-radius:999px; padding:3px 10px; white-space:nowrap; }}
-  .demote-btn {{ border:1px solid #dfe2e8; border-radius:6px; background:#fff; color:#a6362f;
-    font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; margin-left:4px; transition:all 0.15s ease; }}
-  .demote-btn:hover {{ border-color:#a6362f; background:rgba(166,54,47,0.06); }}
-  .demote-btn:active {{ transform:scale(0.96); }}
+  #registryTable td:first-child, #registryTable td:nth-child(6) {{ white-space:nowrap; }}
+  .table-scroll {{ overflow-x:auto; }}
+  .verdict-keep {{ color:var(--tier-fear); font-weight:600; }}
+  .verdict-watch {{ color:var(--warn); font-weight:600; }}
+  .verdict-cut {{ color:var(--danger); font-weight:600; }}
+  .na {{ color:var(--text-muted); }}
+  .promoted-badge {{ display:inline-block; font-size:12px; font-weight:700; color:var(--accent); border:1px solid currentColor; border-radius:3px; padding:0 6px; white-space:nowrap; }}
+  .demote-btn {{ border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--danger);
+    font:inherit; font-size:12px; padding:3px 9px; cursor:pointer; white-space:nowrap; margin-left:4px; }}
+  .demote-btn:hover {{ background:var(--surface-2); }}
   .demote-btn:disabled {{ opacity:.55; cursor:not-allowed; }}
 
   .form-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
-  .form-group {{ display:flex; flex-direction:column; gap:6px; }}
+  .form-group {{ display:flex; flex-direction:column; gap:6px; min-width:0; }}
   .form-group.full {{ grid-column:1 / -1; }}
-  label {{ font-size:13px; font-weight:600; color:#161a23; }}
-  .hint {{ font-size:12px; color:#667085; }}
+  label {{ font-size:13px; font-weight:600; color:var(--text-primary); }}
+  .hint {{ font-size:12.5px; color:var(--text-muted); line-height:1.65; margin:4px 0; }}
   input[type="text"], input[type="number"], input[type="password"], select {{
-    width:100%; padding:9px 12px; border:1px solid #dfe2e8; border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none;
-    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+    width:100%; padding:7px 10px; min-height:36px; border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--text-primary); font:inherit; font-size:14px;
   }}
-  input:focus, select:focus {{ border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,0.12); }}
+  input:focus-visible, select:focus-visible {{ outline:2px solid var(--focus); outline-offset:0; border-color:var(--focus); }}
   .checkbox-group {{ display:flex; align-items:center; gap:8px; margin-top:4px; }}
-  .checkbox-group input {{ width:16px; height:16px; cursor:pointer; }}
-  .corr-factor-grid {{ display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; }}
-  .corr-check {{ margin-top:0; font-size:13px; font-weight:normal; color:#161a23; cursor:pointer; }}
-  .btn-submit {{
-    display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer;
-    transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }}
-  .btn-submit:hover {{ background:#2a4c78; transform:translateY(-1px); box-shadow:0 4px 12px rgba(30,58,95,0.25); }}
-  .btn-submit:active {{ transform:scale(0.98); }}
-  .token-box {{ background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px; padding:14px 16px; margin-bottom:18px; font-size:12.5px; }}
-  .token-box summary {{ font-weight:700; color:#a6742a; cursor:pointer; }}
-  .status-card {{ display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:20px; text-align:center; margin-bottom:22px; }}
-  .spinner {{ width:32px; height:32px; border:3px solid #dfe2e8; border-top-color:#1e3a5f; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }}
+  .checkbox-group input, .corr-check input {{ width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }}
+  .corr-factor-grid {{ display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:10px; }}
+  .corr-check {{ margin-top:0; font-size:13px; font-weight:400; color:var(--text-primary); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }}
+  .btn-submit {{ display:inline-flex; align-items:center; justify-content:center; padding:9px 18px; min-height:40px; background:var(--accent); color:var(--accent-ink);
+    border:1px solid var(--accent); border-radius:4px; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }}
+  .btn-submit:hover {{ filter:brightness(1.08); }}
+  .btn-submit:disabled {{ opacity:.6; cursor:not-allowed; }}
+  .token-box {{ border:1px solid var(--border); border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:13px; background:var(--surface-2); }}
+  .token-box summary {{ font-weight:600; color:var(--text-primary); cursor:pointer; }}
+  .token-box p {{ margin:6px 0 10px; color:var(--text-secondary); }}
+  .token-box input {{ margin-top:8px; }}
+  .status-card {{ display:none; border:1px solid var(--border); border-radius:6px; padding:16px 18px; margin:0 0 22px; }}
+  .spinner {{ width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 0 10px; }}
   @keyframes spin {{ to {{ transform:rotate(360deg); }} }}
-  /* === Plan 004: prefers-reduced-motion 無障礙支援 ===
-     注意：.spinner 是無限旋轉動畫，animation-duration:0.001ms 會讓它每秒轉 1000 圈，
-     造成高頻閃爍（比原本的 1s 旋轉更危險），必須用 animation:none 完全停止。
-     transition 有起點/終點，縮短成 0.001ms 只是讓過渡「看起來是瞬間的」，這是安全的。 */
-  @media (prefers-reduced-motion: reduce) {{
-    .spinner {{ animation: none; border-color: #1e3a5f; opacity: 0.65; }}
-    * {{ transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }}
-  }}
-  .status-title {{ font-size:16px; font-weight:700; margin-bottom:6px; }}
-  .status-desc {{ font-size:12.5px; color:#4a5568; margin-bottom:14px; }}
-  .progress-steps {{ display:flex; justify-content:space-around; font-size:11.5px; color:#667085; border-top:1px solid #e5e7eb; padding-top:12px; }}
-  .step.active {{ color:#1e3a5f; font-weight:700; }}
-  .registry-controls {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; background:#f8fafc; padding:12px 16px; border-radius:10px; border:1px solid #dfe2e8; }}
-  .registry-filters {{ display:flex; gap:6px; flex-wrap:wrap; }}
-  .filter-tab-btn {{ background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s ease; }}
-  .filter-tab-btn:hover {{ background:#f1f5f9; border-color:#94a3b8; }}
-  .filter-tab-btn.active {{ background:#1e3a5f; color:#fff; border-color:#1e3a5f; }}
-  .registry-search-wrap {{ position:relative; width:220px; }}
-  .registry-search-wrap input {{ padding:6px 10px; font-size:12.5px; border-radius:6px; border:1px solid #cbd5e1; width:100%; background:#fff; outline:none; }}
-  .registry-search-wrap input:focus {{ border-color:#1e3a5f; }}
-
-  .expand-toggle-btn {{ background:none; border:none; padding:0; color:#1e3a5f; font-weight:700; font-size:13px; text-align:left; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }}
-  .expand-toggle-btn:hover {{ text-decoration:underline; color:#0f172a; }}
-  .expand-toggle-btn .arrow-icon {{ font-size:10px; color:#a6742a; transition:transform .15s ease; }}
-
-  /* === Plan 002: Inline report 展開 fade-in 動畫 ===
-     table row 無法直接用 CSS transition （display 不能被動畫），
-     改用 @keyframes one-shot 動畫 + JS class toggle 解決。 */
-  @keyframes fadeInReport {{
-    from {{ opacity:0; transform:translateY(6px); }}
-    to   {{ opacity:1; transform:translateY(0); }}
-  }}
-  .inline-report-row {{ background:#f8fafc; }}
-  .inline-report-row.expanding {{ animation: fadeInReport 0.3s ease forwards; }}
-  .inline-report-cell {{ padding:12px 16px !important; border-bottom:2px solid #cbd5e1 !important; }}
-  .inline-report-wrap {{ background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }}
-  .inline-report-bar {{ display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid #e5e7eb; }}
-  .inline-report-title {{ font-size:14px; font-weight:700; color:#1e3a5f; }}
-  .inline-report-actions {{ display:flex; gap:10px; align-items:center; }}
-  .inline-link {{ font-size:12px; color:#2563eb; text-decoration:none; font-weight:600; }}
+  @media (prefers-reduced-motion: reduce) {{ .spinner {{ animation:none !important; border-color:var(--accent); }} }}
+  .status-title {{ font-size:15px; font-weight:700; margin-bottom:4px; }}
+  .status-desc {{ font-size:13px; color:var(--text-secondary); margin-bottom:12px; }}
+  .progress-steps {{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; font-size:12.5px; color:var(--text-muted); border-top:1px solid var(--rule); padding-top:10px; }}
+  .step.active {{ color:var(--accent); font-weight:700; }}
+  .registry-controls {{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }}
+  .registry-filters {{ display:inline-flex; flex-wrap:wrap; border:1px solid var(--border); border-radius:4px; overflow:hidden; }}
+  .filter-tab-btn {{ background:var(--surface-1); border:none; border-left:1px solid var(--border); padding:5px 12px; min-height:32px; font:inherit; font-size:12.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; }}
+  .filter-tab-btn:first-child {{ border-left:none; }}
+  .filter-tab-btn:hover {{ background:var(--surface-2); color:var(--text-primary); }}
+  .filter-tab-btn.active {{ background:var(--accent); color:var(--accent-ink); }}
+  .filter-count {{ font-weight:400; margin-left:3px; }}
+  .registry-search-wrap {{ width:240px; max-width:100%; }}
+  .expand-toggle-btn {{ background:none; border:none; padding:0; color:var(--accent); font:inherit; font-weight:600; font-size:13px; text-align:left; cursor:pointer; display:inline-flex; align-items:baseline; gap:6px; }}
+  .expand-toggle-btn:hover {{ text-decoration:underline; text-underline-offset:3px; }}
+  .expand-toggle-btn .arrow-icon {{ font-size:9px; color:var(--text-muted); transition:transform .15s ease; }}
+  .inline-report-row td {{ background:var(--surface-2); }}
+  .inline-report-cell {{ padding:12px !important; }}
+  .inline-report-wrap {{ background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:12px; }}
+  .inline-report-bar {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--rule); }}
+  .inline-report-title {{ font-size:14px; font-weight:700; color:var(--text-primary); }}
+  .inline-report-actions {{ display:flex; gap:12px; align-items:center; }}
+  .inline-link {{ font-size:12.5px; font-weight:600; text-decoration:none; }}
   .inline-link:hover {{ text-decoration:underline; }}
-  .inline-close-btn {{ background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:11.5px; cursor:pointer; color:#475569; font-weight:600; }}
-  .inline-close-btn:hover {{ background:#e2e8f0; color:#0f172a; }}
-  .inline-iframe {{ width:100%; height:950px; border:none; border-radius:8px; background:#fff; }}
+  .inline-close-btn {{ background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:3px 10px; font:inherit; font-size:12px; cursor:pointer; color:var(--text-primary); font-weight:600; }}
+  .inline-close-btn:hover {{ background:var(--surface-2); }}
+  .inline-iframe {{ width:100%; height:950px; border:none; border-radius:4px; background:var(--page); }}
+  #reportViewer {{ display:none; margin-top:20px; border:1px solid var(--border); border-radius:6px; overflow:hidden; opacity:0; transition:opacity 0.25s ease; }}
+  #reportViewerBar {{ display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2); }}
+  #reportFrame {{ width:100%; height:1200px; border:none; background:var(--page); }}
+  .pagination-bar {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:12px; margin-top:8px; font-size:12.5px; color:var(--text-muted); }}
+  .page-btn {{ background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:4px 12px; min-height:32px; font:inherit; font-size:12.5px; cursor:pointer; color:var(--text-primary); font-weight:600; }}
+  .page-btn:hover:not(:disabled) {{ background:var(--surface-2); }}
+  .page-btn:disabled {{ opacity:.45; cursor:not-allowed; }}
+  .inline-msg {{ font-size:13px; color:var(--text-secondary); margin:10px 0 0; }}
+  .inline-msg.is-error {{ color:var(--danger); }}
+  .inline-msg:empty {{ display:none; }}
+  .inline-confirm {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; margin:8px 0; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:4px; }}
+  .inline-confirm button {{ font:inherit; font-size:12.5px; font-weight:600; padding:4px 10px; border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--text-primary); cursor:pointer; }}
+  .inline-confirm button.is-danger {{ color:var(--danger); }}
 
-  /* === Plan 003a: status-card slide-down 進入動畫 === */
-  @keyframes slideDownFade {{
-    from {{ opacity:0; transform:translateY(-8px); }}
-    to   {{ opacity:1; transform:translateY(0); }}
-  }}
-  .status-card-visible {{ animation: slideDownFade 0.3s ease forwards; }}
+  /* 資料來源搜尋下拉 */
+  .combo-wrap {{ position:relative; width:100%; display:block; z-index:50; }}
+  .combo-list {{ display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:1000;
+    background:var(--surface-1); border:1px solid var(--border); border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    max-height:320px; overflow-y:auto; padding:4px; }}
+  .combo-list.open {{ display:block; }}
+  .combo-header-bar {{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; margin-bottom:4px;
+    border-bottom:1px solid var(--rule); font-size:12px; color:var(--text-muted); }}
+  .combo-header-bar .count-badge {{ white-space:nowrap; }}
+  .combo-item {{ padding:8px 10px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; border-radius:3px; color:var(--text-primary); }}
+  .combo-item:hover, .combo-item.is-active {{ background:var(--selection); }}
+  .combo-item-left {{ display:flex; align-items:center; gap:8px; min-width:0; }}
+  .combo-item-label {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .combo-tag {{ font-size:11px; font-weight:700; flex-shrink:0; color:var(--text-muted); min-width:4.5em; }}
+  .combo-tag.tag-existing {{ color:var(--accent); }}
+  .combo-tag.tag-yahoo {{ color:var(--series-2); }}
+  .combo-tag.tag-fred {{ color:var(--series-3); }}
+  .combo-tag.tag-treasury {{ color:var(--series-3); }}
+  .combo-id {{ font-family:{page_style.FONT_MONO}; color:var(--text-secondary); font-size:12px; flex-shrink:0; }}
+  .combo-empty {{ padding:12px; font-size:12.5px; color:var(--text-muted); text-align:center; }}
+  .manual-source-group {{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule); }}
 
-  /* === Plan 003b: reportViewer 淡入展示 ===
-     JS 引用的 #reportViewer 原本在 HTML 中缺失，這裡補上定義。
-     用 opacity+visibility transition 取代 display:none/block。 */
-  #reportViewer {{
-    display:none; margin-top:20px; border:1px solid #dfe2e8; border-radius:14px;
-    background:#fff; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.08);
-    opacity:0; transition: opacity 0.35s ease;
+  /* Part B 組合回測區塊 */
+  .partb-section h3 {{ font-size:15px; font-weight:700; margin:22px 0 8px; }}
+  .callout {{ background:var(--surface-2); border-radius:4px; padding:12px 16px; margin:14px 0; font-size:13px; line-height:1.7; color:var(--text-secondary); }}
+  .callout b, .callout h4 {{ color:var(--text-primary); }}
+  .callout h4 {{ margin:0 0 8px; font-size:14px; }}
+  .callout ol {{ margin:0; padding-left:20px; }}
+  .callout li {{ margin-bottom:6px; }}
+  .badge {{ white-space:nowrap; }}
+  @media (max-width: 720px) {{
+    .wrap {{ padding:24px 16px 56px; }}
+    .form-grid {{ grid-template-columns:1fr; }}
+    .registry-search-wrap {{ width:100%; }}
+    .progress-steps {{ grid-template-columns:1fr 1fr; }}
+    .data-table {{ display:block; overflow-x:auto; }}
   }}
-  #reportViewer.report-visible {{ opacity:1; }}
-  #reportViewerBar {{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px; border-bottom:1px solid #e5e7eb; background:#f8fafc;
-  }}
-  #reportViewerTitle {{ font-size:14px; font-weight:700; color:#1e3a5f; }}
-  #reportFrame {{ width:100%; height:820px; border:none; background:#fff; }}
-
-  .pagination-bar {{ display:flex; justify-content:space-between; align-items:center; padding-top:14px; margin-top:10px; border-top:1px solid #e5e7eb; font-size:12.5px; color:#64748b; }}
-  .page-btn {{ background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer; color:#334155; font-weight:600; }}
-  .page-btn:hover:not(:disabled) {{ background:#f1f5f9; }}
-  .page-btn:disabled {{ opacity:.4; cursor:not-allowed; }}
-
-  /* === Plan 005: combo-list \u4e0b\u62c9\u9078\u55ae fade+slide \u904e\u6e21 ===
-     \u6539\u7528 opacity+transform \u52d5\u756b\uff0c\u4fdd\u7559 display:none \u7d66\u5b8c\u5168\u96b1\u85cf\u7528\uff08blur\u5f8c\uff09\u3002
-     JS \u7684 filterSourceCombo() \u6703\u5148\u8a2d display:block\uff0c\u518d\u52a0 .open \u89f8\u767c\u52d5\u756b\u3002 */
-  /* === 資料來源搜尋彈出視窗 (Combo Dropdown UI/UX 重構) === */
-  .combo-wrap {{
-    position: relative; width: 100%; display: block; z-index: 50;
-  }}
-  .combo-wrap input {{
-    padding: 10px 14px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;
-    width: 100%; background: #ffffff; outline: none; transition: all 0.2s ease;
-    color: #0f172a; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  }}
-  .combo-wrap input:focus {{
-    border-color: #1e3a5f; box-shadow: 0 0 0 3.5px rgba(30, 58, 95, 0.12);
-  }}
-  .combo-list {{
-    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000;
-    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
-    box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-    max-height: 320px; overflow-y: auto; padding: 6px;
-    opacity: 0; transform: translateY(-6px) scale(0.995);
-    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  }}
-  .combo-list.open {{ opacity: 1; transform: translateY(0) scale(1); }}
-  
-  .combo-header-bar {{
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 10px; margin-bottom: 6px; border-radius: 6px;
-    background: #f8fafc; border: 1px solid #e2e8f0; font-size: 11.5px; color: #475569; font-weight: 600;
-  }}
-  .combo-header-bar .hint-text {{ display: flex; align-items: center; gap: 5px; }}
-  .combo-header-bar .count-badge {{ font-family: ui-monospace, "SF Mono", Menlo, monospace; background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 99px; font-size: 10.5px; }}
-
-  .combo-item {{
-    padding: 9px 12px; font-size: 13px; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    border-radius: 8px; margin-bottom: 2px; transition: all 0.15s ease;
-    border-left: 3px solid transparent; color: #1e293b;
-  }}
-  .combo-item:last-child {{ margin-bottom: 0; }}
-  .combo-item:hover {{
-    background: #f1f5f9; border-left-color: #1e3a5f; color: #0f172a;
-    transform: translateX(2px);
-  }}
-  .combo-item-left {{ display: flex; align-items: center; gap: 8px; min-width: 0; }}
-  .combo-item-label {{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }}
-
-  .combo-tag {{
-    font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; line-height: 1.4;
-  }}
-  .combo-tag.tag-existing {{ background: rgba(30, 58, 95, 0.08); color: #1e3a5f; border: 1px solid rgba(30, 58, 95, 0.18); }}
-  .combo-tag.tag-yahoo {{ background: rgba(99, 102, 241, 0.08); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.18); }}
-  .combo-tag.tag-fred {{ background: rgba(16, 185, 129, 0.08); color: #059669; border: 1px solid rgba(16, 185, 129, 0.18); }}
-  .combo-tag.tag-treasury {{ background: rgba(14, 165, 233, 0.08); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.18); }}
-
-  .combo-id {{
-    font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #475569;
-    font-size: 11.5px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0;
-    border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
-  }}
-  .combo-empty {{ padding: 14px 12px; font-size: 12.5px; color: #64748b; text-align: center; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }}
-  .manual-source-group {{ margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }}
-  {nav_bar.NAV_BAR_CSS}
 </style>
 </head>
 <body>
+{nav_bar.render_nav_bar("screening")}
 <div class="wrap">
-  {nav_bar.render_nav_bar("screening")}
   <header>
-    <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1 data-i18n="screening_title">因子開發與篩選平台</h1>
-    <p class="meta">累計測試 {n_total} 個因子，其中全數通過關卡的有 {n_passed} 個。</p>
+    <p class="meta">登記簿共 {n_total} 筆測試，其中全部關卡通過的有 {n_passed} 筆。</p>
     <p class="disclaimer">{POSITIONING_STATEMENT}</p>
     <p class="disclaimer">
-      這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
+      每一次測試都會留下紀錄跟完整報告，通過或沒通過都一樣，這樣才不會只記得成功的那幾次。在下方輸入新因子就能線上跑一次檢驗，跑完報告會出現在這一頁。
     </p>
   </header>
 
   <!-- 線上驗證輸入表單 -->
   <section class="card">
-    <h2><span class="bar"></span>➕ 輸入新因子進行驗證</h2>
+    <h2 data-i18n="screening_card1_title">測試新因子</h2>
     
     <details class="token-box" id="tokenDetails">
-      <summary>🔑 設定 GitHub Personal Access Token (第一次使用必填)</summary>
-      <p style="margin:6px 0 10px;color:#4a5568;">填入授權 Token (具備 repo/workflow 權限)，安全儲存於本機瀏覽器 (localStorage)。</p>
+      <summary data-i18n="form_token_summary">GitHub Personal Access Token（第一次使用要填）</summary>
+      <p data-i18n="form_token_hint">需要 repo 跟 workflow 權限。Token 只存在這個瀏覽器的 localStorage，不會進 git。</p>
       <div class="form-group">
         <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
       </div>
@@ -942,15 +876,15 @@ def render_registry_index(registry):
     <form id="screeningForm">
       <div class="form-grid">
         <div class="form-group">
-          <label for="key">因子英文代號 (Key)</label>
+          <label for="key" data-i18n="form_key_label">因子代號（英文，會當檔名）</label>
           <input type="text" id="key" placeholder="例: vix_ma_dev" required pattern="[a-zA-Z0-9_]+" title="英文字母、數字與底線">
         </div>
         <div class="form-group">
-          <label for="label">因子中文名稱 (Label)</label>
+          <label for="label" data-i18n="form_label_label">因子名稱</label>
           <input type="text" id="label" placeholder="例: VIX 125日均線乖離率" required>
         </div>
         <div class="form-group full">
-          <label for="mode">轉換模式 (Transformation Mode)</label>
+          <label for="mode" data-i18n="form_mode_label">轉換模式</label>
           <select id="mode" required onchange="handleModeChange()">
             <option value="ma_deviation">均線乖離百分位 (Single Series vs N-day SMA)</option>
             <option value="ma_spread">均線價差百分位 (Single Series - N-day SMA)</option>
@@ -1018,20 +952,19 @@ def render_registry_index(registry):
           </div>
         </div>
         <div class="form-group">
-          <label for="window">滾動視窗 (Window Days)</label>
+          <label for="window" data-i18n="form_window_label">滾動視窗（天）</label>
           <input type="number" id="window" value="125" min="5" max="500" required>
         </div>
         <div class="form-group">
           <label>分數反轉</label>
           <div class="checkbox-group">
             <input type="checkbox" id="invert">
-            <label for="invert" style="font-weight:normal;">數值越高代表「恐懼」時請勾選 (將分數反轉)</label>
+            <label for="invert" style="font-weight:normal;" data-i18n="form_invert_label">數值越高代表越恐懼時勾選，分數會反轉。</label>
           </div>
         </div>
         <div class="form-group full" style="margin-top:8px;">
-          <button type="submit" class="btn-submit" id="btnSubmit">
-            🚀 提交驗證並即時呈現分析報告圖表
-          </button>
+          <button type="submit" class="btn-submit" id="btnSubmit" data-i18n="form_submit_btn">送出並產生報告</button>
+          <p class="inline-msg" id="formMsg" role="status" aria-live="polite"></p>
         </div>
       </div>
     </form>
@@ -1039,26 +972,26 @@ def render_registry_index(registry):
 
   <!-- 因子相關係數矩陣（隨選，取代原本驗證報告裡固定範圍的相關矩陣） -->
   <section class="card">
-    <h2><span class="bar"></span><span data-i18n="corr_card_title">🔗 產生因子相關係數矩陣</span></h2>
+    <h2><span data-i18n="corr_card_title">產生因子相關係數矩陣</span></h2>
     <p class="hint" data-i18n="corr_card_desc">
-      勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。運算完成後會直接顯示在下方，不用等每日自動報告。
+      勾選要比較的因子，產生兩兩相關係數熱力圖。相關係數太高，代表兩個因子在講同一件事，加進來的幫助有限。算完會顯示在下方。
     </p>
     <details class="token-box" id="corrTokenDetails">
-      <summary data-i18n="form_token_summary">🔑 GitHub Personal Access Token（跟上面表單共用同一組）</summary>
+      <summary data-i18n="corr_token_summary">GitHub Personal Access Token（跟上面表單共用同一組）</summary>
       <input type="password" id="corrGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </details>
     <div class="corr-factor-grid">
       {corr_factor_checkboxes}
     </div>
-    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;" data-i18n="corr_submit_btn">📊 產生相關係數矩陣</button>
-    <p class="hint" id="corrStatus" style="margin-top:10px;"></p>
+    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;" data-i18n="corr_submit_btn">產生相關係數矩陣</button>
+    <p class="inline-msg" id="corrStatus" role="status" aria-live="polite"></p>
   </section>
 
   <!-- 運算進度狀態卡片 -->
   <div class="status-card" id="statusCard">
     <div class="spinner" id="statusSpinner"></div>
-    <div class="status-title" id="statusTitle">已提交分析請求</div>
-    <div class="status-desc" id="statusDesc">GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...</div>
+    <div class="status-title" id="statusTitle">已送出</div>
+    <div class="status-desc" id="statusDesc">GitHub Actions 正在用 20 年資料計算並畫圖，通常要幾分鐘。</div>
     <div class="progress-steps">
       <div class="step active" id="step1">1. 提交請求</div>
       <div class="step" id="step2">2. 執行 20 年運算</div>
@@ -1069,27 +1002,29 @@ def render_registry_index(registry):
 
   <!-- 歷史紀錄表格卡片 -->
   <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <h2 style="margin:0;"><span class="bar"></span><span data-i18n="reg_title">歷史測試紀錄登記簿</span> <span style="font-size:12px;font-weight:normal;color:#667085;margin-left:6px;" data-i18n="reg_sub">(點擊因子名稱可直接在下方展開報告圖表)</span></h2>
+    <div>
+      <h2><span data-i18n="reg_title">歷史測試紀錄登記簿</span> <span class="sub" data-i18n="reg_sub">點因子名稱可以展開報告</span></h2>
     </div>
 
     <!-- 篩選控制與搜尋列 (防止列表越來越長) -->
     <div class="registry-controls">
       <div class="registry-filters">
-        <button class="filter-tab-btn active" data-filter="all" data-i18n="filter_all" onclick="filterRegistry('all')">全部 ({n_total})</button>
-        <button class="filter-tab-btn" data-filter="keep" data-i18n="filter_keep" onclick="filterRegistry('keep')">通過 ({n_keep})</button>
-        <button class="filter-tab-btn" data-filter="watch" data-i18n="filter_watch" onclick="filterRegistry('watch')">觀察 ({n_watch})</button>
-        <button class="filter-tab-btn" data-filter="cut" data-i18n="filter_cut" onclick="filterRegistry('cut')">淘汰 ({n_cut})</button>
-        <button class="filter-tab-btn" data-filter="promoted" data-i18n="filter_promoted" onclick="filterRegistry('promoted')">已升等 ({n_promoted})</button>
+        <button class="filter-tab-btn active" data-filter="all" onclick="filterRegistry('all')"><span data-i18n="filter_all">全部</span><span class="filter-count">({n_total})</span></button>
+        <button class="filter-tab-btn" data-filter="keep" onclick="filterRegistry('keep')"><span data-i18n="filter_keep">通過</span><span class="filter-count">({n_keep})</span></button>
+        <button class="filter-tab-btn" data-filter="watch" onclick="filterRegistry('watch')"><span data-i18n="filter_watch">觀察</span><span class="filter-count">({n_watch})</span></button>
+        <button class="filter-tab-btn" data-filter="cut" onclick="filterRegistry('cut')"><span data-i18n="filter_cut">淘汰</span><span class="filter-count">({n_cut})</span></button>
+        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')"><span data-i18n="filter_promoted">已升等</span><span class="filter-count">({n_promoted})</span></button>
       </div>
       <div class="registry-search-wrap">
-        <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." data-i18n-placeholder="search_placeholder" oninput="onRegistrySearchInput()">
+        <input type="text" id="registrySearchInput" placeholder="搜尋因子名稱或代號" aria-label="搜尋因子名稱或代號" data-i18n-placeholder="search_placeholder" oninput="onRegistrySearchInput()">
       </div>
     </div>
 
+    <p class="inline-msg" id="registryMsg" role="status" aria-live="polite"></p>
+    <div id="registryConfirmSlot"></div>
     <table class="data-table" id="registryTable">
       <thead>
-        <tr><th data-i18n="th_date">測試日期</th><th data-i18n="th_factor">因子 (點擊名稱展開報告)</th><th data-i18n="th_mode">轉換模式</th><th data-i18n="th_ic">IC(20日,重疊取樣)</th><th data-i18n="th_flags">型態標記</th><th data-i18n="th_gates">關卡通過</th><th data-i18n="th_verdict">結果</th><th data-i18n="th_status">儀表板狀態</th></tr>
+        <tr><th data-i18n="th_date">測試日期</th><th data-i18n="th_factor">因子</th><th data-i18n="th_mode">轉換模式</th><th data-i18n="th_ic">IC(20日,重疊取樣)</th><th data-i18n="th_flags">型態標記</th><th data-i18n="th_gates">關卡通過</th><th data-i18n="th_verdict">結果</th><th data-i18n="th_status">儀表板狀態</th></tr>
       </thead>
       <tbody id="registryTbody">
         {rows if rows else "<tr><td colspan='8' class='na'>尚無測試記錄</td></tr>"}
@@ -1111,10 +1046,10 @@ def render_registry_index(registry):
   <!-- Plan 003b: reportViewer div（之前 JS 有引用但 HTML 缺失；現在補上並配合 CSS 過渡效果） -->
   <div id="reportViewer">
     <div id="reportViewerBar">
-      <span id="reportViewerTitle">📊 因子分析報告與圖表</span>
+      <span id="reportViewerTitle">因子分析報告與圖表</span>
       <div style="display:flex;gap:10px;align-items:center;">
-        <a id="reportViewerLink" href="#" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none;">↗ 新分頁開啟</a>
-        <button onclick="closeReportViewer()" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;color:#475569;font-weight:600;">✕ 關閉</button>
+        <a id="reportViewerLink" class="inline-link" href="#" target="_blank" rel="noopener">新分頁開啟</a>
+        <button type="button" class="inline-close-btn" onclick="closeReportViewer()">關閉</button>
       </div>
     </div>
     <iframe id="reportFrame"></iframe>
@@ -1122,13 +1057,41 @@ def render_registry_index(registry):
 </div>
 
 <script>
+  // 提示與確認都用行內訊息，不用會擋住整頁的 alert()/confirm()/prompt()。
+  function showMsg(id, text, isError) {{
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("is-error", !!isError);
+  }}
+  function askConfirm(slotId, text, yesLabel, danger) {{
+    return new Promise(resolve => {{
+      const slot = document.getElementById(slotId);
+      slot.innerHTML = "";
+      const box = document.createElement("div");
+      box.className = "inline-confirm";
+      box.setAttribute("role", "alertdialog");
+      const msg = document.createElement("span");
+      msg.textContent = text;
+      const yes = document.createElement("button");
+      yes.type = "button"; yes.textContent = yesLabel; if (danger) yes.className = "is-danger";
+      const no = document.createElement("button");
+      no.type = "button"; no.textContent = "取消";
+      yes.onclick = () => {{ slot.innerHTML = ""; resolve(true); }};
+      no.onclick = () => {{ slot.innerHTML = ""; resolve(false); }};
+      box.append(msg, yes, no);
+      slot.appendChild(box);
+      yes.focus();
+    }});
+  }}
+
   const REPO_OWNER = "dp79b47tvn-maker";
   const REPO_NAME = "bond-fear-greed-dashboard";
   const SOURCE_CATALOG = {json.dumps(SOURCE_CATALOG, ensure_ascii=False)};
   const SOURCE_TYPE_CONFIG = {{
     "existing": {{ label: "既有欄位", class: "tag-existing" }},
     "yahoo": {{ label: "Yahoo", class: "tag-yahoo" }},
-    "fred": {{ label: "FRED 聯備", class: "tag-fred" }},
+    "fred": {{ label: "FRED", class: "tag-fred" }},
     "treasury": {{ label: "Treasury", class: "tag-treasury" }}
   }};
 
@@ -1162,7 +1125,7 @@ def render_registry_index(registry):
       : SOURCE_CATALOG;
     matches = matches.slice(0, 10);
     if (!matches.length) {{
-      listEl.innerHTML = `<div class="combo-empty">🔍 找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
+      listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
       listEl.style.display = "block";
       void listEl.offsetWidth;
       listEl.classList.add('open');
@@ -1171,7 +1134,7 @@ def render_registry_index(registry):
 
     const headerHtml = `
       <div class="combo-header-bar">
-        <div class="hint-text">💡 可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
+        <div class="hint-text">可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
         <div class="count-badge">${{matches.length}} 筆結果</div>
       </div>
     `;
@@ -1394,7 +1357,7 @@ def render_registry_index(registry):
     const frame = document.getElementById("reportFrame");
     const title = document.getElementById("reportViewerTitle");
     const link = document.getElementById("reportViewerLink");
-    if (title) title.innerText = "📊 因子分析報告與圖表：" + (label || "");
+    if (title) title.innerText = "因子分析報告與圖表：" + (label || "");
     if (frame) frame.src = reportUrl;
     if (link) {{ link.href = reportUrl; }}
     if (viewer) {{
@@ -1419,7 +1382,7 @@ def render_registry_index(registry):
 
     const token = document.getElementById("ghToken").value.trim();
     if (!token) {{
-      alert("請先填寫 GitHub Personal Access Token (PAT)！");
+      showMsg("formMsg", "請先填寫 GitHub Personal Access Token（PAT）。", true);
       document.getElementById("tokenDetails").open = true;
       document.getElementById("ghToken").focus();
       return;
@@ -1433,12 +1396,14 @@ def render_registry_index(registry):
 
     const specA = getSourceSpec("");
     if (!specA) {{
-      alert("請選擇資料來源 A（用搜尋框選一個，或勾選「手動輸入」自己填類型與代號）！");
+      showMsg("formMsg", "請選擇資料來源 A（用搜尋框選一個，或勾選「手動輸入」自己填類型與代號）。", true);
+      document.getElementById("sourceSearch").focus();
       return;
     }}
     const specB = isTwoSources ? getSourceSpec("B") : null;
     if (isTwoSources && !specB) {{
-      alert("這個轉換模式需要資料來源 B，請選擇或手動輸入！");
+      showMsg("formMsg", "這個轉換模式需要資料來源 B，請選擇或手動輸入。", true);
+      document.getElementById("sourceSearchB").focus();
       return;
     }}
     const sourceType = specA.type;
@@ -1459,7 +1424,7 @@ def render_registry_index(registry):
     statusCard.classList.add('status-card-visible');
     closeReportViewer();
     
-    updateStatus(1, "已提交分析請求", "GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...");
+    updateStatus(1, "已送出", "GitHub Actions 正在用 20 年資料計算並畫圖，通常要幾分鐘。");
 
     try {{
       const resp = await fetch(`https://api.github.com/repos/${{REPO_OWNER}}/${{REPO_NAME}}/actions/workflows/factor-screening.yml/dispatches`, {{
@@ -1494,7 +1459,7 @@ def render_registry_index(registry):
       pollForReport(key, label);
 
     }} catch (err) {{
-      alert("提交失敗：" + err.message);
+      showMsg("formMsg", "提交失敗：" + err.message, true);
       btnSubmit.disabled = false;
       statusCard.style.display = "none";
     }}
@@ -1526,7 +1491,7 @@ def render_registry_index(registry):
         const resp = await fetch(reportUrl, {{ method: "HEAD", cache: "no-store" }});
         if (resp.status === 200) {{
           clearInterval(interval);
-          updateStatus(4, "🎉 分析完成！報告與圖表已呈現在下方", "已成功產出該因子的完整 5 道關卡評估與視覺化圖表：");
+          updateStatus(4, "分析完成，報告與圖表已呈現在下方", "已成功產出該因子的完整 5 道關卡評估與視覺化圖表：");
           document.getElementById("statusSpinner").style.display = "none";
           document.getElementById("btnSubmit").disabled = false;
           
@@ -1536,20 +1501,25 @@ def render_registry_index(registry):
 
       if (attempts >= maxAttempts) {{
         clearInterval(interval);
-        alert("等待逾時：請重新整理頁面查看表格內的最新結果。");
+        updateStatus(3, "等待逾時", "請重新整理頁面，查看表格內的最新結果。");
+        document.getElementById("statusSpinner").style.display = "none";
         document.getElementById("btnSubmit").disabled = false;
       }}
     }}, 10000);
   }}
 
   async function demoteFactor(btn, key, label) {{
-    if (!confirm(`確定要把「${{label}}」從儀表板退回嗎？\\n這會觸發GitHub Actions直接commit+push到正式站，把它從儀表板的分項卡片與自訂權重選項裡移除。`)) return;
-    let token = localStorage.getItem("gh_pat_token");
+    const token = localStorage.getItem("gh_pat_token") || document.getElementById("ghToken").value.trim();
     if (!token) {{
-      token = prompt("請輸入 GitHub Personal Access Token（跟升等按鈕共用同一組）：");
-      if (!token) return;
-      localStorage.setItem("gh_pat_token", token);
+      showMsg("registryMsg", "請先在上方表單填入 GitHub Personal Access Token，再按退回。", true);
+      document.getElementById("tokenDetails").open = true;
+      document.getElementById("ghToken").focus();
+      return;
     }}
+    const ok = await askConfirm("registryConfirmSlot",
+      `確定要把「${{label}}」從儀表板移除嗎？分項卡片跟自訂權重選項都會拿掉，幾分鐘後生效。`,
+      "退回", true);
+    if (!ok) return;
     btn.disabled = true;
     btn.textContent = "退回中...";
     try {{
@@ -1567,9 +1537,9 @@ def render_registry_index(registry):
         throw new Error(`GitHub API 錯誤 (${{resp.status}}): ${{errText}}`);
       }}
       btn.textContent = "已送出";
-      alert("已送出退回請求，幾分鐘後重新整理這頁即可看到狀態更新。");
+      showMsg("registryMsg", "已送出退回請求，幾分鐘後重新整理這頁即可看到狀態更新。");
     }} catch (err) {{
-      alert("退回失敗：" + err.message);
+      showMsg("registryMsg", "退回失敗：" + err.message, true);
       btn.disabled = false;
       btn.textContent = "退回";
     }}
@@ -1589,11 +1559,11 @@ def render_registry_index(registry):
     const btn = document.getElementById("corrSubmitBtn");
     const keys = Array.from(document.querySelectorAll(".corr-factor:checked")).map(el => el.value);
     if (keys.length < 2) {{
-      alert("至少要勾選兩個因子才能算相關係數矩陣！");
+      showMsg("corrStatus", "至少要勾選兩個因子才能算相關係數矩陣。", true);
       return;
     }}
     if (!token) {{
-      alert("請先填寫 GitHub Personal Access Token（PAT）！");
+      showMsg("corrStatus", "請先填寫 GitHub Personal Access Token（PAT）。", true);
       document.getElementById("corrTokenDetails").open = true;
       corrGhTokenInput.focus();
       return;
@@ -1635,7 +1605,7 @@ def render_registry_index(registry):
         const resp = await fetch(reportUrl, {{ method: "HEAD", cache: "no-store" }});
         if (resp.status === 200) {{
           clearInterval(interval);
-          statusEl.textContent = "🎉 相關係數矩陣已產生，顯示於下方。";
+          statusEl.textContent = "相關係數矩陣已產生，顯示於下方。";
           btn.disabled = false;
           loadReport(reportUrl, "因子相關係數矩陣");
         }}

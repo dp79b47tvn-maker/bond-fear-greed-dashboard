@@ -100,31 +100,32 @@ def render_page(heatmap_b64, corr, factor_cols_map):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>因子相關係數矩陣 · 債券市場恐懼貪婪</title>
+{page_style.FAVICON_TAG}
 <style>
+  {page_style.ROOT_COLORS_CSS}
+  {nav_bar.NAV_BAR_CSS}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:{page_style.BASE_LINE_HEIGHT}; }}
-  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:44px 24px 80px; }}
-  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }}
-  .kicker {{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }}
-  .meta {{ font-size:13px; color:#4a5568; margin:0 0 20px; max-width:{page_style.LEDE_MAX_WIDTH}; line-height:1.7; }}
-  .card {{ background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }}
+  body {{ margin:0; line-height:{page_style.BASE_LINE_HEIGHT}; }}
+  .site-topnav {{ max-width:{page_style.CONTENT_MAX_WIDTH}; }}
+  .wrap {{ max-width:{page_style.CONTENT_MAX_WIDTH}; margin:0 auto; padding:32px 24px 72px; }}
+  h1 {{ font-size:{page_style.H1_SIZE}; font-weight:700; margin:0 0 10px; letter-spacing:-0.015em; }}
+  .meta {{ font-size:14px; color:var(--text-secondary); margin:0 0 20px; max-width:{page_style.LEDE_MAX_WIDTH}; line-height:1.7; }}
+  .card {{ padding:22px 0; border-top:1px solid var(--rule); }}
   .card.center {{ text-align:center; }}
   .card h2 {{ font-size:16px; font-weight:700; margin:0 0 14px; }}
-  img {{ max-width:100%; height:auto; }}
-  .data-table {{ width:100%; border-collapse:collapse; font-size:12.5px; }}
-  .data-table th, .data-table td {{ text-align:right; padding:7px 10px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }}
+  img {{ max-width:100%; height:auto; background:#ffffff; border:1px solid var(--rule); border-radius:4px; }}
+  .data-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+  .data-table th, .data-table td {{ text-align:right; padding:7px 10px; border-bottom:1px solid var(--rule); }}
   .data-table th:first-child, .data-table td:first-child {{ text-align:left; }}
-  .data-table th {{ color:#667085; font-weight:600; font-size:11px; }}
+  .data-table th {{ color:var(--text-muted); font-weight:600; font-size:12px; background:var(--surface-2); }}
   .data-table td.fname {{ font-weight:600; text-align:left; white-space:nowrap; }}
-  .back-link {{ font-size:13px; color:#1e3a5f; text-decoration:none; font-weight:600; }}
-  .back-link:hover {{ text-decoration:underline; }}
-  {nav_bar.NAV_BAR_CSS}
+  .back-link {{ font-weight:600; }}
+  @media (max-width: 640px) {{ .wrap {{ padding:24px 16px 56px; }} .data-table {{ display:block; overflow-x:auto; }} }}
 </style>
 </head>
 <body>
+{nav_bar.render_nav_bar("screening")}
 <div class="wrap">
-  {nav_bar.render_nav_bar("screening")}
-  <div class="kicker">FACTOR CORRELATION MATRIX</div>
   <h1>因子相關係數矩陣</h1>
   <p class="meta">
     比較因子：{labels}。相關係數越接近±1代表兩個因子在講同一件事(訊息重複)，越接近0代表提供的是不同角度的資訊。

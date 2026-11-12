@@ -6,335 +6,231 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <title>因子開發與篩選平台 · 債券市場恐懼貪婪</title>
 <style>
-  * { box-sizing: border-box; }
-  body { margin:0; background:#f4f5f7; color:#161a23; font-family:"Inter",-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:1.6; }
-  .wrap { max-width:1120px; margin:0 auto; padding:44px 24px 80px; }
-  header { margin-bottom:28px; }
-  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }
-  h1 { font-size:32px; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
-  .meta { font-size:13px; color:#4a5568; margin:0 0 14px; }
-  .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; box-shadow:0 1px 3px rgba(22,26,35,0.03); }
-  .card {
-    background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:24px 28px; margin-bottom:22px;
-    box-shadow:0 2px 4px rgba(22,26,35,0.03), 0 8px 24px rgba(22,26,35,0.05);
-    transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-  }
-  .card:hover {
-    transform:translateY(-2px);
-    box-shadow:0 4px 12px rgba(22,26,35,0.06), 0 16px 36px rgba(22,26,35,0.08);
-  }
-  .card h2 { font-size:18px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
-  .bar { width:4px; height:18px; background:#1e3a5f; border-radius:2px; display:inline-block; }
-  .data-table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
-  .data-table th, .data-table td { text-align:left; padding:8px 12px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; transition:background-color 0.15s ease; }
-  .data-table th { color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }
-  .data-table tbody tr:hover td { background:#f8fafc; }
-  .data-table td.fname { font-weight:600; white-space:nowrap; }
-  .verdict-keep { color:#2f6b4f; font-weight:700; }
-  .verdict-watch { color:#a6742a; font-weight:700; }
-  .verdict-cut { color:#a6362f; font-weight:700; }
-  .na { color:#a7adb9; font-style:italic; }
-  .promoted-badge { display:inline-block; font-size:11px; font-weight:700; color:#2f6b4f;
-    background:rgba(47,107,79,0.1); border-radius:999px; padding:3px 10px; white-space:nowrap; }
-  .demote-btn { border:1px solid #dfe2e8; border-radius:6px; background:#fff; color:#a6362f;
-    font-size:11.5px; padding:4px 10px; cursor:pointer; white-space:nowrap; margin-left:4px; transition:all 0.15s ease; }
-  .demote-btn:hover { border-color:#a6362f; background:rgba(166,54,47,0.06); }
-  .demote-btn:active { transform:scale(0.96); }
-  .demote-btn:disabled { opacity:.55; cursor:not-allowed; }
+    @font-face { font-family: "Public Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/public-sans-latin-400.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Public Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/public-sans-latin-600.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Public Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/public-sans-latin-700.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  @font-face { font-family: "Noto Sans TC Subset"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/noto-sans-tc-subset-400.woff2") format("woff2"); unicode-range: U+2010-2027, U+2030-205E, U+3000-303F, U+4E00-9FFF, U+FF00-FFEF; }
+  @font-face { font-family: "Noto Sans TC Subset"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/noto-sans-tc-subset-700.woff2") format("woff2"); unicode-range: U+2010-2027, U+2030-205E, U+3000-303F, U+4E00-9FFF, U+FF00-FFEF; }
 
-  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .form-group { display:flex; flex-direction:column; gap:6px; }
-  .form-group.full { grid-column:1 / -1; }
-  label { font-size:13px; font-weight:600; color:#161a23; }
-  .hint { font-size:12px; color:#667085; }
-  input[type="text"], input[type="number"], input[type="password"], select {
-    width:100%; padding:9px 12px; border:1px solid #dfe2e8; border-radius:8px; background:#f4f5f7; color:#161a23; font-size:13.5px; outline:none;
-    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  :root { color-scheme: light; --page: #ffffff; --surface-1: #ffffff; --surface-2: #f4f4f1; --surface-3: #e9eae6; --text-primary: #1b1d1f; --text-secondary: #45494d; --text-muted: #62676c; --border: #d5d7d2; --rule: #e3e4e0; --grid: #ebece8; --axis: #8c9195; --accent: #1d5a96; --accent-ink: #ffffff; --series-1: #1d5a96; --series-2: #9c5a0c; --series-3: #56606a; --series-4: #2b3136; --tier-extreme-fear: #174f33; --tier-fear: #3b7654; --tier-neutral: #5c6166; --tier-greed: #b9452f; --tier-extreme-greed: #d1281c; --gauge-inactive: #e6e7e3; --warn: #8a5a00; --danger: #b42318; --selection: #cfe0f2; --focus: #1d5a96; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { color-scheme: dark; --page: #121416; --surface-1: #171a1d; --surface-2: #1d2124; --surface-3: #262b2f; --text-primary: #ecedea; --text-secondary: #c0c4c7; --text-muted: #969ca1; --border: #353b40; --rule: #2a2f33; --grid: #23282c; --axis: #6b7379; --accent: #8db8e8; --accent-ink: #0f1820; --series-1: #8db8e8; --series-2: #e3a35a; --series-3: #a9b2ba; --series-4: #e1e4e6; --tier-extreme-fear: #a3dcb8; --tier-fear: #6fb88d; --tier-neutral: #a6acb0; --tier-greed: #f19583; --tier-extreme-greed: #ff5e4a; --gauge-inactive: #272c30; --warn: #e3b45a; --danger: #ff8a7a; --selection: #28456a; --focus: #8db8e8; }
   }
-  input:focus, select:focus { border-color:#1e3a5f; box-shadow:0 0 0 3px rgba(30,58,95,0.12); }
-  .checkbox-group { display:flex; align-items:center; gap:8px; margin-top:4px; }
-  .checkbox-group input { width:16px; height:16px; cursor:pointer; }
-  .corr-factor-grid { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:10px; }
-  .corr-check { margin-top:0; font-size:13px; font-weight:normal; color:#161a23; cursor:pointer; }
-  .btn-submit {
-    display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:13px; background:#1e3a5f; color:#fff; border:none; border-radius:10px; font-size:14.5px; font-weight:700; cursor:pointer;
-    transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .btn-submit:hover { background:#2a4c78; transform:translateY(-1px); box-shadow:0 4px 12px rgba(30,58,95,0.25); }
-  .btn-submit:active { transform:scale(0.98); }
-  .token-box { background:rgba(166,116,42,0.08); border:1px dashed #a6742a; border-radius:10px; padding:14px 16px; margin-bottom:18px; font-size:12.5px; }
-  .token-box summary { font-weight:700; color:#a6742a; cursor:pointer; }
-  .status-card { display:none; background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:20px; text-align:center; margin-bottom:22px; }
-  .spinner { width:32px; height:32px; border:3px solid #dfe2e8; border-top-color:#1e3a5f; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  /* === Plan 004: prefers-reduced-motion 無障礙支援 ===
-     注意：.spinner 是無限旋轉動畫，animation-duration:0.001ms 會讓它每秒轉 1000 圈，
-     造成高頻閃爍（比原本的 1s 旋轉更危險），必須用 animation:none 完全停止。
-     transition 有起點/終點，縮短成 0.001ms 只是讓過渡「看起來是瞬間的」，這是安全的。 */
+  :root[data-theme="dark"] { color-scheme: dark; --page: #121416; --surface-1: #171a1d; --surface-2: #1d2124; --surface-3: #262b2f; --text-primary: #ecedea; --text-secondary: #c0c4c7; --text-muted: #969ca1; --border: #353b40; --rule: #2a2f33; --grid: #23282c; --axis: #6b7379; --accent: #8db8e8; --accent-ink: #0f1820; --series-1: #8db8e8; --series-2: #e3a35a; --series-3: #a9b2ba; --series-4: #e1e4e6; --tier-extreme-fear: #a3dcb8; --tier-fear: #6fb88d; --tier-neutral: #a6acb0; --tier-greed: #f19583; --tier-extreme-greed: #ff5e4a; --gauge-inactive: #272c30; --warn: #e3b45a; --danger: #ff8a7a; --selection: #28456a; --focus: #8db8e8; }
+
+  html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--border) transparent; }
+  body { font-family: "Public Sans", "Noto Sans TC Subset", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; font-variant-numeric: lining-nums tabular-nums;
+    background: var(--page); color: var(--text-primary); }
+  ::selection { background: var(--selection); color: var(--text-primary); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  a { color: var(--accent); }
+  .mono, code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.92em; }
   @media (prefers-reduced-motion: reduce) {
-    .spinner { animation: none; border-color: #1e3a5f; opacity: 0.65; }
-    * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   }
-  .status-title { font-size:16px; font-weight:700; margin-bottom:6px; }
-  .status-desc { font-size:12.5px; color:#4a5568; margin-bottom:14px; }
-  .progress-steps { display:flex; justify-content:space-around; font-size:11.5px; color:#667085; border-top:1px solid #e5e7eb; padding-top:12px; }
-  .step.active { color:#1e3a5f; font-weight:700; }
-  .registry-controls { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; background:#f8fafc; padding:12px 16px; border-radius:10px; border:1px solid #dfe2e8; }
-  .registry-filters { display:flex; gap:6px; flex-wrap:wrap; }
-  .filter-tab-btn { background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:600; color:#475569; cursor:pointer; transition:all .15s ease; }
-  .filter-tab-btn:hover { background:#f1f5f9; border-color:#94a3b8; }
-  .filter-tab-btn.active { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
-  .registry-search-wrap { position:relative; width:220px; }
-  .registry-search-wrap input { padding:6px 10px; font-size:12.5px; border-radius:6px; border:1px solid #cbd5e1; width:100%; background:#fff; outline:none; }
-  .registry-search-wrap input:focus { border-color:#1e3a5f; }
 
-  .expand-toggle-btn { background:none; border:none; padding:0; color:#1e3a5f; font-weight:700; font-size:13px; text-align:left; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-  .expand-toggle-btn:hover { text-decoration:underline; color:#0f172a; }
-  .expand-toggle-btn .arrow-icon { font-size:10px; color:#a6742a; transition:transform .15s ease; }
-
-  /* === Plan 002: Inline report 展開 fade-in 動畫 ===
-     table row 無法直接用 CSS transition （display 不能被動畫），
-     改用 @keyframes one-shot 動畫 + JS class toggle 解決。 */
-  @keyframes fadeInReport {
-    from { opacity:0; transform:translateY(6px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-  .inline-report-row { background:#f8fafc; }
-  .inline-report-row.expanding { animation: fadeInReport 0.3s ease forwards; }
-  .inline-report-cell { padding:12px 16px !important; border-bottom:2px solid #cbd5e1 !important; }
-  .inline-report-wrap { background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
-  .inline-report-bar { display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid #e5e7eb; }
-  .inline-report-title { font-size:14px; font-weight:700; color:#1e3a5f; }
-  .inline-report-actions { display:flex; gap:10px; align-items:center; }
-  .inline-link { font-size:12px; color:#2563eb; text-decoration:none; font-weight:600; }
-  .inline-link:hover { text-decoration:underline; }
-  .inline-close-btn { background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:4px 10px; font-size:11.5px; cursor:pointer; color:#475569; font-weight:600; }
-  .inline-close-btn:hover { background:#e2e8f0; color:#0f172a; }
-  .inline-iframe { width:100%; height:950px; border:none; border-radius:8px; background:#fff; }
-
-  /* === Plan 003a: status-card slide-down 進入動畫 === */
-  @keyframes slideDownFade {
-    from { opacity:0; transform:translateY(-8px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
-  .status-card-visible { animation: slideDownFade 0.3s ease forwards; }
-
-  /* === Plan 003b: reportViewer 淡入展示 ===
-     JS 引用的 #reportViewer 原本在 HTML 中缺失，這裡補上定義。
-     用 opacity+visibility transition 取代 display:none/block。 */
-  #reportViewer {
-    display:none; margin-top:20px; border:1px solid #dfe2e8; border-radius:14px;
-    background:#fff; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.08);
-    opacity:0; transition: opacity 0.35s ease;
-  }
-  #reportViewer.report-visible { opacity:1; }
-  #reportViewerBar {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px; border-bottom:1px solid #e5e7eb; background:#f8fafc;
-  }
-  #reportViewerTitle { font-size:14px; font-weight:700; color:#1e3a5f; }
-  #reportFrame { width:100%; height:820px; border:none; background:#fff; }
-
-  .pagination-bar { display:flex; justify-content:space-between; align-items:center; padding-top:14px; margin-top:10px; border-top:1px solid #e5e7eb; font-size:12.5px; color:#64748b; }
-  .page-btn { background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 12px; font-size:12px; cursor:pointer; color:#334155; font-weight:600; }
-  .page-btn:hover:not(:disabled) { background:#f1f5f9; }
-  .page-btn:disabled { opacity:.4; cursor:not-allowed; }
-
-  /* === Plan 005: combo-list 下拉選單 fade+slide 過渡 ===
-     改用 opacity+transform 動畫，保留 display:none 給完全隱藏用（blur後）。
-     JS 的 filterSourceCombo() 會先設 display:block，再加 .open 觸發動畫。 */
-  /* === 資料來源搜尋彈出視窗 (Combo Dropdown UI/UX 重構) === */
-  .combo-wrap {
-    position: relative; width: 100%; display: block; z-index: 50;
-  }
-  .combo-wrap input {
-    padding: 10px 14px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;
-    width: 100%; background: #ffffff; outline: none; transition: all 0.2s ease;
-    color: #0f172a; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  }
-  .combo-wrap input:focus {
-    border-color: #1e3a5f; box-shadow: 0 0 0 3.5px rgba(30, 58, 95, 0.12);
-  }
-  .combo-list {
-    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1000;
-    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
-    box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
-    max-height: 320px; overflow-y: auto; padding: 6px;
-    opacity: 0; transform: translateY(-6px) scale(0.995);
-    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .combo-list.open { opacity: 1; transform: translateY(0) scale(1); }
   
-  .combo-header-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 10px; margin-bottom: 6px; border-radius: 6px;
-    background: #f8fafc; border: 1px solid #e2e8f0; font-size: 11.5px; color: #475569; font-weight: 600;
-  }
-  .combo-header-bar .hint-text { display: flex; align-items: center; gap: 5px; }
-  .combo-header-bar .count-badge { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 99px; font-size: 10.5px; }
-
-  .combo-item {
-    padding: 9px 12px; font-size: 13px; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    border-radius: 8px; margin-bottom: 2px; transition: all 0.15s ease;
-    border-left: 3px solid transparent; color: #1e293b;
-  }
-  .combo-item:last-child { margin-bottom: 0; }
-  .combo-item:hover {
-    background: #f1f5f9; border-left-color: #1e3a5f; color: #0f172a;
-    transform: translateX(2px);
-  }
-  .combo-item-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .combo-item-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
-
-  .combo-tag {
-    font-size: 10.5px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; line-height: 1.4;
-  }
-  .combo-tag.tag-existing { background: rgba(30, 58, 95, 0.08); color: #1e3a5f; border: 1px solid rgba(30, 58, 95, 0.18); }
-  .combo-tag.tag-yahoo { background: rgba(99, 102, 241, 0.08); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.18); }
-  .combo-tag.tag-fred { background: rgba(16, 185, 129, 0.08); color: #059669; border: 1px solid rgba(16, 185, 129, 0.18); }
-  .combo-tag.tag-treasury { background: rgba(14, 165, 233, 0.08); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.18); }
-
-  .combo-id {
-    font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #475569;
-    font-size: 11.5px; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0;
-    border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
-  }
-  .combo-empty { padding: 14px 12px; font-size: 12.5px; color: #64748b; text-align: center; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
-  .manual-source-group { margin-top:10px; padding-top:10px; border-top:1px dashed #dfe2e8; }
-  
-/* 三段式(左logo / 中導覽 / 右設定)、長方形、鎖在頂端：position:fixed，捲頁完全不會跑掉。
-
-   為什麼不是 sticky：sticky 只能在「自己的父容器範圍內」吸附，而儀表板的 nav
-   包在 .nav-wrap 裡、那個 div 只有 90px 高——捲過去之後 nav 就跟著父容器一起
-   離開畫面了(實測捲到 900px 時 nav 已經在 -870px)。fixed 是相對視窗定位，沒有
-   這個限制。
-
-   fixed 用 left:0/right:0 撐滿，不用 100vw——vw 會把捲軸寬度算進去，導致多出
-   一條水平捲軸(這個坑先前用 -50vw 做滿版背景時踩過)。
-
-   fixed 會脫離文件流不佔位，所以下面補 body padding-top 把高度還回去，不然
-   內容會被蓋住。注意：任何祖先只要有 transform 就會讓 fixed 改成相對它定位，
-   所以 dashboard_template.html 的 .nav-wrap 已經拿掉 animate-in(那個動畫的
-   fill-mode:both 會留下 transform:translateY(0))。 */
-body { padding-top: 79px; }
+/* 2026-11-12：照作者明確要求改回「不吸頂、置中、固定最大寬度、四角圓角」。
+   (2026-08-28 曾改成 position:fixed 的滿版長方形列，與作者的要求不符。)
+   顏色全部用 page_style.py 的 token，各頁都有注入 ROOT_COLORS_CSS。 */
 .site-topnav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  margin: 0; padding: 0 34px; min-height: 78px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: none; border-bottom: 1px solid #dfe2e8; border-radius: 0; box-shadow: none;
+  position: static; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: calc(100% - 48px); max-width: 1400px; margin: 16px auto 0; padding: 8px 12px 8px 14px; min-height: 56px;
+  background: var(--surface-1); border: 1px solid var(--rule); border-radius: 10px;
 }
 .nav-brand {
   display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0;
-  text-decoration: none; padding: 5px 12px 5px 7px; border-radius: 999px;
-  transition: background-color 0.22s ease;
+  text-decoration: none; padding: 4px 6px; border-radius: 6px;
 }
-.nav-brand:hover { background: rgba(30,58,95,0.06); }
-.nav-logo { width: 34px; height: 34px; display: block; flex-shrink: 0; }
-.nav-brand-text {
-  font-size: 17px; font-weight: 700; color: #1e3a5f;
-  white-space: nowrap; letter-spacing: -0.01em;
-}
-/* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。
-   只用 justify-content:space-between 的話，中段位置會被左右兩側的實際寬度
-   推著跑——左邊品牌比右邊設定寬，中段就會偏右(實測偏了72px)。 */
+.nav-brand:hover { background: var(--surface-2); }
+.nav-logo { width: 28px; height: 28px; display: block; flex-shrink: 0; }
+.nav-brand-text { font-size: 16px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+/* 兩側各佔等寬(flex:1)，中間那段才會真的對在容器正中央。 */
 .nav-side { flex: 1 1 0; display: flex; align-items: center; min-width: 0; }
 .nav-side-end { justify-content: flex-end; }
-.nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.nav-links { display: flex; align-items: stretch; gap: 2px; flex-wrap: wrap; justify-content: center; }
 .nav-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
 .nav-links a, .nav-links span.active {
-  color: #4a5568; text-decoration: none; font-weight: 600; font-size: 16px;
-  padding: 10px 19px; border-radius: 999px; white-space: nowrap;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--text-secondary); text-decoration: none; font-weight: 600; font-size: 15px;
+  padding: 8px 14px; border-radius: 6px; white-space: nowrap;
   display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 -2px 0 transparent;
 }
-.nav-links a:hover {
-  background: rgba(30,58,95,0.08); color: #1e3a5f;
-  transform: translateY(-1px) scale(1.02);
-}
-.nav-links a:active { transform: scale(0.97); }
-.nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); font-weight: 700; }
-
+.nav-links a:hover { color: var(--text-primary); background: var(--surface-2); }
+.nav-links span.active { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 6px 6px 0 0; }
 .lang-toggle-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: var(--surface-2, #f8f9fb); border: 1px solid var(--border, #dfe2e8);
-  color: var(--text-secondary, #4a5568); font-size: 14px; font-weight: 700;
-  padding: 8px 16px; border-radius: 999px; cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  outline: none;
+  display: inline-flex; align-items: center; min-height: 36px;
+  background: var(--surface-1); border: 1px solid var(--border); color: var(--text-secondary);
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
 }
-.lang-toggle-btn:hover {
-  background: var(--surface-1, #ffffff); color: var(--series-1, #1e3a5f); border-color: var(--axis, #a7adb9);
-  transform: translateY(-1px) scale(1.03); box-shadow: 0 2px 6px rgba(22,26,35,0.06);
-}
-.lang-toggle-btn:active { transform: scale(0.96); }
-.lang-icon { font-size: 14px; }
-
-/* 窄螢幕：三段擠一行放不下(「因子開發與篩選平台」9個字就吃掉整排)，
-   改成兩行——第一行左logo右設定，導覽整條掉到第二行置中。
-   單純縮字級是不夠的，實測375px下會直接溢出被設定鈕蓋住。 */
+.lang-toggle-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+/* 窄螢幕：三段擠一行放不下，改兩行——第一行品牌＋語言，第二行頁面導覽。
+   品牌文字保留(之前在手機上被隱藏，只剩 logo，訪客看不出這是什麼網站)。 */
 @media (max-width: 780px) {
-  body { padding-top: 120px; }  /* 兩行版實測 118px，多留 2px */
-  .site-topnav { flex-wrap: wrap; row-gap: 8px; gap: 8px; padding: 11px 16px; min-height: 0; }
-  .nav-brand-text { display: none; }
-  .nav-side { flex: 0 0 auto; }
-  .nav-side-end { margin-left: auto; }
-  .nav-links { order: 3; flex-basis: 100%; min-width: 0; }
-  .nav-links a, .nav-links span.active { padding: 8px 14px; font-size: 14.5px; }
+  .site-topnav { flex-wrap: wrap; row-gap: 4px; width: calc(100% - 32px); margin: 10px auto 0; padding: 8px 10px; }
+  .nav-side { flex: 1 1 auto; }
+  .nav-side-end { flex: 0 0 auto; }
+  .nav-brand-text { font-size: 15px; }
+  .nav-links { order: 3; flex-basis: 100%; min-width: 0; justify-content: flex-start; border-top: 1px solid var(--rule); padding-top: 4px; }
+  .nav-links a, .nav-links span.active { padding: 8px 10px; font-size: 14px; min-height: 40px; }
 }
 
-@media (prefers-color-scheme: dark) {
-  .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
-  .nav-links a, .nav-links span.active { color: #b8c0cc; }
-  .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-  .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
-  .nav-brand-text { color: #e4e8ee; }
-  .nav-brand:hover { background: rgba(126,163,207,0.10); }
-  .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
-  .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
-}
-:root[data-theme="dark"] .site-topnav { background: rgba(23, 27, 36, 0.90); border-bottom-color: #2c313d; }
-:root[data-theme="dark"] .nav-links a, :root[data-theme="dark"] .nav-links span.active { color: #b8c0cc; }
-:root[data-theme="dark"] .nav-links a:hover { background: rgba(126,163,207,0.12); color: #7ea3cf; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="dark"] .nav-links span.active { color: #7ea3cf; background: rgba(126,163,207,0.18); }
-:root[data-theme="dark"] .nav-brand-text { color: #e4e8ee; }
-:root[data-theme="dark"] .nav-brand:hover { background: rgba(126,163,207,0.10); }
-:root[data-theme="dark"] .lang-toggle-btn { background: #1e232d; border-color: #2c313d; color: #b8c0cc; }
-:root[data-theme="dark"] .lang-toggle-btn:hover { background: #171b24; color: #7ea3cf; border-color: #4a5164; }
+  * { box-sizing:border-box; }
+  body { margin:0; line-height:1.6; }
+  .wrap { max-width:1120px; margin:0 auto; padding:32px 24px 72px; }
+  .site-topnav { max-width:1120px; }
+  header { margin-bottom:24px; }
+  .kicker { display:none; }
+  h1 { font-size:30px; font-weight:700; margin:0 0 8px; letter-spacing:-0.015em; line-height:1.25; }
+  .meta { font-size:14px; color:var(--text-secondary); margin:0 0 12px; }
+  .disclaimer { font-size:13px; color:var(--text-secondary); line-height:1.7; margin:0 0 10px; max-width:68ch;
+    padding:10px 14px; background:var(--surface-2); border-radius:4px; }
+  .card { padding:24px 0; border-top:1px solid var(--rule); }
+  .card h2 { font-size:18px; font-weight:700; margin:0 0 14px; display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+  .card h2 .sub { font-size:12.5px; font-weight:400; color:var(--text-muted); }
+  .bar { display:none; }
+  .data-table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
+  .data-table th, .data-table td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  .data-table th { color:var(--text-muted); font-weight:600; font-size:12px; background:var(--surface-2); border-bottom-color:var(--border); }
+  .data-table tbody tr:hover td { background:var(--surface-2); }
+  .data-table td.fname { font-weight:600; white-space:nowrap; }
+  #registryTable td:first-child, #registryTable td:nth-child(6) { white-space:nowrap; }
+  .table-scroll { overflow-x:auto; }
+  .verdict-keep { color:var(--tier-fear); font-weight:600; }
+  .verdict-watch { color:var(--warn); font-weight:600; }
+  .verdict-cut { color:var(--danger); font-weight:600; }
+  .na { color:var(--text-muted); }
+  .promoted-badge { display:inline-block; font-size:12px; font-weight:700; color:var(--accent); border:1px solid currentColor; border-radius:3px; padding:0 6px; white-space:nowrap; }
+  .demote-btn { border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--danger);
+    font:inherit; font-size:12px; padding:3px 9px; cursor:pointer; white-space:nowrap; margin-left:4px; }
+  .demote-btn:hover { background:var(--surface-2); }
+  .demote-btn:disabled { opacity:.55; cursor:not-allowed; }
 
-:root[data-theme="light"] .site-topnav { background: rgba(255, 255, 255, 0.88); border-bottom-color: #dfe2e8; }
-:root[data-theme="light"] .nav-links a, :root[data-theme="light"] .nav-links span.active { color: #4a5568; }
-:root[data-theme="light"] .nav-links a:hover { background: rgba(30,58,95,0.08); color: #1e3a5f; transform: translateY(-1px) scale(1.02); }
-:root[data-theme="light"] .nav-links span.active { color: #1e3a5f; background: rgba(30,58,95,0.12); }
-:root[data-theme="light"] .nav-brand-text { color: #1e3a5f; }
-:root[data-theme="light"] .lang-toggle-btn { background: #f8f9fb; border-color: #dfe2e8; color: #4a5568; }
-:root[data-theme="light"] .lang-toggle-btn:hover { background: #ffffff; color: #1e3a5f; border-color: #a7adb9; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .form-group.full { grid-column:1 / -1; }
+  label { font-size:13px; font-weight:600; color:var(--text-primary); }
+  .hint { font-size:12.5px; color:var(--text-muted); line-height:1.65; margin:4px 0; }
+  input[type="text"], input[type="number"], input[type="password"], select {
+    width:100%; padding:7px 10px; min-height:36px; border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--text-primary); font:inherit; font-size:14px;
+  }
+  input:focus-visible, select:focus-visible { outline:2px solid var(--focus); outline-offset:0; border-color:var(--focus); }
+  .checkbox-group { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .checkbox-group input, .corr-check input { width:16px; height:16px; cursor:pointer; accent-color:var(--accent); }
+  .corr-factor-grid { display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:10px; }
+  .corr-check { margin-top:0; font-size:13px; font-weight:400; color:var(--text-primary); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .btn-submit { display:inline-flex; align-items:center; justify-content:center; padding:9px 18px; min-height:40px; background:var(--accent); color:var(--accent-ink);
+    border:1px solid var(--accent); border-radius:4px; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-submit:hover { filter:brightness(1.08); }
+  .btn-submit:disabled { opacity:.6; cursor:not-allowed; }
+  .token-box { border:1px solid var(--border); border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:13px; background:var(--surface-2); }
+  .token-box summary { font-weight:600; color:var(--text-primary); cursor:pointer; }
+  .token-box p { margin:6px 0 10px; color:var(--text-secondary); }
+  .token-box input { margin-top:8px; }
+  .status-card { display:none; border:1px solid var(--border); border-radius:6px; padding:16px 18px; margin:0 0 22px; }
+  .spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 0 10px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation:none !important; border-color:var(--accent); } }
+  .status-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .status-desc { font-size:13px; color:var(--text-secondary); margin-bottom:12px; }
+  .progress-steps { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; font-size:12.5px; color:var(--text-muted); border-top:1px solid var(--rule); padding-top:10px; }
+  .step.active { color:var(--accent); font-weight:700; }
+  .registry-controls { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+  .registry-filters { display:inline-flex; flex-wrap:wrap; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .filter-tab-btn { background:var(--surface-1); border:none; border-left:1px solid var(--border); padding:5px 12px; min-height:32px; font:inherit; font-size:12.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; }
+  .filter-tab-btn:first-child { border-left:none; }
+  .filter-tab-btn:hover { background:var(--surface-2); color:var(--text-primary); }
+  .filter-tab-btn.active { background:var(--accent); color:var(--accent-ink); }
+  .filter-count { font-weight:400; margin-left:3px; }
+  .registry-search-wrap { width:240px; max-width:100%; }
+  .expand-toggle-btn { background:none; border:none; padding:0; color:var(--accent); font:inherit; font-weight:600; font-size:13px; text-align:left; cursor:pointer; display:inline-flex; align-items:baseline; gap:6px; }
+  .expand-toggle-btn:hover { text-decoration:underline; text-underline-offset:3px; }
+  .expand-toggle-btn .arrow-icon { font-size:9px; color:var(--text-muted); transition:transform .15s ease; }
+  .inline-report-row td { background:var(--surface-2); }
+  .inline-report-cell { padding:12px !important; }
+  .inline-report-wrap { background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:12px; }
+  .inline-report-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-bottom:10px; margin-bottom:10px; border-bottom:1px solid var(--rule); }
+  .inline-report-title { font-size:14px; font-weight:700; color:var(--text-primary); }
+  .inline-report-actions { display:flex; gap:12px; align-items:center; }
+  .inline-link { font-size:12.5px; font-weight:600; text-decoration:none; }
+  .inline-link:hover { text-decoration:underline; }
+  .inline-close-btn { background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:3px 10px; font:inherit; font-size:12px; cursor:pointer; color:var(--text-primary); font-weight:600; }
+  .inline-close-btn:hover { background:var(--surface-2); }
+  .inline-iframe { width:100%; height:950px; border:none; border-radius:4px; background:var(--page); }
+  #reportViewer { display:none; margin-top:20px; border:1px solid var(--border); border-radius:6px; overflow:hidden; opacity:0; transition:opacity 0.25s ease; }
+  #reportViewerBar { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2); }
+  #reportFrame { width:100%; height:1200px; border:none; background:var(--page); }
+  .pagination-bar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:12px; margin-top:8px; font-size:12.5px; color:var(--text-muted); }
+  .page-btn { background:var(--surface-1); border:1px solid var(--border); border-radius:4px; padding:4px 12px; min-height:32px; font:inherit; font-size:12.5px; cursor:pointer; color:var(--text-primary); font-weight:600; }
+  .page-btn:hover:not(:disabled) { background:var(--surface-2); }
+  .page-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .inline-msg { font-size:13px; color:var(--text-secondary); margin:10px 0 0; }
+  .inline-msg.is-error { color:var(--danger); }
+  .inline-msg:empty { display:none; }
+  .inline-confirm { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; margin:8px 0; padding:10px 12px; background:var(--surface-2); border:1px solid var(--border); border-radius:4px; }
+  .inline-confirm button { font:inherit; font-size:12.5px; font-weight:600; padding:4px 10px; border:1px solid var(--border); border-radius:4px; background:var(--surface-1); color:var(--text-primary); cursor:pointer; }
+  .inline-confirm button.is-danger { color:var(--danger); }
 
+  /* 資料來源搜尋下拉 */
+  .combo-wrap { position:relative; width:100%; display:block; z-index:50; }
+  .combo-list { display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:1000;
+    background:var(--surface-1); border:1px solid var(--border); border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    max-height:320px; overflow-y:auto; padding:4px; }
+  .combo-list.open { display:block; }
+  .combo-header-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; margin-bottom:4px;
+    border-bottom:1px solid var(--rule); font-size:12px; color:var(--text-muted); }
+  .combo-header-bar .count-badge { white-space:nowrap; }
+  .combo-item { padding:8px 10px; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; border-radius:3px; color:var(--text-primary); }
+  .combo-item:hover, .combo-item.is-active { background:var(--selection); }
+  .combo-item-left { display:flex; align-items:center; gap:8px; min-width:0; }
+  .combo-item-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .combo-tag { font-size:11px; font-weight:700; flex-shrink:0; color:var(--text-muted); min-width:4.5em; }
+  .combo-tag.tag-existing { color:var(--accent); }
+  .combo-tag.tag-yahoo { color:var(--series-2); }
+  .combo-tag.tag-fred { color:var(--series-3); }
+  .combo-tag.tag-treasury { color:var(--series-3); }
+  .combo-id { font-family:ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; color:var(--text-secondary); font-size:12px; flex-shrink:0; }
+  .combo-empty { padding:12px; font-size:12.5px; color:var(--text-muted); text-align:center; }
+  .manual-source-group { margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule); }
+
+  /* Part B 組合回測區塊 */
+  .partb-section h3 { font-size:15px; font-weight:700; margin:22px 0 8px; }
+  .callout { background:var(--surface-2); border-radius:4px; padding:12px 16px; margin:14px 0; font-size:13px; line-height:1.7; color:var(--text-secondary); }
+  .callout b, .callout h4 { color:var(--text-primary); }
+  .callout h4 { margin:0 0 8px; font-size:14px; }
+  .callout ol { margin:0; padding-left:20px; }
+  .callout li { margin-bottom:6px; }
+  .badge { white-space:nowrap; }
+  @media (max-width: 720px) {
+    .wrap { padding:24px 16px 56px; }
+    .form-grid { grid-template-columns:1fr; }
+    .registry-search-wrap { width:100%; }
+    .progress-steps { grid-template-columns:1fr 1fr; }
+    .data-table { display:block; overflow-x:auto; }
+  }
 </style>
 </head>
 <body>
+<nav class="site-topnav"><div class="nav-side"><a class="nav-brand" href="index.html"><img class="nav-logo" src="favicon.svg" alt="" aria-hidden="true"><span class="nav-brand-text" data-i18n="nav_brand">債券恐懼貪婪</span></a></div><div class="nav-links"><a href="index.html" data-i18n="nav_hub">首頁</a><a href="dashboard.html" data-i18n="nav_dashboard">儀表板</a><span class="active" aria-current="page" data-i18n="nav_screening">因子開發與篩選平台</span></div><div class="nav-side nav-side-end"><div class="nav-actions"><button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()" aria-label="切換語言 / Switch language"><span class="lang-text" id="langToggleText">EN</span></button></div></div></nav>
 <div class="wrap">
-  <nav class="site-topnav"><div class="nav-side"><a class="nav-brand" href="index.html"><img class="nav-logo" src="favicon.svg" alt="" aria-hidden="true"><span class="nav-brand-text" data-i18n="nav_brand">債券恐懼貪婪</span></a></div><div class="nav-links"><a href="index.html" data-i18n="nav_hub">首頁</a><a href="dashboard.html" data-i18n="nav_dashboard">儀表板</a><span class="active" aria-current="page" data-i18n="nav_screening">因子開發與篩選平台</span></div><div class="nav-side nav-side-end"><div class="nav-actions"><button class="lang-toggle-btn" id="langToggleBtn" type="button" onclick="toggleLanguage()"><span class="lang-icon">🌐</span><span class="lang-text" id="langToggleText">EN</span></button></div></div></nav>
   <header>
-    <div class="kicker">FACTOR DISCOVERY &amp; SCREENING</div>
     <h1 data-i18n="screening_title">因子開發與篩選平台</h1>
-    <p class="meta">累計測試 24 個因子，其中全數通過關卡的有 1 個。</p>
-    <p class="disclaimer">本平台是輔助債券交易者判斷美債市場目前整體氛圍的研究工具，非交易策略、非投資建議。所有分析結果以研究性語言呈現歷史統計特徵，不產出即時部位建議或操作指令。</p>
+    <p class="meta">登記簿共 24 筆測試，其中全部關卡通過的有 1 筆。</p>
+    <p class="disclaimer">這是研究工具，呈現美債市場情緒指標的歷史統計特徵。不是交易策略，也不是投資建議，不提供部位或操作建議。</p>
     <p class="disclaimer">
-      這份登記簿記錄「每一次」測試過的因子，不論結果通過與否都會保留紀錄與完整報告。您可以在下方<b>輸入新因子進行線上驗證</b>，運算完成後，分析圖表與 5 道關卡報告會<b>直接在此頁面上展示出來</b>。
+      每一次測試都會留下紀錄跟完整報告，通過或沒通過都一樣，這樣才不會只記得成功的那幾次。在下方輸入新因子就能線上跑一次檢驗，跑完報告會出現在這一頁。
     </p>
   </header>
 
   <!-- 線上驗證輸入表單 -->
   <section class="card">
-    <h2><span class="bar"></span>➕ 輸入新因子進行驗證</h2>
+    <h2 data-i18n="screening_card1_title">測試新因子</h2>
     
     <details class="token-box" id="tokenDetails">
-      <summary>🔑 設定 GitHub Personal Access Token (第一次使用必填)</summary>
-      <p style="margin:6px 0 10px;color:#4a5568;">填入授權 Token (具備 repo/workflow 權限)，安全儲存於本機瀏覽器 (localStorage)。</p>
+      <summary data-i18n="form_token_summary">GitHub Personal Access Token（第一次使用要填）</summary>
+      <p data-i18n="form_token_hint">需要 repo 跟 workflow 權限。Token 只存在這個瀏覽器的 localStorage，不會進 git。</p>
       <div class="form-group">
         <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
       </div>
@@ -343,15 +239,15 @@ body { padding-top: 79px; }
     <form id="screeningForm">
       <div class="form-grid">
         <div class="form-group">
-          <label for="key">因子英文代號 (Key)</label>
+          <label for="key" data-i18n="form_key_label">因子代號（英文，會當檔名）</label>
           <input type="text" id="key" placeholder="例: vix_ma_dev" required pattern="[a-zA-Z0-9_]+" title="英文字母、數字與底線">
         </div>
         <div class="form-group">
-          <label for="label">因子中文名稱 (Label)</label>
+          <label for="label" data-i18n="form_label_label">因子名稱</label>
           <input type="text" id="label" placeholder="例: VIX 125日均線乖離率" required>
         </div>
         <div class="form-group full">
-          <label for="mode">轉換模式 (Transformation Mode)</label>
+          <label for="mode" data-i18n="form_mode_label">轉換模式</label>
           <select id="mode" required onchange="handleModeChange()">
             <option value="ma_deviation">均線乖離百分位 (Single Series vs N-day SMA)</option>
             <option value="ma_spread">均線價差百分位 (Single Series - N-day SMA)</option>
@@ -419,20 +315,19 @@ body { padding-top: 79px; }
           </div>
         </div>
         <div class="form-group">
-          <label for="window">滾動視窗 (Window Days)</label>
+          <label for="window" data-i18n="form_window_label">滾動視窗（天）</label>
           <input type="number" id="window" value="125" min="5" max="500" required>
         </div>
         <div class="form-group">
           <label>分數反轉</label>
           <div class="checkbox-group">
             <input type="checkbox" id="invert">
-            <label for="invert" style="font-weight:normal;">數值越高代表「恐懼」時請勾選 (將分數反轉)</label>
+            <label for="invert" style="font-weight:normal;" data-i18n="form_invert_label">數值越高代表越恐懼時勾選，分數會反轉。</label>
           </div>
         </div>
         <div class="form-group full" style="margin-top:8px;">
-          <button type="submit" class="btn-submit" id="btnSubmit">
-            🚀 提交驗證並即時呈現分析報告圖表
-          </button>
+          <button type="submit" class="btn-submit" id="btnSubmit" data-i18n="form_submit_btn">送出並產生報告</button>
+          <p class="inline-msg" id="formMsg" role="status" aria-live="polite"></p>
         </div>
       </div>
     </form>
@@ -440,26 +335,26 @@ body { padding-top: 79px; }
 
   <!-- 因子相關係數矩陣（隨選，取代原本驗證報告裡固定範圍的相關矩陣） -->
   <section class="card">
-    <h2><span class="bar"></span><span data-i18n="corr_card_title">🔗 產生因子相關係數矩陣</span></h2>
+    <h2><span data-i18n="corr_card_title">產生因子相關係數矩陣</span></h2>
     <p class="hint" data-i18n="corr_card_desc">
-      勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。運算完成後會直接顯示在下方，不用等每日自動報告。
+      勾選要比較的因子，產生兩兩相關係數熱力圖。相關係數太高，代表兩個因子在講同一件事，加進來的幫助有限。算完會顯示在下方。
     </p>
     <details class="token-box" id="corrTokenDetails">
-      <summary data-i18n="form_token_summary">🔑 GitHub Personal Access Token（跟上面表單共用同一組）</summary>
+      <summary data-i18n="corr_token_summary">GitHub Personal Access Token（跟上面表單共用同一組）</summary>
       <input type="password" id="corrGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </details>
     <div class="corr-factor-grid">
       <label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="momentum_score" checked>動能</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="copper_gold_score" checked>銅金比</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="strength">強度（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="duration">存續期間避險（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="move">波動度（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="curve">殖利率曲線形狀（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="inflation">通膨意外（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="cand_credit_spread">投資級企業債信用利差（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="cand_swap_spread">10年期Swap Spread（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="cand_sofr_ted_spread">SOFR與3M美債利差（歷史）</label><label class="checkbox-group corr-check"><input type="checkbox" class="corr-factor" value="cand_inflation_1y">1年期通膨預期（歷史）</label>
     </div>
-    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;" data-i18n="corr_submit_btn">📊 產生相關係數矩陣</button>
-    <p class="hint" id="corrStatus" style="margin-top:10px;"></p>
+    <button class="btn-submit" type="button" id="corrSubmitBtn" style="margin-top:14px;" data-i18n="corr_submit_btn">產生相關係數矩陣</button>
+    <p class="inline-msg" id="corrStatus" role="status" aria-live="polite"></p>
   </section>
 
   <!-- 運算進度狀態卡片 -->
   <div class="status-card" id="statusCard">
     <div class="spinner" id="statusSpinner"></div>
-    <div class="status-title" id="statusTitle">已提交分析請求</div>
-    <div class="status-desc" id="statusDesc">GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...</div>
+    <div class="status-title" id="statusTitle">已送出</div>
+    <div class="status-desc" id="statusDesc">GitHub Actions 正在用 20 年資料計算並畫圖，通常要幾分鐘。</div>
     <div class="progress-steps">
       <div class="step active" id="step1">1. 提交請求</div>
       <div class="step" id="step2">2. 執行 20 年運算</div>
@@ -470,27 +365,29 @@ body { padding-top: 79px; }
 
   <!-- 歷史紀錄表格卡片 -->
   <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <h2 style="margin:0;"><span class="bar"></span><span data-i18n="reg_title">歷史測試紀錄登記簿</span> <span style="font-size:12px;font-weight:normal;color:#667085;margin-left:6px;" data-i18n="reg_sub">(點擊因子名稱可直接在下方展開報告圖表)</span></h2>
+    <div>
+      <h2><span data-i18n="reg_title">歷史測試紀錄登記簿</span> <span class="sub" data-i18n="reg_sub">點因子名稱可以展開報告</span></h2>
     </div>
 
     <!-- 篩選控制與搜尋列 (防止列表越來越長) -->
     <div class="registry-controls">
       <div class="registry-filters">
-        <button class="filter-tab-btn active" data-filter="all" data-i18n="filter_all" onclick="filterRegistry('all')">全部 (24)</button>
-        <button class="filter-tab-btn" data-filter="keep" data-i18n="filter_keep" onclick="filterRegistry('keep')">通過 (1)</button>
-        <button class="filter-tab-btn" data-filter="watch" data-i18n="filter_watch" onclick="filterRegistry('watch')">觀察 (15)</button>
-        <button class="filter-tab-btn" data-filter="cut" data-i18n="filter_cut" onclick="filterRegistry('cut')">淘汰 (1)</button>
-        <button class="filter-tab-btn" data-filter="promoted" data-i18n="filter_promoted" onclick="filterRegistry('promoted')">已升等 (0)</button>
+        <button class="filter-tab-btn active" data-filter="all" onclick="filterRegistry('all')"><span data-i18n="filter_all">全部</span><span class="filter-count">(24)</span></button>
+        <button class="filter-tab-btn" data-filter="keep" onclick="filterRegistry('keep')"><span data-i18n="filter_keep">通過</span><span class="filter-count">(1)</span></button>
+        <button class="filter-tab-btn" data-filter="watch" onclick="filterRegistry('watch')"><span data-i18n="filter_watch">觀察</span><span class="filter-count">(15)</span></button>
+        <button class="filter-tab-btn" data-filter="cut" onclick="filterRegistry('cut')"><span data-i18n="filter_cut">淘汰</span><span class="filter-count">(1)</span></button>
+        <button class="filter-tab-btn" data-filter="promoted" onclick="filterRegistry('promoted')"><span data-i18n="filter_promoted">已升等</span><span class="filter-count">(0)</span></button>
       </div>
       <div class="registry-search-wrap">
-        <input type="text" id="registrySearchInput" placeholder="🔍 搜尋因子名稱 / 代號..." data-i18n-placeholder="search_placeholder" oninput="onRegistrySearchInput()">
+        <input type="text" id="registrySearchInput" placeholder="搜尋因子名稱或代號" aria-label="搜尋因子名稱或代號" data-i18n-placeholder="search_placeholder" oninput="onRegistrySearchInput()">
       </div>
     </div>
 
+    <p class="inline-msg" id="registryMsg" role="status" aria-live="polite"></p>
+    <div id="registryConfirmSlot"></div>
     <table class="data-table" id="registryTable">
       <thead>
-        <tr><th data-i18n="th_date">測試日期</th><th data-i18n="th_factor">因子 (點擊名稱展開報告)</th><th data-i18n="th_mode">轉換模式</th><th data-i18n="th_ic">IC(20日,重疊取樣)</th><th data-i18n="th_flags">型態標記</th><th data-i18n="th_gates">關卡通過</th><th data-i18n="th_verdict">結果</th><th data-i18n="th_status">儀表板狀態</th></tr>
+        <tr><th data-i18n="th_date">測試日期</th><th data-i18n="th_factor">因子</th><th data-i18n="th_mode">轉換模式</th><th data-i18n="th_ic">IC(20日,重疊取樣)</th><th data-i18n="th_flags">型態標記</th><th data-i18n="th_gates">關卡通過</th><th data-i18n="th_verdict">結果</th><th data-i18n="th_status">儀表板狀態</th></tr>
       </thead>
       <tbody id="registryTbody">
         <tr class="registry-row" data-row-id="composite_momentum_coppergold_0" data-key="composite_momentum_coppergold" data-verdict="watch" data-promoted="false" data-search="【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 composite_momentum_coppergold">
@@ -511,10 +408,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 (composite_momentum_coppergold)</span>
+                <span class="inline-report-title">因子體檢報告：【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 (composite_momentum_coppergold)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_composite_momentum_coppergold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('composite_momentum_coppergold_0')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_composite_momentum_coppergold.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('composite_momentum_coppergold_0')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-composite_momentum_coppergold_0" class="inline-iframe" data-src="screening_composite_momentum_coppergold.html"></iframe>
@@ -538,10 +435,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 (composite_momentum_coppergold)</span>
+                <span class="inline-report-title">因子體檢報告：【合成】官方綜合分數 — 動能 + 銅金比 等權重平均 (composite_momentum_coppergold)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_composite_momentum_coppergold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('composite_momentum_coppergold_1')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_composite_momentum_coppergold.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('composite_momentum_coppergold_1')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-composite_momentum_coppergold_1" class="inline-iframe" data-src="screening_composite_momentum_coppergold.html"></iframe>
@@ -565,10 +462,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】銅金比 60日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】銅金比 60日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_2')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_2')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_copper_gold_2" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
@@ -592,10 +489,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：NQ期貨52週高低區間位置 (NQ_F)</span>
+                <span class="inline-report-title">因子體檢報告：NQ期貨52週高低區間位置 (NQ_F)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_NQ_F.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('NQ_F_3')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_NQ_F.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('NQ_F_3')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-NQ_F_3" class="inline-iframe" data-src="screening_NQ_F.html"></iframe>
@@ -619,10 +516,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
+                <span class="inline-report-title">因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_4')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('us10y_4')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-us10y_4" class="inline-iframe" data-src="screening_us10y.html"></iframe>
@@ -646,10 +543,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
+                <span class="inline-report-title">因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_5')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('us10y_5')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-us10y_5" class="inline-iframe" data-src="screening_us10y.html"></iframe>
@@ -673,10 +570,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
+                <span class="inline-report-title">因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_6')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('us10y_6')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-us10y_6" class="inline-iframe" data-src="screening_us10y.html"></iframe>
@@ -700,10 +597,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
+                <span class="inline-report-title">因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_7')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('us10y_7')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-us10y_7" class="inline-iframe" data-src="screening_us10y.html"></iframe>
@@ -727,10 +624,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：us10y (us10y)</span>
+                <span class="inline-report-title">因子體檢報告：us10y (us10y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_us10y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('us10y_8')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_us10y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('us10y_8')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-us10y_8" class="inline-iframe" data-src="screening_us10y.html"></iframe>
@@ -754,10 +651,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：jpy (jpy)</span>
+                <span class="inline-report-title">因子體檢報告：jpy (jpy)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_jpy.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('jpy_9')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_jpy.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('jpy_9')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-jpy_9" class="inline-iframe" data-src="screening_jpy.html"></iframe>
@@ -781,10 +678,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：jpy (jpy)</span>
+                <span class="inline-report-title">因子體檢報告：jpy (jpy)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_jpy.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('jpy_10')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_jpy.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('jpy_10')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-jpy_10" class="inline-iframe" data-src="screening_jpy.html"></iframe>
@@ -808,10 +705,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：黃金 (gold)</span>
+                <span class="inline-report-title">因子體檢報告：黃金 (gold)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('gold_11')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_gold.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('gold_11')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-gold_11" class="inline-iframe" data-src="screening_gold.html"></iframe>
@@ -835,10 +732,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：VIX 125日均線乖離 (vix_test)</span>
+                <span class="inline-report-title">因子體檢報告：VIX 125日均線乖離 (vix_test)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_vix_test.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('vix_test_12')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_vix_test.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('vix_test_12')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-vix_test_12" class="inline-iframe" data-src="screening_vix_test.html"></iframe>
@@ -862,10 +759,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR) (cand_inflation_1y)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】1年期通膨預期 125日均線價差 (FRED: EXPINF1YR) (cand_inflation_1y)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_inflation_1y.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_inflation_1y_13')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_inflation_1y.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_inflation_1y_13')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_inflation_1y_13" class="inline-iframe" data-src="screening_cand_inflation_1y.html"></iframe>
@@ -889,10 +786,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】SOFR與3M美債利差 (SOFR vs DTB3) (cand_sofr_ted_spread)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】SOFR與3M美債利差 (SOFR vs DTB3) (cand_sofr_ted_spread)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_sofr_ted_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_sofr_ted_spread_14')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_sofr_ted_spread.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_sofr_ted_spread_14')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_sofr_ted_spread_14" class="inline-iframe" data-src="screening_cand_sofr_ted_spread.html"></iframe>
@@ -916,10 +813,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】10年期美債 Swap Spread (DSWP10 vs DGS10) (cand_swap_spread)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】10年期美債 Swap Spread (DSWP10 vs DGS10) (cand_swap_spread)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_swap_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_swap_spread_15')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_swap_spread.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_swap_spread_15')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_swap_spread_15" class="inline-iframe" data-src="screening_cand_swap_spread.html"></iframe>
@@ -943,10 +840,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】投資級企業債信用利差 (FRED: BAA10Y) (cand_credit_spread)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】投資級企業債信用利差 (FRED: BAA10Y) (cand_credit_spread)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_credit_spread.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_credit_spread_16')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_credit_spread.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_credit_spread_16')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_credit_spread_16" class="inline-iframe" data-src="screening_cand_credit_spread.html"></iframe>
@@ -970,10 +867,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【候選】銅金比 40日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
+                <span class="inline-report-title">因子體檢報告：【候選】銅金比 40日報酬差 (HG=F vs GC=F) (cand_copper_gold)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_17')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_cand_copper_gold.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('cand_copper_gold_17')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-cand_copper_gold_17" class="inline-iframe" data-src="screening_cand_copper_gold.html"></iframe>
@@ -997,10 +894,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率 (dashboard_inflation)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】通膨意外 — CPI年增率減損益兩平通膨率 (dashboard_inflation)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_inflation.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_inflation_18')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_inflation.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_inflation_18')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_inflation_18" class="inline-iframe" data-src="screening_dashboard_inflation.html"></iframe>
@@ -1024,10 +921,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差 (dashboard_curve)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】殖利率曲線形狀 — 10Y減2Y利差 (dashboard_curve)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_curve.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_curve_19')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_curve.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_curve_19')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_curve_19" class="inline-iframe" data-src="screening_dashboard_curve.html"></iframe>
@@ -1051,10 +948,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】波動度 — MOVE指數90日偏態係數 (dashboard_move)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】波動度 — MOVE指數90日偏態係數 (dashboard_move)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_move.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_move_20')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_move.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_move_20')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_move_20" class="inline-iframe" data-src="screening_dashboard_move.html"></iframe>
@@ -1078,10 +975,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差 (dashboard_duration)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】存續期間避險 — TLT vs SHY 40日報酬差 (dashboard_duration)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_duration.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_duration_21')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_duration.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_duration_21')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_duration_21" class="inline-iframe" data-src="screening_dashboard_duration.html"></iframe>
@@ -1105,10 +1002,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】強度 — NQ期貨52週高低區間位置 (dashboard_strength)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】強度 — NQ期貨52週高低區間位置 (dashboard_strength)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_strength.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_strength_22')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_strength.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_strength_22')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_strength_22" class="inline-iframe" data-src="screening_dashboard_strength.html"></iframe>
@@ -1132,10 +1029,10 @@ body { padding-top: 79px; }
           <td colspan="8" class="inline-report-cell">
             <div class="inline-report-wrap">
               <div class="inline-report-bar">
-                <span class="inline-report-title">📊 因子體檢報告：【儀表板驗證】動能 — US 10Y 125日均線價差 (dashboard_momentum)</span>
+                <span class="inline-report-title">因子體檢報告：【儀表板驗證】動能 — US 10Y 125日均線價差 (dashboard_momentum)</span>
                 <div class="inline-report-actions">
-                  <a class="inline-link" href="screening_dashboard_momentum.html" target="_blank">在新分頁開啟 ↗</a>
-                  <button class="inline-close-btn" onclick="closeInlineReport('dashboard_momentum_23')">✕ 關閉報告</button>
+                  <a class="inline-link" href="screening_dashboard_momentum.html" target="_blank" rel="noopener">在新分頁開啟</a>
+                  <button type="button" class="inline-close-btn" onclick="closeInlineReport('dashboard_momentum_23')">關閉報告</button>
                 </div>
               </div>
               <iframe id="iframe-dashboard_momentum_23" class="inline-iframe" data-src="screening_dashboard_momentum.html"></iframe>
@@ -1157,7 +1054,7 @@ body { padding-top: 79px; }
 
   
   <!-- 多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合） -->
-  <section class="card" style="margin-top:28px;">
+  <section class="card partb-section">
     <h2><span class="bar"></span>多因子組合窮舉回測與樣本外穩健性驗證（11 因子、2,047 種組合）</h2>
     <p class="hint">
       測試期間：<b>2020-01-01 ~ 2026-08-04</b> (共 2,408 交易日)　·　
@@ -1165,14 +1062,14 @@ body { padding-top: 79px; }
       樣本外 (OOS): 2025~2026 (581天)
     </p>
 
-    <div style="background:rgba(47,107,79,0.08);border-left:4px solid #2f6b4f;padding:12px 16px;border-radius:6px;margin:14px 0;font-size:13px;line-height:1.6;">
-      <b>💡 Mentor 觀點驗證與核心發現：</b><br>
+    <div class="callout">
+      <b>Mentor 觀點驗證與核心發現：</b><br>
       1. <b>尾端反轉效果</b>：爆破出的最佳組合在「極度恐懼 (0-24)」後 20 日平均能獲得顯著正超額報酬，而在「極度貪婪 (76-100)」後出現負超額報酬！<br>
       2. <b>過度配適防護 (Walk-Forward)</b>：多數 7~10 個因子的複雜組合出現<b>樣本外 (OOS) 衰退或負夏普</b>；限制 <b>因子數 ≤ 4 個</b> 的精簡組合在樣本外表現最為穩健，夏普比率高達 +1.9 ~ +2.1！
     </div>
 
-    <h3>🏆 尾端反轉效果最強 Top 10 組合</h3>
-    <table class="data-table mini" style="margin-bottom:24px;">
+    <h3>尾端反轉效果最強 Top 10 組合</h3>
+    <table class="data-table mini">
       <thead>
         <tr>
           <th>組合名稱</th><th>規模</th><th>尾端反轉得分 (20日)</th><th>恐懼端(0-24)超額</th>
@@ -1189,7 +1086,7 @@ body { padding-top: 79px; }
                   <td>-0.004</td>
                   <td>0.25</td>
                   <td><b>-1.71</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
@@ -1200,7 +1097,7 @@ body { padding-top: 79px; }
                   <td>-0.036</td>
                   <td>-0.53</td>
                   <td><b>-1.28</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差</b></td>
@@ -1211,7 +1108,7 @@ body { padding-top: 79px; }
                   <td>+0.075</td>
                   <td>0.36</td>
                   <td><b>0.25</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
@@ -1222,7 +1119,7 @@ body { padding-top: 79px; }
                   <td>-0.066</td>
                   <td>-1.38</td>
                   <td><b>-0.90</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 1年通膨預期價差</b></td>
@@ -1233,7 +1130,7 @@ body { padding-top: 79px; }
                   <td>-0.083</td>
                   <td>-1.31</td>
                   <td><b>-1.07</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
@@ -1244,7 +1141,7 @@ body { padding-top: 79px; }
                   <td>-0.076</td>
                   <td>-1.27</td>
                   <td><b>-1.46</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 波動度 (MOVE偏態) + 通膨意外 (CPI-10YBE) + IG企業債利差 + SOFR-3M利差 + 1年通膨預期價差</b></td>
@@ -1255,7 +1152,7 @@ body { padding-top: 79px; }
                   <td>-0.040</td>
                   <td>-0.97</td>
                   <td><b>-1.06</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 強度 (NQ 52W區間) + 存續期間避險 (TLT-SHY) + 通膨意外 (CPI-10YBE) + IG企業債利差 + 10Y Swap Spread + SOFR-3M利差 + 1年通膨預期價差</b></td>
@@ -1266,7 +1163,7 @@ body { padding-top: 79px; }
                   <td>-0.066</td>
                   <td>-0.88</td>
                   <td><b>-0.76</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + 10Y Swap Spread</b></td>
@@ -1277,7 +1174,7 @@ body { padding-top: 79px; }
                   <td>+0.021</td>
                   <td>0.34</td>
                   <td><b>0.10</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>強度 (NQ 52W區間) + 波動度 (MOVE偏態) + 殖利率曲線 (10Y-2Y) + 通膨意外 (CPI-10YBE) + 銅金比報酬差 + 10Y Swap Spread + SOFR-3M利差</b></td>
@@ -1288,11 +1185,11 @@ body { padding-top: 79px; }
                   <td>-0.009</td>
                   <td>0.38</td>
                   <td><b>-1.38</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr></tbody>
     </table>
 
-    <h3>🛡️ 樣本外最穩健且精簡組合 Top 10 (因子數 ≤ 4，防過度配適)</h3>
+    <h3>樣本外最穩健且精簡組合 Top 10 (因子數 ≤ 4，防過度配適)</h3>
     <table class="data-table mini">
       <thead>
         <tr>
@@ -1310,7 +1207,7 @@ body { padding-top: 79px; }
                   <td>-0.024</td>
                   <td>-0.84</td>
                   <td><b>2.14</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + SOFR-3M利差</b></td>
@@ -1321,7 +1218,7 @@ body { padding-top: 79px; }
                   <td>-0.048</td>
                   <td>-1.25</td>
                   <td><b>1.97</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 殖利率曲線 (10Y-2Y) + SOFR-3M利差</b></td>
@@ -1332,7 +1229,7 @@ body { padding-top: 79px; }
                   <td>-0.057</td>
                   <td>-1.16</td>
                   <td><b>1.93</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + SOFR-3M利差</b></td>
@@ -1343,7 +1240,7 @@ body { padding-top: 79px; }
                   <td>+0.005</td>
                   <td>-1.03</td>
                   <td><b>1.92</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 銅金比報酬差 + SOFR-3M利差</b></td>
@@ -1354,7 +1251,7 @@ body { padding-top: 79px; }
                   <td>+0.009</td>
                   <td>-0.66</td>
                   <td><b>1.59</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125)</b></td>
@@ -1365,7 +1262,7 @@ body { padding-top: 79px; }
                   <td>-0.046</td>
                   <td>-0.93</td>
                   <td><b>1.52</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY)</b></td>
@@ -1376,7 +1273,7 @@ body { padding-top: 79px; }
                   <td>-0.074</td>
                   <td>-1.19</td>
                   <td><b>1.48</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 存續期間避險 (TLT-SHY) + 銅金比報酬差</b></td>
@@ -1387,7 +1284,7 @@ body { padding-top: 79px; }
                   <td>-0.011</td>
                   <td>-0.67</td>
                   <td><b>1.47</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 殖利率曲線 (10Y-2Y) + 銅金比報酬差 + SOFR-3M利差</b></td>
@@ -1398,7 +1295,7 @@ body { padding-top: 79px; }
                   <td>+0.056</td>
                   <td>-0.13</td>
                   <td><b>1.35</b></td>
-                  <td><span style='color:#a6362f;font-weight:600;'>⚠️ 衰退/偏弱</span></td>
+                  <td><span class='verdict-cut'>衰退/偏弱</span></td>
                 </tr>
                 <tr>
                   <td><b>動能 (10Y-SMA125) + 銅金比報酬差</b></td>
@@ -1409,36 +1306,36 @@ body { padding-top: 79px; }
                   <td>+0.062</td>
                   <td>0.07</td>
                   <td><b>1.33</b></td>
-                  <td><span style='color:#2f6b4f;font-weight:600;'>✓ 樣本外優秀</span></td>
+                  <td><span class='verdict-keep'>樣本外優秀</span></td>
                 </tr></tbody>
     </table>
 
-    <div style="background:rgba(30,58,95,0.04);border:1px solid rgba(30,58,95,0.12);padding:16px;border-radius:8px;margin-top:16px;">
-      <h4 style="margin:0 0 10px 0;color:var(--series-1);font-size:14px;">💡 Top 10 個別組合金融邏輯與選擇原因解析 (從 2,047 種組合中勝出之背後原因)</h4>
-      <ol style="margin:0;padding-left:20px;font-size:12.5px;line-height:1.65;color:#333;">
-        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + SOFR-3M利差 (OOS夏普 +2.14)</b>：【黃金三核：趨勢 + 總經循環 + 貨幣流動性】。動能提供中期價格趨勢，殖利率曲線捕捉美聯儲降息/升息循環脈絡，SOFR 利差精確反映隔夜資金緊縮度。三者互補性極強，在大考中勇奪全場冠軍。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 + SOFR-3M利差 (OOS夏普 +1.97)</b>：【價格趨勢 + 長短債避險 + 隔夜資金利差】。TLT vs SHY 的相對表現直接反映機構法人在長短天期美債間轉移資金的避險偏好，結合 SOFR 利差能有效避免在市場流動性轉折點踩空。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 曲線 + SOFR利差 (OOS夏普 +1.93)</b>：【全方位四維平滑組合】。兼具趨勢、期限結構、長短天期相對價值與貨幣市場利差，是 4 因子組合中穩定度最高、抗震能力最強的全能防守隊伍。</li>
-        <li style="margin-bottom:6px;"><b>動能 + SOFR-3M利差 (OOS夏普 +1.92)</b>：【極簡雙核衝鋒隊】。僅靠「中期價格趨勢」與「隔夜貨幣利差」兩個核心因子，結構極度簡潔，有效避免雜訊干擾，在 2 因子組合中績效冠絕全場。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.59)</b>：【跨資產避險強化組合】。引入「銅金比（工業 vs 避險金屬）」作為跨資產情緒錨，能第一時間捕捉全球景氣風險偏好轉變，是大考通過的組合中唯一具備大宗商品跨資產視角的隊伍。</li>
-        <li style="margin-bottom:6px;"><b>動能 (10Y-SMA125) (OOS夏普 +1.52)</b>：【單因子基準基石】。單憑 125 日均線價差的中期趨勢跟蹤，展現了美債市場強烈的趨勢延續性，為所有多因子組合提供不可或缺的主方向支撐。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續期間避險 (OOS夏普 +1.48)</b>：【經典價格-避險雙因子】。公債期貨價格動能搭配 TLT/SHY 長短債強弱差，是華爾街最經典的雙因子債券趨勢跟蹤模型。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 存續避險 + 銅金比報酬差 (OOS夏普 +1.47)</b>：【商品情緒與長短債雙重避險】。結合了債券市場自身的長短天期資金流向（TLT-SHY）與商品市場的避險情緒（銅金比），雙重驗證市場避險偏好。</li>
-        <li style="margin-bottom:6px;"><b>動能 + 殖利率曲線 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.35)</b>：【多維度總經與商品綜合體】。同時考慮殖利率曲線陡峭化與銅金比風險偏好，適合關注總經大循環與大宗商品聯動的策略。</li>
+    <div class="callout">
+      <h4>Top 10 個別組合金融邏輯與選擇原因解析 (從 2,047 種組合中勝出之背後原因)</h4>
+      <ol>
+        <li><b>動能 + 殖利率曲線 + SOFR-3M利差 (OOS夏普 +2.14)</b>：【黃金三核：趨勢 + 總經循環 + 貨幣流動性】。動能提供中期價格趨勢，殖利率曲線捕捉美聯儲降息/升息循環脈絡，SOFR 利差精確反映隔夜資金緊縮度。三者互補性極強，在大考中勇奪全場冠軍。</li>
+        <li><b>動能 + 存續期間避險 + SOFR-3M利差 (OOS夏普 +1.97)</b>：【價格趨勢 + 長短債避險 + 隔夜資金利差】。TLT vs SHY 的相對表現直接反映機構法人在長短天期美債間轉移資金的避險偏好，結合 SOFR 利差能有效避免在市場流動性轉折點踩空。</li>
+        <li><b>動能 + 存續避險 + 曲線 + SOFR利差 (OOS夏普 +1.93)</b>：【全方位四維平滑組合】。兼具趨勢、期限結構、長短天期相對價值與貨幣市場利差，是 4 因子組合中穩定度最高、抗震能力最強的全能防守隊伍。</li>
+        <li><b>動能 + SOFR-3M利差 (OOS夏普 +1.92)</b>：【極簡雙核衝鋒隊】。僅靠「中期價格趨勢」與「隔夜貨幣利差」兩個核心因子，結構極度簡潔，有效避免雜訊干擾，在 2 因子組合中績效冠絕全場。</li>
+        <li><b>動能 + 存續避險 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.59)</b>：【跨資產避險強化組合】。引入「銅金比（工業 vs 避險金屬）」作為跨資產情緒錨，能第一時間捕捉全球景氣風險偏好轉變，是大考通過的組合中唯一具備大宗商品跨資產視角的隊伍。</li>
+        <li><b>動能 (10Y-SMA125) (OOS夏普 +1.52)</b>：【單因子基準基石】。單憑 125 日均線價差的中期趨勢跟蹤，展現了美債市場強烈的趨勢延續性，為所有多因子組合提供不可或缺的主方向支撐。</li>
+        <li><b>動能 + 存續期間避險 (OOS夏普 +1.48)</b>：【經典價格-避險雙因子】。公債期貨價格動能搭配 TLT/SHY 長短債強弱差，是華爾街最經典的雙因子債券趨勢跟蹤模型。</li>
+        <li><b>動能 + 存續避險 + 銅金比報酬差 (OOS夏普 +1.47)</b>：【商品情緒與長短債雙重避險】。結合了債券市場自身的長短天期資金流向（TLT-SHY）與商品市場的避險情緒（銅金比），雙重驗證市場避險偏好。</li>
+        <li><b>動能 + 殖利率曲線 + 銅金比報酬差 + SOFR利差 (OOS夏普 +1.35)</b>：【多維度總經與商品綜合體】。同時考慮殖利率曲線陡峭化與銅金比風險偏好，適合關注總經大循環與大宗商品聯動的策略。</li>
         <li><b>動能 + 銅金比報酬差 (OOS夏普 +1.33)</b>：【債券-商品極簡跨資產雙核】。用美債價格動能結合銅金比情緒，是建構跨資產避險模型時最簡潔有效的雙因子範本。</li>
       </ol>
     </div>
 
-    <p class="hint" style="margin-top:12px;">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
+    <p class="hint">註：全量 2,047 種非空組合之細部數據（含各組合之 5/20/60 日 IC、勝率與樣本內外夏普比率）已完整保存在專案根目錄 <code class="mono">partb_combination_results.csv</code> 中。</p>
   </section>
 
   <!-- Plan 003b: reportViewer div（之前 JS 有引用但 HTML 缺失；現在補上並配合 CSS 過渡效果） -->
   <div id="reportViewer">
     <div id="reportViewerBar">
-      <span id="reportViewerTitle">📊 因子分析報告與圖表</span>
+      <span id="reportViewerTitle">因子分析報告與圖表</span>
       <div style="display:flex;gap:10px;align-items:center;">
-        <a id="reportViewerLink" href="#" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none;">↗ 新分頁開啟</a>
-        <button onclick="closeReportViewer()" style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-size:11.5px;cursor:pointer;color:#475569;font-weight:600;">✕ 關閉</button>
+        <a id="reportViewerLink" class="inline-link" href="#" target="_blank" rel="noopener">新分頁開啟</a>
+        <button type="button" class="inline-close-btn" onclick="closeReportViewer()">關閉</button>
       </div>
     </div>
     <iframe id="reportFrame"></iframe>
@@ -1446,13 +1343,41 @@ body { padding-top: 79px; }
 </div>
 
 <script>
+  // 提示與確認都用行內訊息，不用會擋住整頁的 alert()/confirm()/prompt()。
+  function showMsg(id, text, isError) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle("is-error", !!isError);
+  }
+  function askConfirm(slotId, text, yesLabel, danger) {
+    return new Promise(resolve => {
+      const slot = document.getElementById(slotId);
+      slot.innerHTML = "";
+      const box = document.createElement("div");
+      box.className = "inline-confirm";
+      box.setAttribute("role", "alertdialog");
+      const msg = document.createElement("span");
+      msg.textContent = text;
+      const yes = document.createElement("button");
+      yes.type = "button"; yes.textContent = yesLabel; if (danger) yes.className = "is-danger";
+      const no = document.createElement("button");
+      no.type = "button"; no.textContent = "取消";
+      yes.onclick = () => { slot.innerHTML = ""; resolve(true); };
+      no.onclick = () => { slot.innerHTML = ""; resolve(false); };
+      box.append(msg, yes, no);
+      slot.appendChild(box);
+      yes.focus();
+    });
+  }
+
   const REPO_OWNER = "dp79b47tvn-maker";
   const REPO_NAME = "bond-fear-greed-dashboard";
   const SOURCE_CATALOG = [{"id": "ZN_futures", "type": "existing", "label": "10年期公債期貨(ZN)原始價格（儀表板既有欄位）"}, {"id": "NQ_futures", "type": "existing", "label": "那斯達克100期貨(NQ)原始價格（儀表板既有欄位）"}, {"id": "TLT", "type": "existing", "label": "20年期以上公債ETF(TLT)（儀表板既有欄位）"}, {"id": "SHY", "type": "existing", "label": "1-3年期短債ETF(SHY)（儀表板既有欄位）"}, {"id": "MOVE_index", "type": "existing", "label": "公債波動率指數(MOVE)（儀表板既有欄位）"}, {"id": "UST_10Yr", "type": "existing", "label": "美國10年期公債殖利率（儀表板既有欄位）"}, {"id": "UST_2Yr", "type": "existing", "label": "美國2年期公債殖利率（儀表板既有欄位）"}, {"id": "CPI_index", "type": "existing", "label": "CPI消費者物價指數（儀表板既有欄位）"}, {"id": "Breakeven_10Y", "type": "existing", "label": "10年期損益平衡通膨率（儀表板既有欄位）"}, {"id": "put_call_ratio", "type": "existing", "label": "選擇權Put/Call比率（儀表板既有欄位）"}, {"id": "momentum_score", "type": "existing", "label": "動能分數（儀表板既有因子）"}, {"id": "copper_gold_score", "type": "existing", "label": "銅金比分數（儀表板既有因子）"}, {"id": "composite_score", "type": "existing", "label": "綜合分數（儀表板既有欄位）"}, {"id": "^VIX", "type": "yahoo", "label": "VIX恐慌指數"}, {"id": "^MOVE", "type": "yahoo", "label": "MOVE公債波動率指數(Yahoo版)"}, {"id": "^TNX", "type": "yahoo", "label": "10年期公債殖利率×10(Yahoo版,注意單位)"}, {"id": "GLD", "type": "yahoo", "label": "黃金ETF(GLD)"}, {"id": "DX-Y.NYB", "type": "yahoo", "label": "美元指數(DXY)"}, {"id": "CL=F", "type": "yahoo", "label": "原油期貨(WTI)"}, {"id": "JPY=X", "type": "yahoo", "label": "美元兌日圓匯率"}, {"id": "IEF", "type": "yahoo", "label": "7-10年期公債ETF(IEF)"}, {"id": "HYG", "type": "yahoo", "label": "高收益債ETF(HYG)"}, {"id": "LQD", "type": "yahoo", "label": "投資級公司債ETF(LQD)"}, {"id": "^GSPC", "type": "yahoo", "label": "標普500指數"}, {"id": "^IXIC", "type": "yahoo", "label": "那斯達克綜合指數"}, {"id": "DGS10", "type": "fred", "label": "10年期公債殖利率(FRED)"}, {"id": "DGS2", "type": "fred", "label": "2年期公債殖利率(FRED)"}, {"id": "DGS3MO", "type": "fred", "label": "3個月期公債殖利率(FRED)"}, {"id": "DGS30", "type": "fred", "label": "30年期公債殖利率(FRED)"}, {"id": "T10YIE", "type": "fred", "label": "10年期損益平衡通膨率(FRED)"}, {"id": "T5YIE", "type": "fred", "label": "5年期損益平衡通膨率(FRED)"}, {"id": "BAMLH0A0HYM2", "type": "fred", "label": "高收益債利差(FRED)"}, {"id": "WALCL", "type": "fred", "label": "聯準會資產負債表規模(FRED)"}, {"id": "M2SL", "type": "fred", "label": "M2貨幣供給(FRED)"}, {"id": "UNRATE", "type": "fred", "label": "失業率(FRED)"}, {"id": "FEDFUNDS", "type": "fred", "label": "聯邦基金利率(FRED)"}];
   const SOURCE_TYPE_CONFIG = {
     "existing": { label: "既有欄位", class: "tag-existing" },
     "yahoo": { label: "Yahoo", class: "tag-yahoo" },
-    "fred": { label: "FRED 聯備", class: "tag-fred" },
+    "fred": { label: "FRED", class: "tag-fred" },
     "treasury": { label: "Treasury", class: "tag-treasury" }
   };
 
@@ -1486,7 +1411,7 @@ body { padding-top: 79px; }
       : SOURCE_CATALOG;
     matches = matches.slice(0, 10);
     if (!matches.length) {
-      listEl.innerHTML = `<div class="combo-empty">🔍 找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
+      listEl.innerHTML = `<div class="combo-empty">找不到符合的資料來源，可勾選下方「手動輸入」選項</div>`;
       listEl.style.display = "block";
       void listEl.offsetWidth;
       listEl.classList.add('open');
@@ -1495,7 +1420,7 @@ body { padding-top: 79px; }
 
     const headerHtml = `
       <div class="combo-header-bar">
-        <div class="hint-text">💡 可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
+        <div class="hint-text">可輸入中文名稱（如「十年期公債」、「黃金」）或代號（如「DGS10」、「^VIX」）</div>
         <div class="count-badge">${matches.length} 筆結果</div>
       </div>
     `;
@@ -1718,7 +1643,7 @@ body { padding-top: 79px; }
     const frame = document.getElementById("reportFrame");
     const title = document.getElementById("reportViewerTitle");
     const link = document.getElementById("reportViewerLink");
-    if (title) title.innerText = "📊 因子分析報告與圖表：" + (label || "");
+    if (title) title.innerText = "因子分析報告與圖表：" + (label || "");
     if (frame) frame.src = reportUrl;
     if (link) { link.href = reportUrl; }
     if (viewer) {
@@ -1743,7 +1668,7 @@ body { padding-top: 79px; }
 
     const token = document.getElementById("ghToken").value.trim();
     if (!token) {
-      alert("請先填寫 GitHub Personal Access Token (PAT)！");
+      showMsg("formMsg", "請先填寫 GitHub Personal Access Token（PAT）。", true);
       document.getElementById("tokenDetails").open = true;
       document.getElementById("ghToken").focus();
       return;
@@ -1757,12 +1682,14 @@ body { padding-top: 79px; }
 
     const specA = getSourceSpec("");
     if (!specA) {
-      alert("請選擇資料來源 A（用搜尋框選一個，或勾選「手動輸入」自己填類型與代號）！");
+      showMsg("formMsg", "請選擇資料來源 A（用搜尋框選一個，或勾選「手動輸入」自己填類型與代號）。", true);
+      document.getElementById("sourceSearch").focus();
       return;
     }
     const specB = isTwoSources ? getSourceSpec("B") : null;
     if (isTwoSources && !specB) {
-      alert("這個轉換模式需要資料來源 B，請選擇或手動輸入！");
+      showMsg("formMsg", "這個轉換模式需要資料來源 B，請選擇或手動輸入。", true);
+      document.getElementById("sourceSearchB").focus();
       return;
     }
     const sourceType = specA.type;
@@ -1783,7 +1710,7 @@ body { padding-top: 79px; }
     statusCard.classList.add('status-card-visible');
     closeReportViewer();
     
-    updateStatus(1, "已提交分析請求", "GitHub Actions 正在啟動 20 年數據運算與圖表繪製引擎...");
+    updateStatus(1, "已送出", "GitHub Actions 正在用 20 年資料計算並畫圖，通常要幾分鐘。");
 
     try {
       const resp = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/factor-screening.yml/dispatches`, {
@@ -1818,7 +1745,7 @@ body { padding-top: 79px; }
       pollForReport(key, label);
 
     } catch (err) {
-      alert("提交失敗：" + err.message);
+      showMsg("formMsg", "提交失敗：" + err.message, true);
       btnSubmit.disabled = false;
       statusCard.style.display = "none";
     }
@@ -1850,7 +1777,7 @@ body { padding-top: 79px; }
         const resp = await fetch(reportUrl, { method: "HEAD", cache: "no-store" });
         if (resp.status === 200) {
           clearInterval(interval);
-          updateStatus(4, "🎉 分析完成！報告與圖表已呈現在下方", "已成功產出該因子的完整 5 道關卡評估與視覺化圖表：");
+          updateStatus(4, "分析完成，報告與圖表已呈現在下方", "已成功產出該因子的完整 5 道關卡評估與視覺化圖表：");
           document.getElementById("statusSpinner").style.display = "none";
           document.getElementById("btnSubmit").disabled = false;
           
@@ -1860,20 +1787,25 @@ body { padding-top: 79px; }
 
       if (attempts >= maxAttempts) {
         clearInterval(interval);
-        alert("等待逾時：請重新整理頁面查看表格內的最新結果。");
+        updateStatus(3, "等待逾時", "請重新整理頁面，查看表格內的最新結果。");
+        document.getElementById("statusSpinner").style.display = "none";
         document.getElementById("btnSubmit").disabled = false;
       }
     }, 10000);
   }
 
   async function demoteFactor(btn, key, label) {
-    if (!confirm(`確定要把「${label}」從儀表板退回嗎？\n這會觸發GitHub Actions直接commit+push到正式站，把它從儀表板的分項卡片與自訂權重選項裡移除。`)) return;
-    let token = localStorage.getItem("gh_pat_token");
+    const token = localStorage.getItem("gh_pat_token") || document.getElementById("ghToken").value.trim();
     if (!token) {
-      token = prompt("請輸入 GitHub Personal Access Token（跟升等按鈕共用同一組）：");
-      if (!token) return;
-      localStorage.setItem("gh_pat_token", token);
+      showMsg("registryMsg", "請先在上方表單填入 GitHub Personal Access Token，再按退回。", true);
+      document.getElementById("tokenDetails").open = true;
+      document.getElementById("ghToken").focus();
+      return;
     }
+    const ok = await askConfirm("registryConfirmSlot",
+      `確定要把「${label}」從儀表板移除嗎？分項卡片跟自訂權重選項都會拿掉，幾分鐘後生效。`,
+      "退回", true);
+    if (!ok) return;
     btn.disabled = true;
     btn.textContent = "退回中...";
     try {
@@ -1891,9 +1823,9 @@ body { padding-top: 79px; }
         throw new Error(`GitHub API 錯誤 (${resp.status}): ${errText}`);
       }
       btn.textContent = "已送出";
-      alert("已送出退回請求，幾分鐘後重新整理這頁即可看到狀態更新。");
+      showMsg("registryMsg", "已送出退回請求，幾分鐘後重新整理這頁即可看到狀態更新。");
     } catch (err) {
-      alert("退回失敗：" + err.message);
+      showMsg("registryMsg", "退回失敗：" + err.message, true);
       btn.disabled = false;
       btn.textContent = "退回";
     }
@@ -1913,11 +1845,11 @@ body { padding-top: 79px; }
     const btn = document.getElementById("corrSubmitBtn");
     const keys = Array.from(document.querySelectorAll(".corr-factor:checked")).map(el => el.value);
     if (keys.length < 2) {
-      alert("至少要勾選兩個因子才能算相關係數矩陣！");
+      showMsg("corrStatus", "至少要勾選兩個因子才能算相關係數矩陣。", true);
       return;
     }
     if (!token) {
-      alert("請先填寫 GitHub Personal Access Token（PAT）！");
+      showMsg("corrStatus", "請先填寫 GitHub Personal Access Token（PAT）。", true);
       document.getElementById("corrTokenDetails").open = true;
       corrGhTokenInput.focus();
       return;
@@ -1959,7 +1891,7 @@ body { padding-top: 79px; }
         const resp = await fetch(reportUrl, { method: "HEAD", cache: "no-store" });
         if (resp.status === 200) {
           clearInterval(interval);
-          statusEl.textContent = "🎉 相關係數矩陣已產生，顯示於下方。";
+          statusEl.textContent = "相關係數矩陣已產生，顯示於下方。";
           btn.disabled = false;
           loadReport(reportUrl, "因子相關係數矩陣");
         }
@@ -1984,43 +1916,44 @@ const I18N_DICT = {
     
     // Dashboard Page
     dash_title: "債券市場恐懼貪婪儀表板",
-    dash_subtitle: "A Quantitative Sentiment Framework for U.S. Treasury Markets",
-    dash_caption: "動能、銅金比 — 各項0–100分等權重平均（尚無資料的項目自動排除），由上而下：先看總體指數，再往下拆解各分項的計算邏輯",
+    dash_subtitle: "",
+    dash_caption: "綜合分數是各因子 0 到 100 分的等權重平均，當天缺資料的因子不列入。往下依序是總分、歷史走勢跟各因子拆解。",
     dash_latest_label: "最新收盤日綜合分數",
-    dash_logic_btn: "綜合分數的計算邏輯與可信度",
-    dash_method_how: "<b>怎麼算：</b>綜合分數 = 兩個分項（動能、銅金比）各自0–100分的<b>等權重算術平均</b>；某分項當天沒有資料時自動排除、由其餘分項平均（不會用假數字填充）。分級標籤：0–24 極度恐懼／25–44 恐懼／45–55 中性／56–75 貪婪／76–100 極度貪婪，區間定義與CNN Fear &amp; Greed Index一致。",
-    dash_method_percentile: "<b>各分項為何是0–100（核心機制：滾動百分位）：</b>把當天原始數值放進<b>過去5年（1825天）的分佈</b>裡取百分位——分數98代表比過去5年98%的交易日都高。公式：分數 = (視窗內「數值 ≤ 今天」的天數) ÷ 1825 × 100。好處：單位完全不同的指標（%、點數、指數）統一成0–100可平均；比「相對位置」不比絕對值，市場整體水位漂移不影響。",
+    dash_logic_btn: "計算方式與限制",
+    dash_method_how: "<b>怎麼算：</b>綜合分數是各分項 0 到 100 分的等權重算術平均。某個分項當天沒有資料就不列入，由其餘分項平均，不用假數字填補。分級：0–24 極度恐懼、25–44 恐懼、45–55 中性、56–75 貪婪、76–100 極度貪婪，區間跟 CNN Fear &amp; Greed Index 相同。",
+    dash_method_percentile: "<b>為什麼每項都是 0 到 100：</b>把當天的原始數值放進過去 5 年（1825 天）的分佈取百分位，分數 98 代表比過去 5 年 98% 的日子都高。公式：分數 =（視窗內數值 ≤ 今天的天數）÷ 1825 × 100。這樣單位不同的指標（%、點數、指數）可以直接平均，比的是相對位置，市場整體水位改變也不影響。",
     dash_method_sources_title: "<b>資料來源明細：</b>",
     dash_method_th_field: "欄位",
     dash_method_th_code: "代號",
     dash_method_th_source: "來源",
     dash_method_th_history: "可回溯到",
     dash_method_th_desc: "說明",
-    dash_method_no_future: "<b>禁止引用未來資料：</b>所有滾動計算（125日均線、40日報酬、5年百分位）都是嚴格「向後看」的移動視窗，只用當天（含）以前的歷史資料，絕不使用未來才發生的價格。",
-    dash_method_limits: "<b>限制（請一併考量）：</b>這是「相對過去5年」的位置指標，不是預測模型；極端事件剛滿5年滾出窗口時，同樣的原始數值算出的分數會改變；週末假日沿用前一交易日數值。",
+    dash_method_no_future: "<b>不使用未來資料：</b>所有滾動計算（移動平均、區間報酬、5 年百分位）都只用當天和以前的資料。",
+    dash_method_limits: "<b>限制：</b>這是跟過去 5 年比的位置指標，不是預測模型。極端事件滿 5 年移出視窗後，同樣的原始數值會算出不同分數。週末跟假日沿用前一個交易日的數值。",
     dash_custom_weight_title: "自訂權重",
     dash_custom_weight_tag: "研究用",
     dash_custom_weight_explain: "這是什麼",
-    dash_custom_weight_desc: "給你自己探索用的研究工具：勾選想納入的因子、拖曳調整權重，即時看看不同組合方式會怎麼改變歷史走勢與今天的分數。<b>不會取代、也不會覆蓋上方的官方等權重分數</b>——那個永遠是兩項等權重平均；這裡算出來的只會在下方走勢圖疊加一條虛線做對照。",
-    dash_custom_mode_label: "啟用自訂模式（在下方走勢圖疊加一條虛線）",
+    dash_custom_weight_desc: "勾選要納入的因子、拖曳權重，看看不同組合下的歷史走勢跟今天的分數。結果只會在下方走勢圖多畫一條虛線，上方的官方分數維持等權重平均，不受影響。",
+    dash_custom_mode_label: "在走勢圖加上自訂權重的虛線",
     dash_history_title: "綜合指數歷史時間軸",
-    dash_history_sub: "· 觀察2020年至今美債情緒高低點變化，點圖表可切換各收盤日細節",
-    dash_history_hint: "分數為每日收盤資料計算，非盤中即時。點擊任何圖表（含下方各分項小圖）會連動整頁的選定日期；縮放與平移所有圖表同步聯動，也可用 1M/3M/6M/1Y/2Y/ALL 按鈕快速切換時間範圍。殖利率線只是價格參考疊圖，不參與分數計算。",
+    dash_history_sub: "2020 年至今。點圖表可以看那一天的細節。",
+    dash_history_hint: "分數用每日收盤資料計算，不是盤中即時。點任一張圖，整頁會跳到同一天；縮放跟平移會同步到所有圖表，也可以用 1M／3M／6M／1Y／2Y／ALL 切換範圍。殖利率線只是參考，不參與分數計算。",
     dash_legend_score: "綜合分數 (等權重)",
     dash_legend_neutral: "50分中性基準線",
     dash_legend_ust10: "10年期公債殖利率 (%)",
     dash_legend_custom: "自訂組合分數",
     dash_components_title: "分項拆解",
     dash_components_sub: "· 每項各自的計算方式與歷史時間軸",
-    dash_footnote: "資料來源：Yahoo Finance（ZN=F、HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
+    dash_footnote: "資料來源：Yahoo Finance（HG=F、GC=F 每日收盤）、Treasury.gov（10年期殖利率）。缺值以前一交易日補齊；百分位計算的抓取範圍往前拉到2014年中，確保2020年起每天都有滿5年視窗，且所有計算僅使用當天以前的歷史資料，不引用未來資料。",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "拖曳時間軸選日期",
     ctrl_jump_date: "跳至日期",
     ctrl_jump_latest: "回到最新",
     ctrl_reset_zoom: "回到全部時間範圍",
-    ctrl_zoom_hint: "滾輪縮放／Shift+拖曳框選放大／拖曳平移／雙擊重置",
+    ctrl_zoom_hint: "滾輪縮放／Shift＋拖曳框選放大／拖曳平移／雙擊重置；鍵盤：←→ 移動、＋− 縮放、Esc 重置",
     ctrl_show_events: "顯示事件標記線（FOMC／CPI／NFP）",
+    ctrl_rail_jump: "事件行事曆 ↓",
     comp_prev_day: "前一交易日",
     comp_1w: "一週前",
     comp_1m: "一個月前",
@@ -2029,7 +1962,7 @@ const I18N_DICT = {
     // Custom Weights
     cw_preset_placeholder: "幫這組設定取個名字，例如「重視銅金比」",
     cw_preset_save: "儲存目前設定",
-    cw_preset_hint: "設定僅存於<b>目前這台裝置的這個瀏覽器</b>（localStorage）——換裝置、換瀏覽器、清瀏覽器資料、或用無痕視窗，都不會看到已儲存的設定；不會上傳到任何伺服器。",
+    cw_preset_hint: "設定只存在這台裝置的這個瀏覽器（localStorage），不會上傳。換裝置、換瀏覽器、清除瀏覽資料或用無痕視窗都看不到。",
     cw_apply_regime: "套用目前情境動態權重",
 
     // Emotion Tiers
@@ -2040,45 +1973,47 @@ const I18N_DICT = {
     tier_extreme_greed: "極度貪婪",
     
     // Event Rail
-    event_rail_title: "📅 總經事件行事曆",
-    event_rail_hint: "FOMC／CPI／NFP 等重大數據發布日。點擊可切換至當日，圖表連動捲動。",
+    event_rail_title: "總經事件行事曆",
+    event_rail_hint: "FOMC 決議、CPI 跟非農的公布日。點一筆事件，圖表會跳到那一天。",
     tab_all: "全部",
     
     // Hub Page
-    hub_title: "債券市場恐懼貪婪 · 專案首頁",
-    hub_lede: "美債市場指標彙整成每日恐懼貪婪分數，配套因子開發與篩選平台可持續擴充。同一份定義來源(factor_definitions.json)驅動儀表板與各項計算。",
+    hub_title: "債券市場恐懼貪婪指數",
+    hub_lede: "把美國公債市場的指標換算成每天 0 到 100 的恐懼貪婪分數，每個交易日收盤後更新。公式跟資料來源都寫在儀表板上，可以自己驗算。",
     hub_intro_title: "這是什麼",
-    hub_intro_p1: "「恐懼貪婪指數」的概念來自CNN的股市版——用一組市場指標算出0到100的分數，越低代表市場情緒越「恐懼」（避險為主、風險偏好降低），越高代表越「貪婪」（風險偏好升溫）。這個專案把同樣的方法論套用在<b>美國公債市場</b>上：整合殖利率動能、銅金比這2項反映景氣循環與風險偏好的指標，每個交易日收盤後重新計算一次。",
-    hub_intro_p2: "每項指標都換算成「跟過去5年比起來排第幾百分位」的0–100分數，再取平均——這是「相對於近期歷史，市場現在情緒偏向哪一端」的參考尺，<b>不是預測模型、也不是投資建議</b>。",
-    hub_intro_p3: "<b>怎麼開始：</b>想看今天的分數跟歷史走勢，進「即時儀表板」；想測試自己的想法、看看某個新指標加進來對綜合分數有沒有增量價值，進「因子開發與篩選平台」。",
+    hub_spark_caption: "0–100，虛線為 50 分",
+    hub_intro_p1: "恐懼貪婪指數的概念來自 CNN 的股市版：用一組市場指標算出 0 到 100 的分數。分數越低，市場越偏向避險；越高，越願意承擔風險。這裡把同一套做法用在<b>美國公債市場</b>，目前採用殖利率動能跟銅金比，每個交易日收盤後重算。",
+    hub_intro_p2: "每項指標先換算成它在過去 5 年裡的百分位（0 到 100），再取平均。分數說的是跟近 5 年比，現在的情緒偏向哪一端。<b>它不是預測模型，也不是投資建議。</b>",
+    hub_intro_p3: "想看今天的分數跟歷史走勢，到「即時儀表板」。想測試某個新指標加進來對綜合分數有沒有幫助，到「因子開發與篩選平台」。",
     hub_live_title: "即時儀表板",
-    hub_live_desc: "今日綜合分數與因子走勢，互動時間軸，每日收盤後更新。",
+    hub_live_desc: "今天的綜合分數、各因子走勢跟可以拖曳的時間軸，每個交易日收盤後更新。",
     hub_platform_title: "因子開發與篩選平台",
-    hub_platform_desc: "整合線上回測與歷史測試登記，快速驗證新因子的增量價值與可行性。",
+    hub_platform_desc: "輸入新因子跑關卡檢驗跟回測，每次結果都留在登記簿；也可以產生因子之間的相關係數矩陣。",
 
     // Screening Page
-    screening_title: "因子開發與篩選平台 · 債券市場恐懼貪婪",
-    screening_card1_title: "➕ 輸入新因子進行驗證",
-    form_token_summary: "🔑 設定 GitHub Personal Access Token (第一次使用必填)",
-    form_token_hint: "填入授權 Token (具備 repo/workflow 權限)，安全儲存於本機瀏覽器 (localStorage)。",
-    form_key_label: "因子英文代號 (Key)",
+    screening_title: "因子開發與篩選平台",
+    screening_card1_title: "測試新因子",
+    form_token_summary: "GitHub Personal Access Token（第一次使用要填）",
+    form_token_hint: "需要 repo 跟 workflow 權限。Token 只存在這個瀏覽器的 localStorage，不會進 git。",
+    form_key_label: "因子代號（英文，會當檔名）",
     form_key_placeholder: "例: vix_ma_dev",
-    form_label_label: "因子中文名稱 (Label)",
+    form_label_label: "因子名稱",
     form_label_placeholder: "例: VIX 125日均線乖離率",
-    form_mode_label: "轉換模式 (Mode)",
-    form_window_label: "滾動視窗 (Window 天數)",
+    form_mode_label: "轉換模式",
+    form_window_label: "滾動視窗（天）",
     form_source_a_label: "資料來源 (Source A)",
     form_source_placeholder: "打字搜尋，例如：十年期公債 / DGS10 / VIX",
     form_manual_toggle: "找不到？手動輸入類型與代號",
-    form_invert_label: "數值反轉 (Invert Score) —— 勾選時數值越高得分越低（反向指標）",
-    form_submit_btn: "🚀 提交驗證並即時呈現分析報告圖表",
-    corr_card_title: "🔗 產生因子相關係數矩陣",
-    corr_card_desc: "勾選想比較的因子（官方七項＋目前已升等的候選因子），產生兩兩相關係數熱力圖——用來看因子之間是不是在講同一件事（相關係數太高代表訊息重複、加進來邊際價值有限）。",
-    corr_submit_btn: "📊 產生相關係數矩陣",
+    form_invert_label: "數值越高代表越恐懼時勾選，分數會反轉。",
+    form_submit_btn: "送出並產生報告",
+    corr_card_title: "產生因子相關係數矩陣",
+    corr_card_desc: "勾選要比較的因子，產生兩兩相關係數熱力圖。相關係數太高，代表兩個因子在講同一件事，加進來的幫助有限。算完會顯示在下方。",
+    corr_submit_btn: "產生相關係數矩陣",
+    corr_token_summary: "GitHub Personal Access Token（跟上面表單共用同一組）",
     reg_title: "歷史測試紀錄登記簿",
-    reg_sub: "(點擊因子名稱可直接在下方展開報告圖表)",
+    reg_sub: "點因子名稱可以展開報告",
     th_date: "測試日期",
-    th_factor: "因子 (點擊名稱展開報告)",
+    th_factor: "因子",
     th_mode: "轉換模式",
     th_ic: "IC(20日,重疊取樣)",
     th_flags: "型態標記",
@@ -2105,43 +2040,44 @@ const I18N_DICT = {
     
     // Dashboard Page
     dash_title: "U.S. Bond Fear & Greed Dashboard",
-    dash_subtitle: "A Quantitative Sentiment Framework for U.S. Treasury Markets",
-    dash_caption: "Momentum, Copper/Gold — Equal-weighted average of 0–100 scores. View composite index first, then break down individual factor components below.",
+    dash_subtitle: "Daily sentiment score for the U.S. Treasury market",
+    dash_caption: "The composite score is the equal-weighted average of each factor's 0–100 score; factors with no data that day are left out. Below: the total, its history, then each factor.",
     dash_latest_label: "Latest Composite Sentiment Score",
-    dash_logic_btn: "Calculation Methodology & Credibility",
-    dash_method_how: "<b>Calculation Methodology:</b> Composite Score = <b>equal-weighted arithmetic mean</b> of individual 0–100 factor scores. Missing items are automatically excluded. Sentiment Tiers: 0–24 Extreme Fear / 25–44 Fear / 45–55 Neutral / 56–75 Greed / 76–100 Extreme Greed.",
-    dash_method_percentile: "<b>Rolling Percentiles (0–100 Scale):</b> Scores place today's raw value into a <b>rolling 5-year (1825-day) distribution</b>. A score of 98 indicates higher than 98% of trading days in the past 5 years. Formula: Score = (Days with Value ≤ Today) ÷ 1825 × 100.",
+    dash_logic_btn: "How it's calculated & limits",
+    dash_method_how: "<b>How it's calculated:</b> the composite is the equal-weighted mean of each factor's 0–100 score. A factor with no data that day is left out rather than filled in. Tiers: 0–24 Extreme Fear, 25–44 Fear, 45–55 Neutral, 56–75 Greed, 76–100 Extreme Greed, the same ranges as CNN's Fear &amp; Greed Index.",
+    dash_method_percentile: "<b>Why every factor is 0–100:</b> today's raw value is ranked within the past 5 years (1825 days); a score of 98 means it is higher than 98% of those days. Formula: Score = (days in window with value ≤ today) ÷ 1825 × 100. Indicators in different units (%, points, index levels) can then be averaged, and a shift in the overall level of the market does not distort the score.",
     dash_method_sources_title: "<b>Data Sources Detail:</b>",
     dash_method_th_field: "Field",
     dash_method_th_code: "Ticker",
     dash_method_th_source: "Source",
     dash_method_th_history: "History",
     dash_method_th_desc: "Description",
-    dash_method_no_future: "<b>No Look-Ahead Bias:</b> All rolling calculations (125D MA, 40D Return, 5Y Percentile) strictly rely on historical data up to today.",
-    dash_method_limits: "<b>Limitations:</b> This is a relative 5-year positioning index, not a predictive model. Extreme historical events rolling out after 5 years will shift percentile scores.",
+    dash_method_no_future: "<b>No look-ahead:</b> every rolling calculation (moving averages, period returns, 5-year percentiles) uses only data up to that day.",
+    dash_method_limits: "<b>Limits:</b> this measures position relative to the past 5 years; it is not a forecasting model. When an extreme event rolls out of the 5-year window, the same raw value produces a different score. Weekends and holidays carry the previous trading day's value.",
     dash_custom_weight_title: "Custom Weights",
     dash_custom_weight_tag: "Research Mode",
     dash_custom_weight_explain: "What is this",
-    dash_custom_weight_desc: "An interactive research tool: check factors & adjust sliders to explore custom weight combinations. <b>Does not override official equal-weighted scores</b>.",
-    dash_custom_mode_label: "Enable Custom Mode (Overlays dashed line on timeline chart)",
+    dash_custom_weight_desc: "Choose factors and drag their weights to see how a different mix changes the history and today's score. The result only adds a dashed line to the chart below; the official equal-weighted score above stays unchanged.",
+    dash_custom_mode_label: "Show custom-weight line on the chart",
     dash_history_title: "Composite Index Historical Timeline",
-    dash_history_sub: "· Track U.S. Treasury sentiment peaks & troughs from 2020 to present. Click chart to inspect daily details.",
-    dash_history_hint: "Daily closing calculations (not intraday). Click any chart to sync date across all components. Panning & zooming syncs synchronously across all charts.",
+    dash_history_sub: "2020 to today. Click the chart to see that day's details.",
+    dash_history_hint: "Scores use daily closes, not intraday data. Click any chart to move the whole page to that day. Zoom and pan apply to every chart; the 1M–ALL buttons switch the range. The yield line is for reference only and is not part of the score.",
     dash_legend_score: "Composite Score (Equal-Weighted)",
     dash_legend_neutral: "50 Neutral Baseline",
     dash_legend_ust10: "10-Year Treasury Yield (%)",
     dash_legend_custom: "Custom Weight Composite Score",
     dash_components_title: "Factor Component Breakdown",
     dash_components_sub: "· Detailed calculation methodology & individual timeline charts",
-    dash_footnote: "Data sources: Yahoo Finance (ZN=F, HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
+    dash_footnote: "Data sources: Yahoo Finance (HG=F, GC=F daily closes), Treasury.gov (10Y Yield). Values strictly backward-looking without look-ahead bias.",
 
     // Dashboard Controls & Badges
     ctrl_drag_slider: "Drag timeline to select date",
     ctrl_jump_date: "Jump to date",
     ctrl_jump_latest: "Jump to Latest",
     ctrl_reset_zoom: "Reset Time Range",
-    ctrl_zoom_hint: "Scroll to zoom / Shift+drag to box-select / Drag to pan / Double-click to reset",
+    ctrl_zoom_hint: "Scroll to zoom / Shift+drag to box-select / Drag to pan / Double-click to reset; keyboard: ←→ move, +− zoom, Esc reset",
     ctrl_show_events: "Show Event Lines (FOMC / CPI / NFP)",
+    ctrl_rail_jump: "Event calendar ↓",
     comp_prev_day: "1 Day Ago",
     comp_1w: "1 Week Ago",
     comp_1m: "1 Month Ago",
@@ -2150,7 +2086,7 @@ const I18N_DICT = {
     // Custom Weights
     cw_preset_placeholder: "Preset name, e.g. 'Copper-Gold Focus'",
     cw_preset_save: "Save Preset",
-    cw_preset_hint: "Presets are saved locally in your browser storage (localStorage).",
+    cw_preset_hint: "Presets are kept only in this browser on this device (localStorage) and are never uploaded. They won't appear on another device or browser, after clearing site data, or in a private window.",
     cw_apply_regime: "Apply Current Regime Weights",
 
     // Emotion Tiers
@@ -2161,45 +2097,47 @@ const I18N_DICT = {
     tier_extreme_greed: "Extreme Greed",
     
     // Event Rail
-    event_rail_title: "📅 Macro Event Calendar",
-    event_rail_hint: "FOMC, CPI, NFP & major release dates. Click to sync timeline chart.",
+    event_rail_title: "Macro Event Calendar",
+    event_rail_hint: "FOMC decisions and CPI and payroll release dates. Click an event to jump the chart to that day.",
     tab_all: "ALL",
     
     // Hub Page
-    hub_title: "U.S. Bond Fear & Greed · Home",
-    hub_lede: "Quantifying U.S. Treasury market sentiment into daily 0–100 scores with continuous factor discovery.",
+    hub_title: "U.S. Treasury Fear & Greed Index",
+    hub_lede: "Daily 0–100 fear & greed score for the U.S. Treasury market, updated after each close. Every formula and data source is on the dashboard.",
     hub_intro_title: "About This Project",
-    hub_intro_p1: "Inspired by CNN's stock market Fear & Greed Index, this quantitative framework applies sentiment analysis to the <b>U.S. Treasury Market</b>. Integrating Treasury yield momentum and Copper/Gold ratios, daily scores range from 0 (Extreme Fear / Risk-Off) to 100 (Extreme Greed / Risk-On).",
-    hub_intro_p2: "Indicators are normalized to rolling 5-year percentiles (0–100) and averaged. This provides a historical sentiment baseline rather than a predictive trading model.",
-    hub_intro_p3: "<b>Getting Started:</b> Explore live sentiment trends on the <b>Live Dashboard</b>, or test new quant factors on the <b>Factor Discovery Platform</b>.",
+    hub_spark_caption: "0–100, dashed line at 50",
+    hub_intro_p1: "The idea comes from CNN's stock-market Fear & Greed Index: a set of market indicators turned into a 0–100 score. Lower means the market leans risk-off; higher means it is more willing to take risk. This project applies the same approach to the <b>U.S. Treasury market</b>, currently using yield momentum and the copper/gold spread, recalculated after each trading day.",
+    hub_intro_p2: "Each indicator is converted to its percentile over the past 5 years (0–100), then averaged. The score tells you which way sentiment leans compared with the last 5 years. <b>It is not a forecasting model and not investment advice.</b>",
+    hub_intro_p3: "For today's score and its history, go to the Live Dashboard. To test whether a new indicator would help the composite score, go to the Factor Platform.",
     hub_live_title: "Live Dashboard",
-    hub_live_desc: "Daily composite score, factor component trends & interactive timeline.",
+    hub_live_desc: "Today's composite score, each factor's history and a draggable timeline, updated after each trading day.",
     hub_platform_title: "Factor Discovery Platform",
-    hub_platform_desc: "Backtesting & registry framework for verifying incremental factor value.",
+    hub_platform_desc: "Run a new factor through the screening gates and a backtest; every result stays in the registry. You can also generate a correlation matrix between factors.",
 
     // Screening Page
     screening_title: "Factor Discovery & Screening Platform",
-    screening_card1_title: "➕ Submit New Candidate Factor for Verification",
-    form_token_summary: "🔑 Set GitHub Personal Access Token (PAT Required)",
-    form_token_hint: "Enter authorized PAT (repo/workflow permissions). Saved securely in local browser storage.",
-    form_key_label: "Factor Key (English)",
+    screening_card1_title: "Test a new factor",
+    form_token_summary: "GitHub Personal Access Token (required the first time)",
+    form_token_hint: "Needs repo and workflow scopes. The token is kept only in this browser's localStorage and never goes into git.",
+    form_key_label: "Factor key (English, used as the file name)",
     form_key_placeholder: "e.g. vix_ma_dev",
-    form_label_label: "Factor Name (Display Label)",
+    form_label_label: "Factor name",
     form_label_placeholder: "e.g. VIX 125D MA Deviation",
-    form_mode_label: "Transformation Mode",
-    form_window_label: "Rolling Window (Days)",
+    form_mode_label: "Transformation mode",
+    form_window_label: "Rolling window (days)",
     form_source_a_label: "Data Source A",
     form_source_placeholder: "Search name or symbol, e.g. 10Y Treasury / DGS10 / VIX",
     form_manual_toggle: "Can't find? Enter type & symbol manually",
-    form_invert_label: "Invert Score (Check when higher raw value indicates Fear)",
-    form_submit_btn: "🚀 Submit Factor Verification & Render Report",
-    corr_card_title: "🔗 Generate Factor Correlation Matrix",
-    corr_card_desc: "Select factors to calculate pairwise correlation heatmaps and evaluate information overlap.",
-    corr_submit_btn: "📊 Generate Correlation Matrix",
+    form_invert_label: "Check this if higher values mean more fear; the score will be inverted.",
+    form_submit_btn: "Submit and build report",
+    corr_card_title: "Generate Factor Correlation Matrix",
+    corr_card_desc: "Select factors to build a pairwise correlation heatmap. A high correlation means two factors say the same thing, so adding both helps little. The result appears below.",
+    corr_submit_btn: "Generate Correlation Matrix",
+    corr_token_summary: "GitHub Personal Access Token (shared with the form above)",
     reg_title: "Historical Factor Test Registry",
-    reg_sub: "(Click factor name to expand analysis report below)",
+    reg_sub: "Click a factor name to open its report",
     th_date: "Test Date",
-    th_factor: "Factor (Click to Expand)",
+    th_factor: "Factor",
     th_mode: "Mode",
     th_ic: "IC (20D Rolling)",
     th_flags: "Pattern Tags",
@@ -2231,7 +2169,7 @@ function updatePageLanguage(lang) {
 
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
-    if (dict[key]) {
+    if (key in dict) {
       // data-i18n-html：字典值本身帶<b>等標籤(粗體強調)，要當HTML插入，
       // 不能用textContent——那樣會把<b>字面印出來，不會真的變粗體
       // (2026-08-25發現：EN切換這幾格一直是壞的，因為原本只有textContent這條路)。

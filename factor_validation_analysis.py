@@ -64,6 +64,18 @@ matplotlib.rcParams["font.sans-serif"] = (
     + ["Noto Sans CJK TC", "Noto Sans CJK JP", "WenQuanYi Zen Hei", "DejaVu Sans"]
 )
 matplotlib.rcParams["axes.unicode_minus"] = False
+# 圖表配色跟網頁共用 page_style.py 的 token(2026-11-12 視覺改版)：白底、暖灰格線、
+# 深藍主線。只改外觀，不影響任何計算。
+_C = page_style.MPL
+matplotlib.rcParams.update({
+    "figure.facecolor": _C["white"], "axes.facecolor": _C["white"], "savefig.facecolor": _C["white"],
+    "axes.edgecolor": _C["axis"], "axes.labelcolor": _C["ink"], "text.color": _C["ink"],
+    "xtick.color": _C["muted"], "ytick.color": _C["muted"],
+    "axes.grid": False, "grid.color": _C["grid"], "grid.linewidth": 0.8,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.prop_cycle": matplotlib.cycler(color=_C["series"]),
+    "legend.frameon": False,
+})
 
 # ---------------------------------------------------------------- 設定
 # 唯一事實來源:參數來自 factor_definitions.json(經由 update_dashboard.DEFS 共用同一份)
@@ -184,7 +196,7 @@ def bucket_chart_base64(bucket_result, title):
         return None
     grp = bucket_result["table"]
     fig, ax = plt.subplots(figsize=(5.2, 3.1), dpi=140)
-    colors = ["#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f"][: len(grp)]
+    colors = [_C["fear"], _C["fear_light"], _C["neutral"], _C["greed_light"], _C["greed"]][: len(grp)]
     bars = ax.bar(grp["label"], grp["mean_fwd_ret"], color=colors, width=0.62)
     unit_label = "bp" if TARGET == "UST_10Yr" else "%"
     ax.set_ylabel(f"未來{BUCKET_HORIZON}日平均變動 ({unit_label})", fontsize=9)
@@ -249,7 +261,7 @@ def render_distribution_analysis_4panel_base64(df, score_col, label, horizon=20,
 
     bucket_data = []
     bucket_stats = []
-    colors = ["#1b4332", "#2f6b4f", "#5c8a6e", "#6b7280", "#b1592f", "#a6362f", "#661111"]
+    colors = [_C["fear_deep"], _C["fear"], _C["fear_light"], _C["neutral"], _C["greed_light"], _C["greed"], _C["greed_deep"]]
 
     for b_label, mask in buckets_def:
         vals = sub.loc[mask, "excess_bp"].values
@@ -319,15 +331,15 @@ def render_distribution_analysis_4panel_base64(df, score_col, label, horizon=20,
 
     # 4. 全數據散佈圖 + 滾動平滑趨勢線
     ax4 = axes[1, 1]
-    ax4.scatter(sub[score_col], sub["excess_bp"], alpha=0.25, color="#1e3a5f", s=10, label="每日樣本點")
+    ax4.scatter(sub[score_col], sub["excess_bp"], alpha=0.25, color=_C["series"][0], s=10, label="每日樣本點")
     ax4.axhline(0, color="#888", linestyle="--", linewidth=0.8)
-    ax4.axvline(25, color="#2f6b4f", linestyle=":", alpha=0.7, label="恐懼門檻 25")
-    ax4.axvline(75, color="#a6362f", linestyle=":", alpha=0.7, label="貪婪門檻 75")
+    ax4.axvline(25, color=_C["fear"], linestyle=":", alpha=0.7, label="恐懼門檻 25")
+    ax4.axvline(75, color=_C["greed"], linestyle=":", alpha=0.7, label="貪婪門檻 75")
 
     # 計算滾動中位數 trend
     sub_sorted = sub.sort_values(score_col)
     roll_trend = sub_sorted["excess_bp"].rolling(window=150, min_periods=30, center=True).mean()
-    ax4.plot(sub_sorted[score_col], roll_trend, color="#d97706", linewidth=2.5, label="非線性趨勢線 (Rolling Mean)")
+    ax4.plot(sub_sorted[score_col], roll_trend, color=_C["ink"], linewidth=2.5, label="非線性趨勢線 (Rolling Mean)")
 
     ax4.set_title("4. 全分數對報酬散佈圖 (檢視極端兩端是否勾回反轉)", fontsize=10.5, fontweight="bold")
     ax4.set_xlabel("當日因子分數 (0-100)", fontsize=9)
@@ -376,7 +388,7 @@ def fetch_extended_history(years):
     print(f"[{years}年分桶分析] 各原始資料來源實際可回溯範圍：")
     for name, (lo, hi, n) in raw_ranges.items():
         print(f"    {name}: {lo.date()} ~ {hi.date()}（{n}筆），"
-              f"{f'足夠支撐{years}年分析' if lo <= target_start + pd.Timedelta(days=31) else f'⚠️ 不足{years}年+暖身期，將如實反映在分數的實際起始日'}")
+              f"{f'足夠支撐{years}年分析' if lo <= target_start + pd.Timedelta(days=31) else f'不足{years}年+暖身期，將如實反映在分數的實際起始日'}")
 
     full_index = pd.date_range(ud.FETCH_START_DATE, ud.END_DATE, freq="D")
     df = pd.concat(series_list, axis=1, sort=True).reindex(full_index)
@@ -438,17 +450,17 @@ def decile_chart_base64(result, title, buckets, horizon, warn_n=DECILE_MIN_N_WAR
         low_n = row.n < warn_n
         if low_n:
             bar.set_hatch("///")
-            bar.set_edgecolor("#a6362f")
+            bar.set_edgecolor(_C["danger"])
             bar.set_linewidth(1.2)
         v = row.mean_fwd_ret
         label = f"n={row.n}" + ("*" if low_n else "")
         ax.annotate(label, (bar.get_x() + bar.get_width() / 2, v),
                     textcoords="offset points", xytext=(0, 4 if v >= 0 else -13), ha="center",
-                    fontsize=6.5 if n_bars > 12 else 7, color="#a6362f" if low_n else "#444",
+                    fontsize=6.5 if n_bars > 12 else 7, color=_C["danger"] if low_n else _C["muted"],
                     fontweight=("bold" if low_n else "normal"), rotation=90 if n_bars > 12 else 0)
     unit_label = "bp" if TARGET == "UST_10Yr" else "%"
     ax.set_ylabel(f"Mean fwd {horizon}-day change ({unit_label})", fontsize=9)
-    ax.set_xlabel(f"D1 (Most Fear)  →  D{buckets} (Most Greed)", fontsize=8.5, color="#667085")
+    ax.set_xlabel(f"D1 (Most Fear)  →  D{buckets} (Most Greed)", fontsize=8.5, color=_C["muted"])
     ax.set_title(title, fontsize=10)
     ax.tick_params(labelsize=7.5 if n_bars > 12 else 8)
     for spine in ["top", "right"]:
@@ -644,49 +656,50 @@ def render_backtest_mini_table(bt):
 
 REPORT_CSS = """
   * { box-sizing: border-box; }
-  body { margin:0; background:#f4f5f7; color:#161a23; font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",Roboto,sans-serif; line-height:__BASE_LINE_HEIGHT__; }
-  .wrap { max-width:__CONTENT_MAX_WIDTH__; margin:0 auto; padding:44px 24px 80px; }
-  header { margin-bottom:36px; }
-  .kicker { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; letter-spacing:0.12em; color:#a6742a; font-weight:700; margin-bottom:10px; }
-  h1 { font-size:__H1_SIZE__; font-weight:700; margin:0 0 12px; letter-spacing:-0.02em; }
-  .meta { font-size:13px; color:#4a5568; margin:0 0 14px; }
-  .disclaimer { font-size:12.5px; color:#667085; background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:14px 16px; line-height:1.7; max-width:__LEDE_MAX_WIDTH__; }
-  .section-heading { font-size:20px; font-weight:700; margin:44px 0 18px; display:flex; align-items:center; gap:10px; }
-  .card { background:#fff; border:1px solid #dfe2e8; border-radius:14px; padding:26px 28px; margin-bottom:22px; box-shadow:0 1px 2px rgba(22,26,35,0.04); }
-  .card h2 { font-size:19px; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:10px; }
-  .card h3 { font-size:14px; font-weight:700; margin:22px 0 8px; color:#2d3440; }
-  .bar { width:5px; height:20px; background:#1e3a5f; border-radius:2px; display:inline-block; }
+  body { margin:0; line-height:__BASE_LINE_HEIGHT__; }
+  .wrap { max-width:__CONTENT_MAX_WIDTH__; margin:0 auto; padding:32px 24px 72px; }
+  header { margin-bottom:28px; }
+  .kicker { display:none; }
+  h1 { font-size:__H1_SIZE__; font-weight:700; margin:0 0 10px; letter-spacing:-0.015em; line-height:1.25; }
+  .meta { font-size:13px; color:var(--text-secondary); margin:0 0 12px; }
+  .disclaimer { font-size:13px; color:var(--text-secondary); margin:0 0 10px; line-height:1.7; max-width:__LEDE_MAX_WIDTH__;
+    padding:10px 14px; background:var(--surface-2); border-radius:4px; }
+  .section-heading { font-size:20px; font-weight:700; margin:40px 0 0; padding-top:20px; border-top:2px solid var(--text-primary); }
+  .card { padding:24px 0; border-top:1px solid var(--rule); }
+  .card h2 { font-size:18px; font-weight:700; margin:0 0 14px; }
+  .card h3 { font-size:14.5px; font-weight:700; margin:22px 0 8px; color:var(--text-primary); }
+  .bar { display:none; }
   .data-table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0 4px; }
-  .data-table th, .data-table td { text-align:left; padding:7px 10px; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums; }
-  .data-table th { color:#667085; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }
+  .data-table th, .data-table td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--rule); }
+  .data-table th { color:var(--text-muted); font-weight:600; font-size:12px; background:var(--surface-2); border-bottom-color:var(--border); }
   .data-table td.fname { font-weight:600; white-space:nowrap; }
   .data-table.mini { max-width:760px; }
-  .hint { font-size:12px; color:#667085; margin:6px 0 4px; line-height:1.6; }
-  .chart { max-width:100%; display:block; margin:10px 0; border-radius:8px; }
-  .na { color:#a7adb9; font-style:italic; }
-  .pos { color:#b1592f; font-weight:700; }
-  .neg { color:#2f6b4f; font-weight:700; }
-  .n { color:#a7adb9; font-size:11px; }
-  .verdict-keep { color:#2f6b4f; font-weight:700; }
-  .verdict-watch { color:#a6742a; font-weight:700; }
-  .verdict-cut { color:#a6362f; font-weight:700; }
-  .rec-item { margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid #e5e7eb; }
+  .hint { font-size:12.5px; color:var(--text-muted); margin:6px 0 4px; line-height:1.65; }
+  .chart { max-width:100%; display:block; margin:10px 0; border-radius:4px; border:1px solid var(--rule); background:#ffffff; }
+  .na { color:var(--text-muted); }
+  .pos { color:var(--tier-greed); font-weight:700; }
+  .neg { color:var(--tier-fear); font-weight:700; }
+  .n { color:var(--text-muted); font-size:11px; }
+  .verdict-keep { color:var(--tier-fear); font-weight:700; }
+  .verdict-watch { color:var(--warn); font-weight:700; }
+  .verdict-cut { color:var(--danger); font-weight:700; }
+  .rec-item { margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--rule); }
   .rec-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
   .rec-head { font-size:15px; font-weight:700; margin-bottom:6px; }
-  .rec-item ul { margin:4px 0 0; padding-left:20px; font-size:13px; color:#4a5568; }
+  .rec-item ul { margin:4px 0 0; padding-left:20px; font-size:13px; color:var(--text-secondary); }
   .rec-item li { margin-bottom:3px; }
-  .tearsheet-wrap { margin-top:14px; border:1px solid #dfe2e8; border-radius:10px; overflow:hidden; }
+  .tearsheet-wrap { margin-top:14px; border:1px solid var(--rule); border-radius:4px; overflow:hidden; }
   iframe.tearsheet { width:100%; height:2600px; border:none; display:block; }
-  .decile-block { margin-bottom:32px; padding-bottom:26px; border-bottom:1px solid #e5e7eb; }
+  .decile-block { margin-bottom:32px; padding-bottom:26px; border-bottom:1px solid var(--rule); }
   .decile-block:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-  .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:#2d3440; }
-  .data-table tr.low-n td { color:#a6362f; }
-  .warn-hint { color:#a6362f; }
+  .decile-block h3 { font-size:15px; font-weight:700; margin:0 0 6px; color:var(--text-primary); }
+  .data-table tr.low-n td { color:var(--danger); }
+  .warn-hint { color:var(--danger); }
+  @media (max-width: 640px) { .wrap { padding:24px 16px 56px; } .data-table { display:block; overflow-x:auto; } }
 """
-# 統一間距/字級/行高數字(page_style.py)——這裡沒有CSS變數/深色模式(維持現狀，
-# 這次不補)，只是把.wrap寬度/h1字級/行高/說明段落可讀寬度這幾個純量值換成跟
-# 其他四頁一致的數字，用字串取代而不是f-string插值，避免整份CSS(41行、
-# 每行都有花括號)要逐一跳脫的風險。
+# 顏色、字型一律用 page_style.py 的 token(由各頁另外注入 page_style.ROOT_COLORS_CSS)；
+# 這裡只放版面規則。純量值(寬度、字級、行高)用字串取代插入，避免整份 CSS 的
+# 花括號都要跳脫。
 REPORT_CSS = (REPORT_CSS
               .replace("__BASE_LINE_HEIGHT__", page_style.BASE_LINE_HEIGHT)
               .replace("__CONTENT_MAX_WIDTH__", page_style.CONTENT_MAX_WIDTH)
